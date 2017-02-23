@@ -63,6 +63,7 @@
 #include "custom_utilities/vertex_morphing_mapper.h"
 #include "custom_utilities/response_functions/strain_energy_response_function.h"
 #include "custom_utilities/response_functions/mass_response_function.h"
+#include "custom_utilities/cad_reconstruction/cad_mapper.h"
 #include "linear_solvers/linear_solver.h"
 
 // ==============================================================================
@@ -150,7 +151,20 @@ void  AddCustomUtilitiesToPython()
             .def("get_value", &MassResponseFunction::get_value)
             .def("get_initial_value", &MassResponseFunction::get_initial_value) 
             .def("get_gradient", &MassResponseFunction::get_gradient)                              
-            ;                     
+            ;                 
+
+    // ========================================================================
+    // For CAD reconstruction
+    // ========================================================================
+    class_<CADMapper, bases<Process> >("CADMapper", init<ModelPart&, boost::python::dict, boost::python::dict, SparseLinearSolverType::Pointer>())
+            .def("compute_mapping_matrix", &CADMapper::compute_mapping_matrix)
+            .def("apply_boundary_conditions", &CADMapper::apply_boundary_conditions)
+            .def("map_to_cad_space", &CADMapper::map_to_cad_space)
+            .def("output_gauss_points", &CADMapper::output_gauss_points)
+            .def("output_surface_points", &CADMapper::output_surface_points)
+            .def("output_boundary_loop_points", &CADMapper::output_boundary_loop_points)
+            .def("output_control_point_displacements", &CADMapper::output_control_point_displacements)
+            ;                      
 }
 
 
