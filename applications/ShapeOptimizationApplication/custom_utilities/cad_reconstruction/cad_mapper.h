@@ -37,8 +37,8 @@
 //==============================================================================
 //
 //   Project Name:        KratosShape                            $
-//   Created by:          $Author:    giovanni.filomeno@tum.de   $
-//   Last modified by:    $Co-Author: giovanni.filomeno@tum.de   $
+//   Created by:          $Author:    daniel.baumgaertner@tum.de $
+//   Last modified by:    $Co-Author: daniel.baumgaertner@tum.de $
 //   Date:                $Date:                      Decem 2016 $
 //   Revision:            $Revision:                         0.0 $
 //
