@@ -513,258 +513,258 @@ public:
 	///  \author     from M.Breitenberger in Carat (04/2014)
 	//
 	//########################################################################################
-	void ComputeSecondVariationOfLocalCSY( double _u, double _v,
-									 	   Vector &_par_g1, // entspricht t1 und t2 vom JSON File
-									  	   Vector& _t1, 
-										   Vector& _t2, 
-										   Vector& _t3, 
-										   Vector& _t1_der, 
-										   Vector& _t2_der, 
-										   Vector& _t3_der,
-										   std::vector<Vector >& _t1_r,
-										   std::vector<Vector >& _t2_r,
-										   std::vector<Vector >& _t3_r,
-										   std::vector<Vector >& _t1_der_r,
-										   std::vector<Vector >& _t2_der_r,
-										   std::vector<Vector >& _t3_der_r,
-										   std::vector<std::vector<Vector > >& _t1_rs,
-										   std::vector<std::vector<Vector > >& _t2_rs,
-										   std::vector<std::vector<Vector > >& _t3_rs,
-										   std::vector<std::vector<Vector > >& _t1_der_rs,
-										   std::vector<std::vector<Vector > >& _t2_der_rs,
-										   std::vector<std::vector<Vector > >& _t3_der_rs )
-	{
-		//number of dofs (just displacements)
-		int number_of_affected_control_points = (m_p+1)*(m_q+1);
-		int ndofs = 3*number_of_affected_control_points;	
-		_t1_r.resize(ndofs);
-		_t2_r.resize(ndofs);
-		_t3_r.resize(ndofs);
-		_t1_der_r.resize(ndofs);
-		_t2_der_r.resize(ndofs);
-		_t3_der_r.resize(ndofs);
+	// void ComputeSecondVariationOfLocalCSY( double _u, double _v,
+	// 								 	   Vector &_par_g1, // entspricht t1 und t2 vom JSON File
+	// 								  	   Vector& _t1, 
+	// 									   Vector& _t2, 
+	// 									   Vector& _t3, 
+	// 									   Vector& _t1_der, 
+	// 									   Vector& _t2_der, 
+	// 									   Vector& _t3_der,
+	// 									   std::vector<Vector >& _t1_r,
+	// 									   std::vector<Vector >& _t2_r,
+	// 									   std::vector<Vector >& _t3_r,
+	// 									   std::vector<Vector >& _t1_der_r, // necessary for G2 only
+	// 									   std::vector<Vector >& _t2_der_r, // necessary for G2 only
+	// 									   std::vector<Vector >& _t3_der_r, // necessary for G2 only
+	// 									   std::vector<std::vector<Vector > >& _t1_rs,
+	// 									   std::vector<std::vector<Vector > >& _t2_rs,
+	// 									   std::vector<std::vector<Vector > >& _t3_rs,
+	// 									   std::vector<std::vector<Vector > >& _t1_der_rs,  // necessary for G2 only
+	// 									   std::vector<std::vector<Vector > >& _t2_der_rs,  // necessary for G2 only
+	// 									   std::vector<std::vector<Vector > >& _t3_der_rs ) // necessary for G2 only
+	// {
+	// 	//number of dofs (just displacements)
+	// 	int number_of_affected_control_points = (m_p+1)*(m_q+1);
+	// 	int ndofs = 3*number_of_affected_control_points;	
+	// 	_t1_r.resize(ndofs);
+	// 	_t2_r.resize(ndofs);
+	// 	_t3_r.resize(ndofs);
+	// 	_t1_der_r.resize(ndofs);
+	// 	_t2_der_r.resize(ndofs);
+	// 	_t3_der_r.resize(ndofs);
 		
-		_t1_rs.resize(ndofs);
-		_t2_rs.resize(ndofs);
-		_t3_rs.resize(ndofs);
-		_t1_der_rs.resize(ndofs);
-		_t2_der_rs.resize(ndofs);
-		_t3_der_rs.resize(ndofs);
+	// 	_t1_rs.resize(ndofs);
+	// 	_t2_rs.resize(ndofs);
+	// 	_t3_rs.resize(ndofs);
+	// 	_t1_der_rs.resize(ndofs);
+	// 	_t2_der_rs.resize(ndofs);
+	// 	_t3_der_rs.resize(ndofs);
 		
-		for (int i=0; i<ndofs;i++)
-		{
-			_t1_rs[i].resize(ndofs);
-			_t2_rs[i].resize(ndofs);
-			_t3_rs[i].resize(ndofs);
-			_t1_der_rs[i].resize(ndofs);
-			_t2_der_rs[i].resize(ndofs);
-			_t3_der_rs[i].resize(ndofs);
-		}
+	// 	for (int i=0; i<ndofs;i++)
+	// 	{
+	// 		_t1_rs[i].resize(ndofs);
+	// 		_t2_rs[i].resize(ndofs);
+	// 		_t3_rs[i].resize(ndofs);
+	// 		_t1_der_rs[i].resize(ndofs);
+	// 		_t2_der_rs[i].resize(ndofs);
+	// 		_t3_der_rs[i].resize(ndofs);
+	// 	}
 		
-		Matrix R_matrix;
-		std::vector<Matrix> dr_vector_format; //1st Derivatives of shape functions in vector format
+	// 	Matrix R_matrix;
+	// 	std::vector<Matrix> dr_vector_format; //1st Derivatives of shape functions in vector format
 
-		EvaluateNURBSFunctionsAndDerivative(-1,-1,_u,_v,R_matrix, dr_vector_format);
+	// 	EvaluateNURBSFunctionsAndDerivative(-1,-1,_u,_v,R_matrix, dr_vector_format);
 
-		Vector dr1 = ZeroVector(number_of_affected_control_points); // 1st derivative of shape functions in u-direction
-		Vector dr2 = ZeroVector(number_of_affected_control_points); // 1st derivative of shape functions in v-direction
-		unsigned int counter=0;
-		for(unsigned int j=0;j<R_matrix.size2();j++)
-		{
-			for(unsigned int i=0;i<R_matrix.size1();i++)
-			{
-				dr1(counter) = dr_vector_format[0](i,j);
-				dr2(counter) = dr_vector_format[1](i,j);
-				counter++;
-			}	
-		}	
+	// 	Vector dr1 = ZeroVector(number_of_affected_control_points); // 1st derivative of shape functions in u-direction
+	// 	Vector dr2 = ZeroVector(number_of_affected_control_points); // 1st derivative of shape functions in v-direction
+	// 	unsigned int counter=0;
+	// 	for(unsigned int j=0;j<R_matrix.size2();j++)
+	// 	{
+	// 		for(unsigned int i=0;i<R_matrix.size1();i++)
+	// 		{
+	// 			dr1(counter) = dr_vector_format[0](i,j);
+	// 			dr2(counter) = dr_vector_format[1](i,j);
+	// 			counter++;
+	// 		}	
+	// 	}	
 
-		Matrix dr; //1st Derivatives of shape functions in matrix format
-		Matrix ddr; //2nd Derivatives of shape functions in vector format
-		EvaluateNURBSFunctionsDerivatives(-1,-1, _u, _v, dr,ddr);
+	// 	Matrix dr; //1st Derivatives of shape functions in matrix format
+	// 	Matrix ddr; //2nd Derivatives of shape functions in vector format
+	// 	EvaluateNURBSFunctionsDerivatives(-1,-1, _u, _v, dr,ddr);
 		
-		// computer base vectors
-		Vector g1_act;
-		Vector g2_act;
-		Vector g3_act;
-		Matrix gi_deri = ZeroMatrix(3,3);
-		// computer base vectors derived ;
-		Vector g1_der_1;
-		Vector g1_der_2;
-		Vector g2_der_1;
-		Vector g2_der_2;
-		// computer base vectors derived wrt tilde_theta;
-		Vector g1_der_act;
-		Vector g2_der_act;
-		Vector g3_der_act;
-		
-		
-		ComputeBaseVectorsAndDerivatives(_u,_v,g1_act,g2_act,g3_act,gi_deri);
-		for(int i = 0;i<3;i++)
-		{
-			g1_der_1[i]=gi_deri(i,0);
-			g2_der_2[i]=gi_deri(i,1);
-			g1_der_2[i]=gi_deri(i,2);
-		}
-		g2_der_1=g1_der_2;
-		
-		g1_der_act = g1_der_1*_par_g1[0] + g1_der_2*_par_g1[1];
-		g2_der_act = g2_der_1*_par_g1[0] + g2_der_2*_par_g1[1];
+	// 	// computer base vectors
+	// 	Vector g1_act;
+	// 	Vector g2_act;
+	// 	Vector g3_act;
+	// 	Matrix gi_deri = ZeroMatrix(3,3);
+	// 	// computer base vectors derived ;
+	// 	Vector g1_der_1;
+	// 	Vector g1_der_2;
+	// 	Vector g2_der_1;
+	// 	Vector g2_der_2;
+	// 	// computer base vectors derived wrt tilde_theta;
+	// 	Vector g1_der_act;
+	// 	Vector g2_der_act;
+	// 	Vector g3_der_act;
 		
 		
-		//compute base vectors in actual configuration
+	// 	ComputeBaseVectorsAndDerivatives(_u,_v,g1_act,g2_act,g3_act,gi_deri);
+	// 	for(int i = 0;i<3;i++)
+	// 	{
+	// 		g1_der_1[i]=gi_deri(i,0);
+	// 		g2_der_2[i]=gi_deri(i,1);
+	// 		g1_der_2[i]=gi_deri(i,2);
+	// 	}
+	// 	g2_der_1=g1_der_2;
 		
-		Vector tilde_t2 = g1_act*_par_g1(0) + g2_act*_par_g1(1);
-		double l_t2 = norm_2(tilde_t2);
-		_t2 = tilde_t2/l_t2;
-		
-		Vector tilde_t3 = MathUtils<double>::CrossProduct(g1_act,g2_act);
-		double l_t3 = norm_2(tilde_t3);
-		_t3 = tilde_t3/l_t3;
-		
-		Vector tilde_t1 = MathUtils<double>::CrossProduct(tilde_t2,tilde_t3);
-		double l_t1 = norm_2(tilde_t1);
-		_t1 = tilde_t1/l_t1;
-		
-			//compute base vectors in actual configuration
-		
-		Vector tilde_t2_der = g1_der_act*_par_g1(0) + g2_der_act*_par_g1(1);
-		_t2_der = tilde_t2_der/l_t2-tilde_t2*inner_prod(tilde_t2_der,tilde_t2)/pow(l_t2,3);
-		
-		Vector tilde_t3_der = MathUtils<double>::CrossProduct(g1_der_act,g2_act)+MathUtils<double>::CrossProduct(g1_act,g2_der_act);
-		_t3_der = tilde_t3_der/l_t3-tilde_t3*inner_prod(tilde_t3_der,tilde_t3)/pow(l_t3,3);
-		
-		Vector tilde_t1_der = MathUtils<double>::CrossProduct(tilde_t2_der,tilde_t3)+MathUtils<double>::CrossProduct(tilde_t2,tilde_t3_der);
-		_t1_der = tilde_t1_der/l_t1-tilde_t1*inner_prod(tilde_t1_der,tilde_t1)/pow(l_t1,3);
-		
-		//variations of the base vectors
-		Vector a1_r;
-		Vector a2_r;
-		Vector a1_der_r;
-		Vector a2_der_r;
-		//variations of the base vectors
-		Vector a1_s;
-		Vector a2_s;
-		Vector a1_der_s;
-		Vector a2_der_s;
-		
-		for(int r=0;r<ndofs;r++)
-		{
-			int xyz_r = r%3; //0 ->disp_x; 1 ->disp_y; 2 ->disp_z
-			int i = r/3;     // index for the shape functions
-		
-			a1_r.clear();
-			a2_r.clear();
-			a1_der_r.clear();
-			a2_der_r.clear();
-			a1_r(xyz_r) = dr1(i);
-			a2_r(xyz_r) = dr2(i);
-			a1_der_r(xyz_r) = ddr(i,0)*_par_g1(0)+ddr(i,2)*_par_g1(1);
-			a2_der_r(xyz_r) = ddr(i,2)*_par_g1(0)+ddr(i,1)*_par_g1(1);
-		
-			//variation of the non normalized local vector
-			Vector tilde_2_r = _par_g1(0)*a1_r + _par_g1(1)*a2_r;
-			Vector tilde_3_r = MathUtils<double>::CrossProduct(a1_r,g2_act) + MathUtils<double>::CrossProduct(g1_act,a2_r);
-			Vector tilde_1_r = MathUtils<double>::CrossProduct(tilde_2_r,tilde_t3) + MathUtils<double>::CrossProduct(tilde_t2,tilde_3_r);
-			Vector tilde_2_der_r = _par_g1(0)*a1_der_r + _par_g1(1)*a2_der_r;
-			Vector tilde_3_der_r = MathUtils<double>::CrossProduct(a1_der_r,g2_act) + MathUtils<double>::CrossProduct(g1_der_act,a2_r)+MathUtils<double>::CrossProduct(a1_r,g2_der_act) + MathUtils<double>::CrossProduct(g1_act,a2_der_r);
-			Vector tilde_1_der_r = MathUtils<double>::CrossProduct(tilde_2_der_r,tilde_t3) + MathUtils<double>::CrossProduct(tilde_t2_der,tilde_3_r)+MathUtils<double>::CrossProduct(tilde_2_r,tilde_t3_der) + MathUtils<double>::CrossProduct(tilde_t2,tilde_3_der_r);
-		
-			double line_t1_r = inner_prod(_t1,tilde_1_r);
-			double line_t2_r = inner_prod(_t2,tilde_2_r);
-			double line_t3_r = inner_prod(_t3,tilde_3_r);
-			double line_tilde_t1_r = inner_prod(tilde_t1,tilde_1_r);
-			double line_tilde_t2_r = inner_prod(tilde_t2,tilde_2_r);
-			double line_tilde_t3_r = inner_prod(tilde_t3,tilde_3_r);
-			double line_tilde_t1_der_r = inner_prod(tilde_t1_der,tilde_1_r) + inner_prod(tilde_t1,tilde_1_der_r);
-			double line_tilde_t2_der_r = inner_prod(tilde_t2_der,tilde_2_r) + inner_prod(tilde_t2,tilde_2_der_r);
-			double line_tilde_t3_der_r = inner_prod(tilde_t3_der,tilde_3_r) + inner_prod(tilde_t3,tilde_3_der_r);
+	// 	g1_der_act = g1_der_1*_par_g1[0] + g1_der_2*_par_g1[1];
+	// 	g2_der_act = g2_der_1*_par_g1[0] + g2_der_2*_par_g1[1];
 		
 		
-			std::vector<Vector > tilde_2_rs;
-			std::vector<Vector > tilde_3_rs;
-			std::vector<Vector > tilde_1_rs;
-			tilde_2_rs.resize(ndofs);
-			tilde_3_rs.resize(ndofs);
-			tilde_1_rs.resize(ndofs);
-			std::vector<Vector > tilde_2_der_rs;
-			std::vector<Vector > tilde_3_der_rs;
-			std::vector<Vector > tilde_1_der_rs;
-			tilde_2_der_rs.resize(ndofs);
-			tilde_3_der_rs.resize(ndofs);
-			tilde_1_der_rs.resize(ndofs);
+	// 	//compute base vectors in actual configuration
 		
-			_t1_r[r] = tilde_1_r/l_t1 - line_t1_r*_t1/l_t1;
-			_t2_r[r] = tilde_2_r/l_t2 - line_t2_r*_t2/l_t2;
-			_t3_r[r] = tilde_3_r/l_t3 - line_t3_r*_t3/l_t3;
+	// 	Vector tilde_t2 = g1_act*_par_g1(0) + g2_act*_par_g1(1);
+	// 	double l_t2 = norm_2(tilde_t2);
+	// 	_t2 = tilde_t2/l_t2;
 		
-			_t1_der_r[r] = tilde_1_der_r/l_t1 - (line_tilde_t1_r*tilde_t1_der)/pow(l_t1,3)-(tilde_1_r*inner_prod(tilde_t1,tilde_t1_der)+tilde_t1*line_tilde_t1_der_r)/pow(l_t1,3)+3*(tilde_t1*inner_prod(tilde_t1,tilde_t1_der)*line_tilde_t1_r)/pow(l_t1,5);
-			_t2_der_r[r] = tilde_2_der_r/l_t2 - (line_tilde_t2_r*tilde_t2_der)/pow(l_t2,3)-(tilde_2_r*inner_prod(tilde_t2,tilde_t2_der)+tilde_t2*line_tilde_t2_der_r)/pow(l_t2,3)+3*(tilde_t2*inner_prod(tilde_t2,tilde_t2_der)*line_tilde_t2_r)/pow(l_t2,5);
-			_t3_der_r[r] = tilde_3_der_r/l_t3 - (line_tilde_t3_r*tilde_t3_der)/pow(l_t3,3)-(tilde_3_r*inner_prod(tilde_t3,tilde_t3_der)+tilde_t3*line_tilde_t3_der_r)/pow(l_t3,3)+3*(tilde_t3*inner_prod(tilde_t3,tilde_t3_der)*line_tilde_t3_r)/pow(l_t3,5);
+	// 	Vector tilde_t3 = MathUtils<double>::CrossProduct(g1_act,g2_act);
+	// 	double l_t3 = norm_2(tilde_t3);
+	// 	_t3 = tilde_t3/l_t3;
 		
-			for (int s=0; s<ndofs; s++)
-			{
-				int xyz_s = s%3; //0 ->disp_x; 1 ->disp_y; 2 ->disp_z
-				int j = s/3;     // index for the shape functions
+	// 	Vector tilde_t1 = MathUtils<double>::CrossProduct(tilde_t2,tilde_t3);
+	// 	double l_t1 = norm_2(tilde_t1);
+	// 	_t1 = tilde_t1/l_t1;
+		
+	// 		//compute base vectors in actual configuration
+		
+	// 	Vector tilde_t2_der = g1_der_act*_par_g1(0) + g2_der_act*_par_g1(1);
+	// 	_t2_der = tilde_t2_der/l_t2-tilde_t2*inner_prod(tilde_t2_der,tilde_t2)/pow(l_t2,3);
+		
+	// 	Vector tilde_t3_der = MathUtils<double>::CrossProduct(g1_der_act,g2_act)+MathUtils<double>::CrossProduct(g1_act,g2_der_act);
+	// 	_t3_der = tilde_t3_der/l_t3-tilde_t3*inner_prod(tilde_t3_der,tilde_t3)/pow(l_t3,3);
+		
+	// 	Vector tilde_t1_der = MathUtils<double>::CrossProduct(tilde_t2_der,tilde_t3)+MathUtils<double>::CrossProduct(tilde_t2,tilde_t3_der);
+	// 	_t1_der = tilde_t1_der/l_t1-tilde_t1*inner_prod(tilde_t1_der,tilde_t1)/pow(l_t1,3);
+		
+	// 	//variations of the base vectors
+	// 	Vector a1_r;
+	// 	Vector a2_r;
+	// 	Vector a1_der_r;
+	// 	Vector a2_der_r;
+	// 	//variations of the base vectors
+	// 	Vector a1_s;
+	// 	Vector a2_s;
+	// 	Vector a1_der_s;
+	// 	Vector a2_der_s;
+		
+	// 	for(int r=0;r<ndofs;r++)
+	// 	{
+	// 		int xyz_r = r%3; //0 ->disp_x; 1 ->disp_y; 2 ->disp_z
+	// 		int i = r/3;     // index for the shape functions
+		
+	// 		a1_r.clear();
+	// 		a2_r.clear();
+	// 		a1_der_r.clear();
+	// 		a2_der_r.clear();
+	// 		a1_r(xyz_r) = dr1(i);
+	// 		a2_r(xyz_r) = dr2(i);
+	// 		a1_der_r(xyz_r) = ddr(i,0)*_par_g1(0)+ddr(i,2)*_par_g1(1);
+	// 		a2_der_r(xyz_r) = ddr(i,2)*_par_g1(0)+ddr(i,1)*_par_g1(1);
+		
+	// 		//variation of the non normalized local vector
+	// 		Vector tilde_2_r = _par_g1(0)*a1_r + _par_g1(1)*a2_r;
+	// 		Vector tilde_3_r = MathUtils<double>::CrossProduct(a1_r,g2_act) + MathUtils<double>::CrossProduct(g1_act,a2_r);
+	// 		Vector tilde_1_r = MathUtils<double>::CrossProduct(tilde_2_r,tilde_t3) + MathUtils<double>::CrossProduct(tilde_t2,tilde_3_r);
+	// 		Vector tilde_2_der_r = _par_g1(0)*a1_der_r + _par_g1(1)*a2_der_r;
+	// 		Vector tilde_3_der_r = MathUtils<double>::CrossProduct(a1_der_r,g2_act) + MathUtils<double>::CrossProduct(g1_der_act,a2_r)+MathUtils<double>::CrossProduct(a1_r,g2_der_act) + MathUtils<double>::CrossProduct(g1_act,a2_der_r);
+	// 		Vector tilde_1_der_r = MathUtils<double>::CrossProduct(tilde_2_der_r,tilde_t3) + MathUtils<double>::CrossProduct(tilde_t2_der,tilde_3_r)+MathUtils<double>::CrossProduct(tilde_2_r,tilde_t3_der) + MathUtils<double>::CrossProduct(tilde_t2,tilde_3_der_r);
+		
+	// 		double line_t1_r = inner_prod(_t1,tilde_1_r);
+	// 		double line_t2_r = inner_prod(_t2,tilde_2_r);
+	// 		double line_t3_r = inner_prod(_t3,tilde_3_r);
+	// 		double line_tilde_t1_r = inner_prod(tilde_t1,tilde_1_r);
+	// 		double line_tilde_t2_r = inner_prod(tilde_t2,tilde_2_r);
+	// 		double line_tilde_t3_r = inner_prod(tilde_t3,tilde_3_r);
+	// 		double line_tilde_t1_der_r = inner_prod(tilde_t1_der,tilde_1_r) + inner_prod(tilde_t1,tilde_1_der_r);
+	// 		double line_tilde_t2_der_r = inner_prod(tilde_t2_der,tilde_2_r) + inner_prod(tilde_t2,tilde_2_der_r);
+	// 		double line_tilde_t3_der_r = inner_prod(tilde_t3_der,tilde_3_r) + inner_prod(tilde_t3,tilde_3_der_r);
+		
+		
+	// 		std::vector<Vector > tilde_2_rs;
+	// 		std::vector<Vector > tilde_3_rs;
+	// 		std::vector<Vector > tilde_1_rs;
+	// 		tilde_2_rs.resize(ndofs);
+	// 		tilde_3_rs.resize(ndofs);
+	// 		tilde_1_rs.resize(ndofs);
+	// 		std::vector<Vector > tilde_2_der_rs;
+	// 		std::vector<Vector > tilde_3_der_rs;
+	// 		std::vector<Vector > tilde_1_der_rs;
+	// 		tilde_2_der_rs.resize(ndofs);
+	// 		tilde_3_der_rs.resize(ndofs);
+	// 		tilde_1_der_rs.resize(ndofs);
+		
+	// 		_t1_r[r] = tilde_1_r/l_t1 - line_t1_r*_t1/l_t1;
+	// 		_t2_r[r] = tilde_2_r/l_t2 - line_t2_r*_t2/l_t2;
+	// 		_t3_r[r] = tilde_3_r/l_t3 - line_t3_r*_t3/l_t3;
+		
+	// 		_t1_der_r[r] = tilde_1_der_r/l_t1 - (line_tilde_t1_r*tilde_t1_der)/pow(l_t1,3)-(tilde_1_r*inner_prod(tilde_t1,tilde_t1_der)+tilde_t1*line_tilde_t1_der_r)/pow(l_t1,3)+3*(tilde_t1*inner_prod(tilde_t1,tilde_t1_der)*line_tilde_t1_r)/pow(l_t1,5);
+	// 		_t2_der_r[r] = tilde_2_der_r/l_t2 - (line_tilde_t2_r*tilde_t2_der)/pow(l_t2,3)-(tilde_2_r*inner_prod(tilde_t2,tilde_t2_der)+tilde_t2*line_tilde_t2_der_r)/pow(l_t2,3)+3*(tilde_t2*inner_prod(tilde_t2,tilde_t2_der)*line_tilde_t2_r)/pow(l_t2,5);
+	// 		_t3_der_r[r] = tilde_3_der_r/l_t3 - (line_tilde_t3_r*tilde_t3_der)/pow(l_t3,3)-(tilde_3_r*inner_prod(tilde_t3,tilde_t3_der)+tilde_t3*line_tilde_t3_der_r)/pow(l_t3,3)+3*(tilde_t3*inner_prod(tilde_t3,tilde_t3_der)*line_tilde_t3_r)/pow(l_t3,5);
+		
+	// 		for (int s=0; s<ndofs; s++)
+	// 		{
+	// 			int xyz_s = s%3; //0 ->disp_x; 1 ->disp_y; 2 ->disp_z
+	// 			int j = s/3;     // index for the shape functions
 			
-				a1_s.clear();
-				a2_s.clear();
-				a1_der_s.clear();
-				a2_der_s.clear();
-				a1_s(xyz_s) = dr1(j);
-				a2_s(xyz_s) = dr2(j);
-				a1_der_s(xyz_s) = ddr(j,0)*_par_g1(0)+ddr(j,2)*_par_g1(1);
-				a2_der_s(xyz_s) = ddr(j,2)*_par_g1(0)+ddr(j,1)*_par_g1(1);
+	// 			a1_s.clear();
+	// 			a2_s.clear();
+	// 			a1_der_s.clear();
+	// 			a2_der_s.clear();
+	// 			a1_s(xyz_s) = dr1(j);
+	// 			a2_s(xyz_s) = dr2(j);
+	// 			a1_der_s(xyz_s) = ddr(j,0)*_par_g1(0)+ddr(j,2)*_par_g1(1);
+	// 			a2_der_s(xyz_s) = ddr(j,2)*_par_g1(0)+ddr(j,1)*_par_g1(1);
 			
-				//variation of the non normalized local vector
-				Vector tilde_2_s = _par_g1(0)*a1_s + _par_g1(1)*a2_s;
-				Vector tilde_3_s = MathUtils<double>::CrossProduct(a1_s,g2_act) + MathUtils<double>::CrossProduct(g1_act,a2_s);
-				Vector tilde_1_s = MathUtils<double>::CrossProduct(tilde_2_s,tilde_t3) + MathUtils<double>::CrossProduct(tilde_t2,tilde_3_s);
-				Vector tilde_2_der_s = _par_g1(0)*a1_der_s + _par_g1(1)*a2_der_s;
-				Vector tilde_3_der_s = MathUtils<double>::CrossProduct(a1_der_s,g2_act) + MathUtils<double>::CrossProduct(g1_der_act,a2_s)+MathUtils<double>::CrossProduct(a1_s,g2_der_act) + MathUtils<double>::CrossProduct(g1_act,a2_der_s);
-				Vector tilde_1_der_s = MathUtils<double>::CrossProduct(tilde_2_der_s,tilde_t3) + MathUtils<double>::CrossProduct(tilde_t2_der,tilde_3_s)+MathUtils<double>::CrossProduct(tilde_2_s,tilde_t3_der) + MathUtils<double>::CrossProduct(tilde_t2,tilde_3_der_s);
+	// 			//variation of the non normalized local vector
+	// 			Vector tilde_2_s = _par_g1(0)*a1_s + _par_g1(1)*a2_s;
+	// 			Vector tilde_3_s = MathUtils<double>::CrossProduct(a1_s,g2_act) + MathUtils<double>::CrossProduct(g1_act,a2_s);
+	// 			Vector tilde_1_s = MathUtils<double>::CrossProduct(tilde_2_s,tilde_t3) + MathUtils<double>::CrossProduct(tilde_t2,tilde_3_s);
+	// 			Vector tilde_2_der_s = _par_g1(0)*a1_der_s + _par_g1(1)*a2_der_s;
+	// 			Vector tilde_3_der_s = MathUtils<double>::CrossProduct(a1_der_s,g2_act) + MathUtils<double>::CrossProduct(g1_der_act,a2_s)+MathUtils<double>::CrossProduct(a1_s,g2_der_act) + MathUtils<double>::CrossProduct(g1_act,a2_der_s);
+	// 			Vector tilde_1_der_s = MathUtils<double>::CrossProduct(tilde_2_der_s,tilde_t3) + MathUtils<double>::CrossProduct(tilde_t2_der,tilde_3_s)+MathUtils<double>::CrossProduct(tilde_2_s,tilde_t3_der) + MathUtils<double>::CrossProduct(tilde_t2,tilde_3_der_s);
 			
-				//tilde_2_rs[s]=0;
-				tilde_3_rs[s] = MathUtils<double>::CrossProduct(a1_r,a2_s) + MathUtils<double>::CrossProduct(a1_s,a2_r);
-				tilde_1_rs[s] = MathUtils<double>::CrossProduct(tilde_2_s,tilde_3_r) + MathUtils<double>::CrossProduct(tilde_2_r,tilde_3_s) + MathUtils<double>::CrossProduct(tilde_t2,tilde_3_rs[s]);
-				//tilde_2_der_rs[s]=0;
-				tilde_3_der_rs[s] = MathUtils<double>::CrossProduct(a1_der_s,a2_r) + MathUtils<double>::CrossProduct(a1_der_r,a2_s)+MathUtils<double>::CrossProduct(a1_s,a2_der_r) + MathUtils<double>::CrossProduct(a1_r,a2_der_s);
-				tilde_1_der_rs[s] = MathUtils<double>::CrossProduct(tilde_2_der_s,tilde_3_r) + MathUtils<double>::CrossProduct(tilde_2_der_r,tilde_3_s) + MathUtils<double>::CrossProduct(tilde_t2_der,tilde_3_rs[s]) + MathUtils<double>::CrossProduct(tilde_2_s,tilde_3_der_r) + MathUtils<double>::CrossProduct(tilde_2_r,tilde_3_der_s) + MathUtils<double>::CrossProduct(tilde_t2,tilde_3_der_rs[s]);
+	// 			//tilde_2_rs[s]=0;
+	// 			tilde_3_rs[s] = MathUtils<double>::CrossProduct(a1_r,a2_s) + MathUtils<double>::CrossProduct(a1_s,a2_r);
+	// 			tilde_1_rs[s] = MathUtils<double>::CrossProduct(tilde_2_s,tilde_3_r) + MathUtils<double>::CrossProduct(tilde_2_r,tilde_3_s) + MathUtils<double>::CrossProduct(tilde_t2,tilde_3_rs[s]);
+	// 			//tilde_2_der_rs[s]=0;
+	// 			tilde_3_der_rs[s] = MathUtils<double>::CrossProduct(a1_der_s,a2_r) + MathUtils<double>::CrossProduct(a1_der_r,a2_s)+MathUtils<double>::CrossProduct(a1_s,a2_der_r) + MathUtils<double>::CrossProduct(a1_r,a2_der_s);
+	// 			tilde_1_der_rs[s] = MathUtils<double>::CrossProduct(tilde_2_der_s,tilde_3_r) + MathUtils<double>::CrossProduct(tilde_2_der_r,tilde_3_s) + MathUtils<double>::CrossProduct(tilde_t2_der,tilde_3_rs[s]) + MathUtils<double>::CrossProduct(tilde_2_s,tilde_3_der_r) + MathUtils<double>::CrossProduct(tilde_2_r,tilde_3_der_s) + MathUtils<double>::CrossProduct(tilde_t2,tilde_3_der_rs[s]);
 			
-				double line_tilde_t1_s = inner_prod(tilde_t1,tilde_1_s);
-				double line_tilde_t2_s = inner_prod(tilde_t2,tilde_2_s);
-				double line_tilde_t3_s = inner_prod(tilde_t3,tilde_3_s);
-				double line_tilde_t1_der_s = inner_prod(tilde_t1_der,tilde_1_s) + inner_prod(tilde_t1,tilde_1_der_s);
-				// double line_tilde_t2_der_s = inner_prod(tilde_t2_der,tilde_2_s) + inner_prod(tilde_t2,tilde_2_der_s);
-				double line_tilde_t3_der_s = inner_prod(tilde_t3_der,tilde_3_s) + inner_prod(tilde_t3,tilde_3_der_s);
-				double line_tilde_t1_rs = inner_prod(tilde_1_r,tilde_1_s);
-				double line_tilde_t2_rs = inner_prod(tilde_2_r,tilde_2_s);
-				double line_tilde_t3_rs = inner_prod(tilde_3_r,tilde_3_s);
-				double line_tilde_t1_der_rs = inner_prod(tilde_1_der_r,tilde_1_s) + inner_prod(tilde_1_r,tilde_1_der_s);
-				double line_tilde_t2_der_rs = inner_prod(tilde_2_der_r,tilde_2_s) + inner_prod(tilde_2_r,tilde_2_der_s);
-				double line_tilde_t3_der_rs = inner_prod(tilde_3_der_r,tilde_3_s) + inner_prod(tilde_3_r,tilde_3_der_s);
-				_t1_rs[r][s] = tilde_1_rs[s]/l_t1 - line_tilde_t1_s*tilde_1_r/pow(l_t1,3) - (line_tilde_t1_rs*tilde_t1+line_tilde_t1_r*tilde_1_s)/pow(l_t1,3) + 3*line_tilde_t1_r*line_tilde_t1_s*tilde_t1/pow(l_t1,5);
-				_t2_rs[r][s] = tilde_2_rs[s]/l_t2 - line_tilde_t2_s*tilde_2_r/pow(l_t2,3) - (line_tilde_t2_rs*tilde_t2+line_tilde_t2_r*tilde_2_s)/pow(l_t2,3) + 3*line_tilde_t2_r*line_tilde_t2_s*tilde_t2/pow(l_t2,5);
-				_t3_rs[r][s] = tilde_3_rs[s]/l_t3 - line_tilde_t3_s*tilde_3_r/pow(l_t3,3) - (line_tilde_t3_rs*tilde_t3+line_tilde_t3_r*tilde_3_s)/pow(l_t3,3) + 3*line_tilde_t3_r*line_tilde_t3_s*tilde_t3/pow(l_t3,5);
+	// 			double line_tilde_t1_s = inner_prod(tilde_t1,tilde_1_s);
+	// 			double line_tilde_t2_s = inner_prod(tilde_t2,tilde_2_s);
+	// 			double line_tilde_t3_s = inner_prod(tilde_t3,tilde_3_s);
+	// 			double line_tilde_t1_der_s = inner_prod(tilde_t1_der,tilde_1_s) + inner_prod(tilde_t1,tilde_1_der_s);
+	// 			// double line_tilde_t2_der_s = inner_prod(tilde_t2_der,tilde_2_s) + inner_prod(tilde_t2,tilde_2_der_s);
+	// 			double line_tilde_t3_der_s = inner_prod(tilde_t3_der,tilde_3_s) + inner_prod(tilde_t3,tilde_3_der_s);
+	// 			double line_tilde_t1_rs = inner_prod(tilde_1_r,tilde_1_s);
+	// 			double line_tilde_t2_rs = inner_prod(tilde_2_r,tilde_2_s);
+	// 			double line_tilde_t3_rs = inner_prod(tilde_3_r,tilde_3_s);
+	// 			double line_tilde_t1_der_rs = inner_prod(tilde_1_der_r,tilde_1_s) + inner_prod(tilde_1_r,tilde_1_der_s);
+	// 			double line_tilde_t2_der_rs = inner_prod(tilde_2_der_r,tilde_2_s) + inner_prod(tilde_2_r,tilde_2_der_s);
+	// 			double line_tilde_t3_der_rs = inner_prod(tilde_3_der_r,tilde_3_s) + inner_prod(tilde_3_r,tilde_3_der_s);
+	// 			_t1_rs[r][s] = tilde_1_rs[s]/l_t1 - line_tilde_t1_s*tilde_1_r/pow(l_t1,3) - (line_tilde_t1_rs*tilde_t1+line_tilde_t1_r*tilde_1_s)/pow(l_t1,3) + 3*line_tilde_t1_r*line_tilde_t1_s*tilde_t1/pow(l_t1,5);
+	// 			_t2_rs[r][s] = tilde_2_rs[s]/l_t2 - line_tilde_t2_s*tilde_2_r/pow(l_t2,3) - (line_tilde_t2_rs*tilde_t2+line_tilde_t2_r*tilde_2_s)/pow(l_t2,3) + 3*line_tilde_t2_r*line_tilde_t2_s*tilde_t2/pow(l_t2,5);
+	// 			_t3_rs[r][s] = tilde_3_rs[s]/l_t3 - line_tilde_t3_s*tilde_3_r/pow(l_t3,3) - (line_tilde_t3_rs*tilde_t3+line_tilde_t3_r*tilde_3_s)/pow(l_t3,3) + 3*line_tilde_t3_r*line_tilde_t3_s*tilde_t3/pow(l_t3,5);
 			
-				//_t1_der_rs[r][s] = tilde_1_der_rs[s]/l_t1 - tilde_1_der_r*line_tilde_t1_s/pow(l_t1,3) - (line_tilde_t1_rs*tilde_t1_der + line_tilde_t1_r*tilde_1_der_s)/pow(l_t1,3) + 3*(line_tilde_t1_r*tilde_t1_der*line_tilde_t1_s)/pow(l_t1,5) -(tilde_1_rs[s]*inner_prod(tilde_t1,tilde_t1_der)+tilde_1_s*line_tilde_t1_der_r+tilde_1_r*(inner_prod(tilde_1_s,tilde_t1_der)+inner_prod(tilde_t1,tilde_1_der_s))+tilde_t1*line_tilde_t1_der_rs)/pow(l_t1,3) + 3* (tilde_1_r*inner_prod(tilde_t1,tilde_t1_der)+tilde_t1*line_tilde_t1_der_r)*line_tilde_t2_s/pow(l_t1,5) +3*(tilde_1_s*inner_prod(tilde_t1,tilde_t1_der)*line_tilde_t1_r+tilde_t1*(inner_prod(tilde_1_s,tilde_t1_der)+inner_prod(tilde_t1,tilde_1_der_s))*line_tilde_t1_r+tilde_t1*inner_prod(tilde_t1,tilde_t1_der)*line_tilde_t1_rs)/pow(l_t1,5)-15*(tilde_t1*inner_prod(tilde_t1,tilde_t1_der)*line_tilde_t1_r*line_tilde_t1_s)/pow(l_t1,7);
-				_t2_der_rs[r][s] = tilde_2_der_rs[s]/l_t2 - tilde_2_der_r*line_tilde_t2_s/pow(l_t2,3) - (line_tilde_t2_rs*tilde_t2_der + line_tilde_t2_r*tilde_2_der_s)/pow(l_t2,3) + 3*(line_tilde_t2_r*tilde_t2_der*line_tilde_t2_s)/pow(l_t2,5) -(tilde_2_rs[s]*inner_prod(tilde_t2,tilde_t2_der)+tilde_2_s*line_tilde_t2_der_r+tilde_2_r*(inner_prod(tilde_2_s,tilde_t2_der)+inner_prod(tilde_t2,tilde_2_der_s))+tilde_t2*line_tilde_t2_der_rs)/pow(l_t2,3) + 3* (tilde_2_r*inner_prod(tilde_t2,tilde_t2_der)+tilde_t2*line_tilde_t2_der_r)*line_tilde_t2_s/pow(l_t2,5) +3*(tilde_2_s*inner_prod(tilde_t2,tilde_t2_der)*line_tilde_t2_r+tilde_t2*(inner_prod(tilde_2_s,tilde_t2_der)+inner_prod(tilde_t2,tilde_2_der_s))*line_tilde_t2_r+tilde_t2*inner_prod(tilde_t2,tilde_t2_der)*line_tilde_t2_rs)/pow(l_t2,5)-25*(tilde_t2*inner_prod(tilde_t2,tilde_t2_der)*line_tilde_t2_r*line_tilde_t2_s)/pow(l_t2,7);
-				//_t3_der_rs[r][s] = tilde_3_der_rs[s]/l_t3 - tilde_3_der_r*line_tilde_t3_s/pow(l_t3,3) - (line_tilde_t3_rs*tilde_t3_der + line_tilde_t3_r*tilde_3_der_s)/pow(l_t3,3) + 3*(line_tilde_t3_r*tilde_t3_der*line_tilde_t3_s)/pow(l_t3,5) /*-(tilde_3_rs[s]*inner_prod(tilde_t3,tilde_t3_der)+tilde_3_s*line_tilde_t3_der_r+tilde_3_r*(inner_prod(tilde_3_s,tilde_t3_der)+inner_prod(tilde_t3,tilde_3_der_s))+tilde_t3*line_tilde_t3_der_rs)/pow(l_t3,3) + 3* (tilde_3_r*inner_prod(tilde_t3,tilde_t3_der)+tilde_t3*line_tilde_t3_der_r)*line_tilde_t2_s/pow(l_t3,5) +3*(tilde_3_s*inner_prod(tilde_t3,tilde_t3_der)*line_tilde_t3_r+tilde_t3*(inner_prod(tilde_3_s,tilde_t3_der)+inner_prod(tilde_t3,tilde_3_der_s))*line_tilde_t3_r+tilde_t3*inner_prod(tilde_t3,tilde_t3_der)*line_tilde_t3_rs)/pow(l_t3,5)-35*(tilde_t3*inner_prod(tilde_t3,tilde_t3_der)*line_tilde_t3_r*line_tilde_t3_s)/pow(l_t3,7)*/;
-				_t1_der_rs[r][s] = tilde_1_der_rs[s]/l_t1 - tilde_1_der_r*line_tilde_t1_s/pow(l_t1,3) - (tilde_1_der_s*line_tilde_t1_r + tilde_t1_der * (inner_prod(tilde_1_s,tilde_1_r)+inner_prod(tilde_t1,tilde_1_rs[s])))/pow(l_t1,3)+3*(tilde_t1_der*line_tilde_t1_r*line_tilde_t1_s)/pow(l_t1,5)
-									- (tilde_1_rs[s] * inner_prod(tilde_t1,tilde_t1_der)+tilde_1_r*line_tilde_t1_der_s+tilde_1_s*line_tilde_t1_der_r)/pow(l_t1,3)
-									- (tilde_t1*(inner_prod(tilde_1_rs[s],tilde_t1_der)+inner_prod(tilde_1_der_rs[s],tilde_t1)+line_tilde_t1_der_rs))*pow(l_t1,3)
-									+ 3*((tilde_1_r * inner_prod(tilde_t1,tilde_t1_der)+tilde_t1*line_tilde_t1_der_r)*line_tilde_t1_s)/pow(l_t1,5)
-									+3*(tilde_1_s * inner_prod(tilde_t1,tilde_t1_der)*line_tilde_t1_r + tilde_t1*line_tilde_t1_der_s*line_tilde_t1_r+tilde_t1 * inner_prod(tilde_t1,tilde_t1_der)*(inner_prod(tilde_1_s, tilde_1_r)+inner_prod(tilde_t1,tilde_1_rs[s])))/pow(l_t1,5)
-									- 15* (tilde_t1*inner_prod(tilde_t1,tilde_t1_der)*line_tilde_t1_r*line_tilde_t1_s)/pow(l_t1,7);
-				_t3_der_rs[r][s] = tilde_3_der_rs[s]/l_t3 - tilde_3_der_r*line_tilde_t3_s/pow(l_t3,3) - (tilde_3_der_s*line_tilde_t3_r + tilde_t3_der * (inner_prod(tilde_3_s,tilde_3_r)+inner_prod(tilde_t3,tilde_3_rs[s])))/pow(l_t3,3)+3*(tilde_t3_der*line_tilde_t3_r*line_tilde_t3_s)/pow(l_t3,5)
-									- (tilde_3_rs[s] * inner_prod(tilde_t3,tilde_t3_der)+tilde_3_r*line_tilde_t3_der_s+tilde_3_s*line_tilde_t3_der_r)/pow(l_t3,3)
-									- (tilde_t3*(inner_prod(tilde_3_rs[s],tilde_t3_der)+inner_prod(tilde_3_der_rs[s],tilde_t3)+line_tilde_t3_der_rs))*pow(l_t3,3)
-									+ 3*((tilde_3_r * inner_prod(tilde_t3,tilde_t3_der)+tilde_t3*line_tilde_t3_der_r)*line_tilde_t3_s)/pow(l_t3,5)
-									+3*(tilde_3_s * inner_prod(tilde_t3,tilde_t3_der)*line_tilde_t3_r + tilde_t3*line_tilde_t3_der_s*line_tilde_t3_r+tilde_t3 * inner_prod(tilde_t3,tilde_t3_der)*(inner_prod(tilde_3_s, tilde_3_r)+inner_prod(tilde_t3,tilde_3_rs[s])))/pow(l_t3,5)
-									- 15* (tilde_t3*inner_prod(tilde_t3,tilde_t3_der)*line_tilde_t3_r*line_tilde_t3_s)/pow(l_t3,7);
-			}
-		}
-	}	
+	// 			//_t1_der_rs[r][s] = tilde_1_der_rs[s]/l_t1 - tilde_1_der_r*line_tilde_t1_s/pow(l_t1,3) - (line_tilde_t1_rs*tilde_t1_der + line_tilde_t1_r*tilde_1_der_s)/pow(l_t1,3) + 3*(line_tilde_t1_r*tilde_t1_der*line_tilde_t1_s)/pow(l_t1,5) -(tilde_1_rs[s]*inner_prod(tilde_t1,tilde_t1_der)+tilde_1_s*line_tilde_t1_der_r+tilde_1_r*(inner_prod(tilde_1_s,tilde_t1_der)+inner_prod(tilde_t1,tilde_1_der_s))+tilde_t1*line_tilde_t1_der_rs)/pow(l_t1,3) + 3* (tilde_1_r*inner_prod(tilde_t1,tilde_t1_der)+tilde_t1*line_tilde_t1_der_r)*line_tilde_t2_s/pow(l_t1,5) +3*(tilde_1_s*inner_prod(tilde_t1,tilde_t1_der)*line_tilde_t1_r+tilde_t1*(inner_prod(tilde_1_s,tilde_t1_der)+inner_prod(tilde_t1,tilde_1_der_s))*line_tilde_t1_r+tilde_t1*inner_prod(tilde_t1,tilde_t1_der)*line_tilde_t1_rs)/pow(l_t1,5)-15*(tilde_t1*inner_prod(tilde_t1,tilde_t1_der)*line_tilde_t1_r*line_tilde_t1_s)/pow(l_t1,7);
+	// 			_t2_der_rs[r][s] = tilde_2_der_rs[s]/l_t2 - tilde_2_der_r*line_tilde_t2_s/pow(l_t2,3) - (line_tilde_t2_rs*tilde_t2_der + line_tilde_t2_r*tilde_2_der_s)/pow(l_t2,3) + 3*(line_tilde_t2_r*tilde_t2_der*line_tilde_t2_s)/pow(l_t2,5) -(tilde_2_rs[s]*inner_prod(tilde_t2,tilde_t2_der)+tilde_2_s*line_tilde_t2_der_r+tilde_2_r*(inner_prod(tilde_2_s,tilde_t2_der)+inner_prod(tilde_t2,tilde_2_der_s))+tilde_t2*line_tilde_t2_der_rs)/pow(l_t2,3) + 3* (tilde_2_r*inner_prod(tilde_t2,tilde_t2_der)+tilde_t2*line_tilde_t2_der_r)*line_tilde_t2_s/pow(l_t2,5) +3*(tilde_2_s*inner_prod(tilde_t2,tilde_t2_der)*line_tilde_t2_r+tilde_t2*(inner_prod(tilde_2_s,tilde_t2_der)+inner_prod(tilde_t2,tilde_2_der_s))*line_tilde_t2_r+tilde_t2*inner_prod(tilde_t2,tilde_t2_der)*line_tilde_t2_rs)/pow(l_t2,5)-25*(tilde_t2*inner_prod(tilde_t2,tilde_t2_der)*line_tilde_t2_r*line_tilde_t2_s)/pow(l_t2,7);
+	// 			//_t3_der_rs[r][s] = tilde_3_der_rs[s]/l_t3 - tilde_3_der_r*line_tilde_t3_s/pow(l_t3,3) - (line_tilde_t3_rs*tilde_t3_der + line_tilde_t3_r*tilde_3_der_s)/pow(l_t3,3) + 3*(line_tilde_t3_r*tilde_t3_der*line_tilde_t3_s)/pow(l_t3,5) /*-(tilde_3_rs[s]*inner_prod(tilde_t3,tilde_t3_der)+tilde_3_s*line_tilde_t3_der_r+tilde_3_r*(inner_prod(tilde_3_s,tilde_t3_der)+inner_prod(tilde_t3,tilde_3_der_s))+tilde_t3*line_tilde_t3_der_rs)/pow(l_t3,3) + 3* (tilde_3_r*inner_prod(tilde_t3,tilde_t3_der)+tilde_t3*line_tilde_t3_der_r)*line_tilde_t2_s/pow(l_t3,5) +3*(tilde_3_s*inner_prod(tilde_t3,tilde_t3_der)*line_tilde_t3_r+tilde_t3*(inner_prod(tilde_3_s,tilde_t3_der)+inner_prod(tilde_t3,tilde_3_der_s))*line_tilde_t3_r+tilde_t3*inner_prod(tilde_t3,tilde_t3_der)*line_tilde_t3_rs)/pow(l_t3,5)-35*(tilde_t3*inner_prod(tilde_t3,tilde_t3_der)*line_tilde_t3_r*line_tilde_t3_s)/pow(l_t3,7)*/;
+	// 			_t1_der_rs[r][s] = tilde_1_der_rs[s]/l_t1 - tilde_1_der_r*line_tilde_t1_s/pow(l_t1,3) - (tilde_1_der_s*line_tilde_t1_r + tilde_t1_der * (inner_prod(tilde_1_s,tilde_1_r)+inner_prod(tilde_t1,tilde_1_rs[s])))/pow(l_t1,3)+3*(tilde_t1_der*line_tilde_t1_r*line_tilde_t1_s)/pow(l_t1,5)
+	// 								- (tilde_1_rs[s] * inner_prod(tilde_t1,tilde_t1_der)+tilde_1_r*line_tilde_t1_der_s+tilde_1_s*line_tilde_t1_der_r)/pow(l_t1,3)
+	// 								- (tilde_t1*(inner_prod(tilde_1_rs[s],tilde_t1_der)+inner_prod(tilde_1_der_rs[s],tilde_t1)+line_tilde_t1_der_rs))*pow(l_t1,3)
+	// 								+ 3*((tilde_1_r * inner_prod(tilde_t1,tilde_t1_der)+tilde_t1*line_tilde_t1_der_r)*line_tilde_t1_s)/pow(l_t1,5)
+	// 								+3*(tilde_1_s * inner_prod(tilde_t1,tilde_t1_der)*line_tilde_t1_r + tilde_t1*line_tilde_t1_der_s*line_tilde_t1_r+tilde_t1 * inner_prod(tilde_t1,tilde_t1_der)*(inner_prod(tilde_1_s, tilde_1_r)+inner_prod(tilde_t1,tilde_1_rs[s])))/pow(l_t1,5)
+	// 								- 15* (tilde_t1*inner_prod(tilde_t1,tilde_t1_der)*line_tilde_t1_r*line_tilde_t1_s)/pow(l_t1,7);
+	// 			_t3_der_rs[r][s] = tilde_3_der_rs[s]/l_t3 - tilde_3_der_r*line_tilde_t3_s/pow(l_t3,3) - (tilde_3_der_s*line_tilde_t3_r + tilde_t3_der * (inner_prod(tilde_3_s,tilde_3_r)+inner_prod(tilde_t3,tilde_3_rs[s])))/pow(l_t3,3)+3*(tilde_t3_der*line_tilde_t3_r*line_tilde_t3_s)/pow(l_t3,5)
+	// 								- (tilde_3_rs[s] * inner_prod(tilde_t3,tilde_t3_der)+tilde_3_r*line_tilde_t3_der_s+tilde_3_s*line_tilde_t3_der_r)/pow(l_t3,3)
+	// 								- (tilde_t3*(inner_prod(tilde_3_rs[s],tilde_t3_der)+inner_prod(tilde_3_der_rs[s],tilde_t3)+line_tilde_t3_der_rs))*pow(l_t3,3)
+	// 								+ 3*((tilde_3_r * inner_prod(tilde_t3,tilde_t3_der)+tilde_t3*line_tilde_t3_der_r)*line_tilde_t3_s)/pow(l_t3,5)
+	// 								+3*(tilde_3_s * inner_prod(tilde_t3,tilde_t3_der)*line_tilde_t3_r + tilde_t3*line_tilde_t3_der_s*line_tilde_t3_r+tilde_t3 * inner_prod(tilde_t3,tilde_t3_der)*(inner_prod(tilde_3_s, tilde_3_r)+inner_prod(tilde_t3,tilde_3_rs[s])))/pow(l_t3,5)
+	// 								- 15* (tilde_t3*inner_prod(tilde_t3,tilde_t3_der)*line_tilde_t3_r*line_tilde_t3_s)/pow(l_t3,7);
+	// 		}
+	// 	}
+	// }	
 
 	// #######################################################################################
 	///
@@ -977,58 +977,57 @@ public:
 		_g3.clear();
 		_h.clear();
 
+		int span_u = find_Knot_Span(m_knot_vector_u,_u,m_p,m_n_u);
+		int span_v = find_Knot_Span(m_knot_vector_v,_v,m_q,m_n_v);
+
 		Matrix dR; //1st Derivatives of shape functions in matrix format
 		Matrix ddR; //2nd Derivatives of shape functions in vector format
-		EvaluateNURBSFunctionsDerivatives(-1,-1, _u, _v, dR,ddR);
+		EvaluateNURBSFunctionsDerivatives(span_u,span_v, _u, _v, dR,ddR);
 
+		int k = 0;
+		for(int c=0;c<=m_q;c++)
+		{
+			for(int b=0;b<=m_p;b++)
+			{
 
-		// Vector coords = ZeroVector(3);
-		// Vector tmp_u;
-		// tmp_u.resize(6,false);
-		// tmp_u.clear();
-		// std::vector<dof_type> act_dofs(3);
-		// act_dofs[0] = Disp_X;
-		// act_dofs[1] = Disp_Y;
-		// act_dofs[2] = Disp_Z;
+				// the control point vector is filled up by first going over u, then over v
+				int ui = span_u-m_p+b;
+				int vi = span_v-m_q+c;
+				int control_point_index =vi*m_n_u + ui;
 
-		// cfloat node_vec_size = Node_Vec.size();
-		// for(size_t k=0;k<node_vec_size;k++)
-		// {
-		// 	coords =  Node_Vec[k]->get_Coords();
-		// 	Node_Vec[k]->get_Dof_Results(Displacement, act_dofs, tmp_u);
-		// 	coords[0]+=tmp_u[0];
-		// 	coords[1]+=tmp_u[1];
-		// 	coords[2]+=tmp_u[2];
-		// 	_g1[0] += dR(k,0)*coords[0];
-		// 	_g2[0] += dR(k,1)*coords[0];
-			
-		// 	_g1[1] += dR(k,0)*coords[1];
-		// 	_g2[1] += dR(k,1)*coords[1];
-			
-		// 	_g1[2] += dR(k,0)*coords[2];
-		// 	_g2[2] += dR(k,1)*coords[2];
+				_g1[0] += dR(k,0)*m_control_points[control_point_index].getX();
+				_g2[0] += dR(k,1)*m_control_points[control_point_index].getX();
+				
+				_g1[1] += dR(k,0)*m_control_points[control_point_index].getY();
+				_g2[1] += dR(k,1)*m_control_points[control_point_index].getY();
+				
+				_g1[2] += dR(k,0)*m_control_points[control_point_index].getZ();
+				_g2[2] += dR(k,1)*m_control_points[control_point_index].getZ();
 
-		// 	_h(0,0) += ddR(k,0)*coords[0];
-		// 	_h(0,1) += ddR(k,1)*coords[0];
-		// 	_h(0,2) += ddR(k,2)*coords[0];
+				_h(0,0) += ddR(k,0)*m_control_points[control_point_index].getX();
+				_h(0,1) += ddR(k,1)*m_control_points[control_point_index].getX();
+				_h(0,2) += ddR(k,2)*m_control_points[control_point_index].getX();
 
-		// 	_h(1,0) += ddR(k,0)*coords[1];
-		// 	_h(1,1) += ddR(k,1)*coords[1];
-		// 	_h(1,2) += ddR(k,2)*coords[1];
+				_h(1,0) += ddR(k,0)*m_control_points[control_point_index].getY();
+				_h(1,1) += ddR(k,1)*m_control_points[control_point_index].getY();
+				_h(1,2) += ddR(k,2)*m_control_points[control_point_index].getY();
 
-		// 	_h(2,0) += ddR(k,0)*coords[2];
-		// 	_h(2,1) += ddR(k,1)*coords[2];
-		// 	_h(2,2) += ddR(k,2)*coords[2];
-		// }
+				_h(2,0) += ddR(k,0)*m_control_points[control_point_index].getZ();
+				_h(2,1) += ddR(k,1)*m_control_points[control_point_index].getZ();
+				_h(2,2) += ddR(k,2)*m_control_points[control_point_index].getZ();
 
-		// //basis vector _g3
-		// _g3 = cross_prod(_g1,_g2);
+				k++;
+			}
+		}
 
-		// //differential area _dA
-		// cfloat dA = norm_2(_g3);
+		//basis vector _g3
+		_g3 = MathUtils<double>::CrossProduct(_g1,_g2);
+
+		//differential area _dA
+		double dA = norm_2(_g3);
 		
-		// //normal vector _n
-		// _g3 = _g3/dA;
+		//normal vector _n
+		_g3 = _g3/dA;
 	}
 
 	// --------------------------------------------------------------------------
