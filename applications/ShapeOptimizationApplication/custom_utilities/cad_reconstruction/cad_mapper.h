@@ -879,13 +879,33 @@ class CADMapper
 								     double gp_i_weight,
 								     double penalty_factor_tangent_continuity )
 	{
-		// // Variables needed later
-		// Vector T1_m, T1_s, T2_m, T2_s, T3_m, T3_s;
-		// std::vector<Vector> t1r_m, t1r_s, t2r_m, t2r_s, t3r_m, t3r_s;				
+		// Variables needed later
+		Vector T1_m, T1_s, T2_m, T2_s, T3_m, T3_s;
+		Vector T1_der_m, T1_der_s, T2_der_m, T2_der_s, T3_der_m, T3_der_s;
+		std::vector<Vector> t1r_m, t1r_s, t2r_m, t2r_s, t3r_m, t3r_s;
+		std::vector<Vector> t1_der_r_m, t1_der_r_s, t2_der_r_m, t2_der_r_s, t3_der_r_m, t3_der_r_s;					
+		std::vector<std::vector<Vector>> t1rs_m, t1rs_s, t2rs_m, t2rs_s, t3rs_m, t3rs_s;
+		std::vector<std::vector<Vector>> t1_der_rs_m, t1_der_rs_s, t2_der_rs_m, t2_der_rs_s, t3_der_rs_m, t3_der_rs_s;
 
-		// // Compute geometric quantities
-		// master_patch.GetSurface().ComputeVariationOfLocalCSY( u_m, v_m, tangent_on_master_patch, T1_m, T2_m, T3_m, t1r_m, t2r_m, t3r_m );
-		// slave_patch.GetSurface().ComputeVariationOfLocalCSY( u_s, v_s, tangent_on_slave_patch, T1_s, T2_s, T3_s, t1r_s, t2r_s, t3r_s );
+		std::cout << "Called: cad_mapper::enforce_tangent_continuity()" << std::endl;
+
+		// Compute geometric quantities
+		master_patch.GetSurface().ComputeSecondVariationOfLocalCSY( u_m, v_m, 
+																	tangent_on_master_patch, 
+																	T1_m, T2_m, T3_m, 
+																	T1_der_m, T2_der_m, T3_der_m,
+																	t1r_m, t2r_m, t3r_m,
+																	t1_der_r_m, t2_der_r_m, t3_der_r_m,
+																	t1rs_m, t2rs_m, t3rs_m,
+																	t1_der_rs_m, t2_der_rs_m, t3_der_rs_m );
+		slave_patch.GetSurface().ComputeSecondVariationOfLocalCSY( u_s, v_s, 
+																   tangent_on_slave_patch, 
+																   T1_s, T2_s, T3_s, 
+																   T1_der_s, T2_der_s, T3_der_s,
+																   t1r_s, t2r_s, t3r_s,
+																   t1_der_r_s, t2_der_r_s, t3_der_r_s,
+																   t1rs_s, t2rs_s, t3rs_s,
+																   t1_der_rs_s, t2_der_rs_s, t3_der_rs_s );															
 	}
 
 	// --------------------------------------------------------------------------
