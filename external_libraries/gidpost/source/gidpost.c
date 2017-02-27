@@ -1262,35 +1262,37 @@ GiD_FILE GiD_fOpenPostResultFile(GP_CONST char * FileName, GiD_PostMode Mode)
   GiD_FILE fd;
 
   if ( !( File = NewFile( Mode ) ) )
-    {
-    /* not enough memory = -2 GP_ERROR_NOMEM */
-    return 0;
-    }
+  {
+      /* not enough memory = -2 GP_ERROR_NOMEM */
+      return 0;
+  }
 
   /* now open the File */
   if ( CPostFile_Open( File, FileName ) ) 
-    {
-    /* Open failed = -4 GP_ERROR_OPENFAILED */
-    return 0;
-    }
+  {
+      /* Open failed = -4 GP_ERROR_OPENFAILED */
+      return 0;
+  }
+  
   fd = GiD_HashAdd( File );
+  
   if ( !fd ) 
-    {
-    /* could not create a file handler = -5 GP_ERROR_HANDLEFAIL */
-    CPostFile_Release( File );
-    return 0;
-    }
+  {
+      /* could not create a file handler = -5 GP_ERROR_HANDLEFAIL */
+      CPostFile_Release( File );
+      return 0;
+  }
 
   if ( CPostFile_WritePostHeader( File ) )
-    {
-    /* WritePostHeader failed = -6 GP_ERROR_WRITESTRING */
-    GiD_ClosePostResultFile( );
-    return 0;
-    } 
+  {
+      /* WritePostHeader failed = -6 GP_ERROR_WRITESTRING */
+      GiD_ClosePostResultFile( );
+      return 0;
+  } 
   else 
-    {
-    CPostFile_PushState( File, POST_S0 );
-    }
+  {
+      CPostFile_PushState( File, POST_S0 );
+  }
   return fd;
 }
 
