@@ -112,6 +112,11 @@ class CADMapper
 	typedef std::vector<NodeType::Pointer>::iterator NodeIterator;
     typedef ModelPart::ConditionsContainerType ConditionsArrayType;
 
+	// For handling of python data
+	typedef boost::python::extract<double> extractDouble;
+    typedef boost::python::extract<bool> extractBool;
+	typedef boost::python::extract<unsigned int> extractUnsignedInt;
+
     /// Pointer definition of CADMapper
     KRATOS_CLASS_POINTER_DEFINITION(CADMapper);
 
@@ -540,11 +545,11 @@ class CADMapper
 		double penalty_factor_tangent_continuity = 0.0;
 		for (unsigned int i = 0; i < boost::python::len(edges_with_enforced_tangent_continuity); ++i)
 		{
-			boost::python::extract<unsigned int> listed_edge_id(edges_with_enforced_tangent_continuity[i][0]);
+			unsigned int listed_edge_id = extractUnsignedInt(edges_with_enforced_tangent_continuity[i][0]);
 			if(brep_elem_i->GetEdgeId() == listed_edge_id)
 			{
 				tangent_continuity_to_be_enforced = true;
-				boost::python::extract<double> extracted_factor(edges_with_enforced_tangent_continuity[i][1]);
+				double extracted_factor = extractDouble(edges_with_enforced_tangent_continuity[i][1]);
 				penalty_factor_tangent_continuity = extracted_factor;
 			}
 		}
@@ -897,15 +902,12 @@ class CADMapper
 		bool fix_z = true;
 		for (unsigned int i = 0; i < boost::python::len(edges_with_specific_dirichlet_conditions); ++i)
 		{
-			boost::python::extract<unsigned int> listed_edge_id(edges_with_specific_dirichlet_conditions[i][0]);
+			unsigned int listed_edge_id = extractUnsignedInt(edges_with_specific_dirichlet_conditions[i][0]);
 			if(brep_elem_i->GetEdgeId() == listed_edge_id)
 			{
-				boost::python::extract<bool> extracted_fix_x(edges_with_specific_dirichlet_conditions[i][1][0]);
-				boost::python::extract<bool> extracted_fix_y(edges_with_specific_dirichlet_conditions[i][1][1]);
-				boost::python::extract<bool> extracted_fix_z(edges_with_specific_dirichlet_conditions[i][1][2]);
-				fix_x = extracted_fix_x;
-				fix_y = extracted_fix_y;
-				fix_z = extracted_fix_z;
+				fix_x = extractBool(edges_with_specific_dirichlet_conditions[i][1][0]);
+				fix_y = extractBool(edges_with_specific_dirichlet_conditions[i][1][1]);
+				fix_z = extractBool(edges_with_specific_dirichlet_conditions[i][1][2]);
 			}
 		}
 
