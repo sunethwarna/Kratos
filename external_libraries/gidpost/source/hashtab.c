@@ -116,7 +116,7 @@ htab  *t;    /* table */
 }
 
 /* hcreate - create a hash table initially of size power(2,logsize) */
-htab *gid_hcreate(logsize)
+htab *hcreate(logsize)
 word  logsize;    /* log base 2 of the size of the hash table */
 {
   ub4 i,len;

@@ -11,8 +11,11 @@
 
 #include <stdio.h>
 #include <string.h>
-
+#ifdef _WIN32
+#include <windows.h>
+#endif
 #include "hdf5c.h"
+
 
 static int current_mesh_num;
 static int current_mesh_dataset_id;
@@ -66,7 +69,7 @@ int GiD_BeginMesh_HDF5(GP_CONST char * MeshName,GiD_Dimension Dim, GiD_ElementTy
 {
   char meshN[1024],buf[1024];
   char* enames[]={"NoElement","Point","Linear","Triangle","Quadrilateral","Tetrahedra","Hexahedra","Prism","Pyramid",
-      "Sphere","Circle","Point"};
+      "Sphere","Circle"};
   
   hdf5c_create_group("Meshes");
   current_mesh_num++;
@@ -95,7 +98,7 @@ int GiD_BeginMeshColor_HDF5(GP_CONST char * MeshName,GiD_Dimension Dim, GiD_Elem
   char meshN[1024],buf[1024];
   ret=GiD_BeginMesh_HDF5(MeshName,Dim,EType,NNode);
   sprintf(meshN,"Meshes/%d",current_mesh_num);
-  sprintf(buf,"%g %g %g",Red,Green,Blue);
+  sprintf(buf,"%f %f %f",Red,Green,Blue);
   hdf5c_set_attribute(meshN,"Color",buf);
   return ret;
 }
@@ -124,7 +127,7 @@ int GiD_MeshLocalAxes_HDF5(GP_CONST char * Result, GP_CONST char * Analysis,doub
     hdf5c_set_attribute(meshN,"LocalAxes Analysis",Analysis);
   }
   hdf5c_set_attribute(meshN,"LocalAxes Result",Result);
-  sprintf(buf,"%g",step);
+  sprintf(buf,GiD_PostGetFormatStep(),step);
   hdf5c_set_attribute(meshN,"LocalAxes step",buf);
   return 0;
 }
@@ -165,7 +168,6 @@ int GiD_BeginElements_HDF5()
   switch(current_mesh_etype){
     case GiD_Sphere: num_int=3; num_real=1; break;
     case GiD_Circle: num_int=3; num_real=4; break;
-    case GiD_Cluster: num_int=3; break;
     default: num_int=current_mesh_nnode+2; break;
   }
   sprintf(setN,"Meshes/%d/Elements",current_mesh_num);
@@ -266,49 +268,35 @@ int GiD_WriteCircleMat_HDF5(int id, int nid, double r,double nx, double ny, doub
   return 0;
 }
 
-/*
- *  Write a cluster element member at the current Elements Block.
- *  A cluster element is defined by:
- *
- *     id: element id
- *
- *     nid: node center given by the node id specified previously in
- *          the coordinate block.
- *  
- */
-
-int GiD_WriteCluster_HDF5(int id, int nid)
-{
-  int intvalues[3];
-  intvalues[0]=id;
-  intvalues[1]=nid;
-  intvalues[2]=0;
-  hdf5c_addto_dataset(current_mesh_dataset_id,intvalues);
-  return 0;
-}
-
-int GiD_WriteClusterMat_HDF5(int id, int nid, int mat)
-{
-  int intvalues[3];
-  intvalues[0]=id;
-  intvalues[1]=nid;
-  intvalues[2]=mat;
-  hdf5c_addto_dataset(current_mesh_dataset_id,intvalues);
-  return 0;
-}
-
 int GiD_OpenPostResultFile_HDF5(GP_CONST char * FileName)
 {
+#ifdef _WIN32
+  wchar_t wname[MAX_PATH];
+  char externalname[MAX_PATH];
+#endif  
   int ret;
   current_mesh_num=0;
   current_gauss_points_num=0;
   current_range_table_num=0;
   num_results_total=0;
   curr_result_group=0;
-  num_results_group=0;
+  num_results_group=0;  
+#ifdef _WIN32  
   ret=hdf5c_init(FileName); 
+  if(ret<0){
+    /* try again converting from utf-8 to external*/
+    MultiByteToWideChar(CP_UTF8,0,FileName,-1,wname,MAX_PATH);    
+    WideCharToMultiByte(CP_ACP,0,wname,-1,externalname,MAX_PATH,0,0);  
+    ret=hdf5c_init(externalname); 
+  }
+#else  
+  ret=hdf5c_init(FileName); 
+#endif
+
+  
   if(ret>=0){
     hdf5c_set_attribute("/","GiD Post Results File","1.1");
+    hdf5c_set_attribute("/","WriteStatus","Writing");
     return 0;
   }
   return ret;
@@ -317,6 +305,7 @@ int GiD_OpenPostResultFile_HDF5(GP_CONST char * FileName)
 int GiD_ClosePostResultFile_HDF5()
 {
   int ret;
+  hdf5c_set_attribute("/","WriteStatus","Finished");
   ret=hdf5c_end();
   if(ret<0) return ret;
   return 0;
@@ -327,7 +316,7 @@ int GiD_BeginGaussPoint_HDF5(GP_CONST char * name, GiD_ElementType EType,GP_CONS
 {
   char gpN[1024],buf[1024];
   char* enames[]={"NoElement","Point","Linear","Triangle","Quadrilateral","Tetrahedra","Hexahedra","Prism","Pyramid",
-      "Sphere","Circle","Point"};
+      "Sphere","Circle"};
 
   hdf5c_create_group("GaussPoints");
   current_gauss_points_num++;
@@ -405,7 +394,7 @@ int GiD_WriteMinRange_HDF5(double max, GP_CONST char * name)
   sprintf(rtN,"ResultRangesTable/%d/%d",current_range_table_num,current_range_table_idx_num);
   hdf5c_create_group(rtN);
   hdf5c_set_attribute(rtN,"Name",name);
-  sprintf(buf,"%g",max);
+  sprintf(buf,GiD_PostGetFormatReal(),max);
   hdf5c_set_attribute(rtN,"Max",buf);
   return 0;
 }
@@ -417,9 +406,9 @@ int GiD_WriteRange_HDF5(double min, double max, GP_CONST char * name)
   sprintf(rtN,"ResultRangesTable/%d/%d",current_range_table_num,current_range_table_idx_num);
   hdf5c_create_group(rtN);
   hdf5c_set_attribute(rtN,"Name",name);
-  sprintf(buf,"%g",min);
+  sprintf(buf,GiD_PostGetFormatReal(),min);
   hdf5c_set_attribute(rtN,"Min",buf);
-  sprintf(buf,"%g",max);
+  sprintf(buf,GiD_PostGetFormatReal(),max);
   hdf5c_set_attribute(rtN,"Max",buf);
   return 0;
 }
@@ -431,7 +420,7 @@ int GiD_WriteMaxRange_HDF5(double min, GP_CONST char * name)
   sprintf(rtN,"ResultRangesTable/%d/%d",current_range_table_num,current_range_table_idx_num);
   hdf5c_create_group(rtN);
   hdf5c_set_attribute(rtN,"Name",name);
-  sprintf(buf,"%g",min);
+  sprintf(buf,GiD_PostGetFormatReal(),min);
   hdf5c_set_attribute(rtN,"Min",buf);
   return 0;
 }
@@ -467,13 +456,16 @@ int _GiD_BeginResultHeader_HDF5_init(GP_CONST char * Result, GP_CONST char * Ana
   hdf5c_set_attribute(resN,"Name",Result);
   hdf5c_set_attribute(resN,"Analysis",Analysis);
 
-  sprintf(buf,"%g",step);
+  sprintf(buf,GiD_PostGetFormatStep(),step);
   hdf5c_set_attribute(resN,"Step",buf);
   
   hdf5c_set_attribute(resN,"ResultType",rtnames[Type]);
   switch(Where){
     case GiD_OnNodes: hdf5c_set_attribute(resN,"ResultLocation","OnNodes"); break;
     case GiD_OnGaussPoints: hdf5c_set_attribute(resN,"ResultLocation","OnGaussPoints"); break;
+    case GiD_OnNurbsLine: hdf5c_set_attribute(resN,"ResultLocation","OnNurbsLine"); break;
+    case GiD_OnNurbsSurface: hdf5c_set_attribute(resN,"ResultLocation","OnNurbsSurface"); break;
+    case GiD_OnNurbsVolume: hdf5c_set_attribute(resN,"ResultLocation","OnNurbsVolume"); break;
   }
   if(GaussPointsName) hdf5c_set_attribute(resN,"GaussPointsName",GaussPointsName); 
   return 0;
@@ -547,15 +539,22 @@ int GiD_ResultDescription_HDF5(GP_CONST char * Result, GiD_ResultType Type)
 int GiD_ResultLocalAxes_HDF5(GP_CONST char * Result, GP_CONST char * Analysis,
 		                  double step,double vx,double vy,double vz)
 {
-  char bufres[2048],*resN;
+  char bufres[2048];
+  char* resN;
+  static char local_format[100];
+  static int create_format=1;
+  if(create_format){
+    sprintf(local_format,"%s,%s,%s",GiD_PostGetFormatReal(),GiD_PostGetFormatReal(),GiD_PostGetFormatReal());
+    create_format=0;
+  }
   resN=myresults[num_results_group-1].name;
   if(Analysis){
     hdf5c_set_attribute(resN,"LocalAxes Analysis",Analysis);
   }
   hdf5c_set_attribute(resN,"LocalAxes Result",Result);
-  sprintf(bufres,"%g",step);
+  sprintf(bufres,GiD_PostGetFormatStep(),step);
   hdf5c_set_attribute(resN,"LocalAxes step",bufres);
-  sprintf(bufres,"%g,%g,%g",vx,vy,vz);
+  sprintf(bufres,local_format,vx,vy,vz);
   hdf5c_set_attribute(resN,"LocalAxes vector",bufres);
   return 0;
 }
@@ -851,6 +850,41 @@ int GiD_WriteComplexVector_HDF5( int id,
   doublevalues[4]=z_real;
   doublevalues[5]=z_imag;
   hdf5c_addto_dataset(myresults[curr_result_group].dataset_id,intvalues,doublevalues);
+  curr_result_group++;
+  if(curr_result_group==num_results_group) curr_result_group=0;
+  return 0;
+}
+
+int GiD_WriteNurbsSurface_HDF5(int id, int num_control_points, double* v) {
+  int i_control_point;
+  int intvalues[1];
+  char* resN=myresults[curr_result_group].name;
+  if(myresults[curr_result_group].dataset_id==-1){
+    myresults[curr_result_group].dataset_id=hdf5c_start_dataset(resN,1,1);
+    if(myresults[curr_result_group].dataset_id==-1) return -1;
+  }
+  intvalues[0]=id;/* repeat num_control_points times the surface id to be analogous to OnGaussPoints values */
+  for(i_control_point=0;i_control_point<num_control_points;i_control_point++){
+    hdf5c_addto_dataset(myresults[curr_result_group].dataset_id,intvalues,&v[i_control_point]);
+  }
+  curr_result_group++;
+  if(curr_result_group==num_results_group) curr_result_group=0;
+  return 0;
+}
+
+/* v has components interleaved, e.g for 3 components {v1x v1y v1z ... vnum_control_pointsx vnum_control_pointsy vnum_control_pointsz} */
+int GiD_WriteNurbsSurfaceVector_HDF5( int id, int num_control_points, int num_comp, double* v ) {
+  int i_control_point;
+  int intvalues[1];
+  char* resN=myresults[curr_result_group].name;
+  if(myresults[curr_result_group].dataset_id==-1){
+    myresults[curr_result_group].dataset_id=hdf5c_start_dataset(resN,1,num_comp);
+    if(myresults[curr_result_group].dataset_id==-1) return -1;
+  }
+  intvalues[0]=id;/* repeat num_control_points times the surface id to be analogous to OnGaussPoints values */
+  for(i_control_point=0;i_control_point<num_control_points;i_control_point++){
+    hdf5c_addto_dataset(myresults[curr_result_group].dataset_id,intvalues,&v[i_control_point*num_comp]);
+  }
   curr_result_group++;
   if(curr_result_group==num_results_group) curr_result_group=0;
   return 0;

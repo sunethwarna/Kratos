@@ -31,10 +31,12 @@
 #define __GP_V_STR_( str)     #str
 #define GIDPOST_VERSION     "" __GP_V_STR( GP_VERSION_MAJOR) "." __GP_V_STR( GP_VERSION_MINOR) ""
 #else
-#define GIDPOST_VERSION     "2.1"
+#define GIDPOST_VERSION     "2.5"
 #endif
 
 #define GP_CONST const
+
+#define GP_UNKNOWN    ( ( float)-3.40282346638528860e+38)
 
 /*
 #if defined(_MSC_VER) && defined(GIDPOST_SHARED)
@@ -103,8 +105,7 @@ typedef enum {
   GiD_Prism,
   GiD_Pyramid,
   GiD_Sphere,
-  GiD_Circle,
-  GiD_Cluster
+  GiD_Circle
 } GiD_ElementType;
 
 typedef enum {
@@ -118,9 +119,29 @@ typedef enum {
   GiD_ComplexVector
 } GiD_ResultType;
 
-typedef enum { GiD_OnNodes=0, GiD_OnGaussPoints } GiD_ResultLocation;
+typedef enum { 
+  GiD_OnNodes=0, 
+  GiD_OnGaussPoints, 
+  GiD_OnNurbsLine, 
+  GiD_OnNurbsSurface, 
+  GiD_OnNurbsVolume 
+} GiD_ResultLocation;
 
 typedef unsigned int GiD_FILE;
+
+#define GP_OK                   0
+#define GP_ERROR_INVALID_STATE -1
+#define GP_ERROR_NOMEM         -2
+#define GP_ERROR_FILEOPENED    -3
+#define GP_ERROR_OPENFAILED    -4
+#define GP_ERROR_HANDLEFAIL    -5
+#define GP_ERROR_WRITESTRING   -6
+#define GP_ERROR_WRITEPOINT    -7
+#define GP_ERROR_SCOPE         -8
+#define GP_ERROR_NULLSTRING    -9
+#define GP_ERROR_ZEROCOMPONENTS -10
+#define GP_ERROR_NULLFILE       -11
+#define GP_ERROR_NOTINGROUP     -12
 
 /*
   GiD_PostInit -- Initialization of gidpost library, must be called
@@ -129,6 +150,10 @@ typedef unsigned int GiD_FILE;
 GIDPOST_API int GiD_PostInit();
 GIDPOST_API int GiD_PostDone();
   
+GIDPOST_API int GiD_PostSetFormatReal(GP_CONST char * format_real);
+GIDPOST_API GP_CONST char* GiD_PostGetFormatReal();
+GIDPOST_API GP_CONST char* GiD_PostGetFormatStep();
+
 /* ---------------------------------------------------------------------------
  *
  *  Post Mesh Interface
@@ -241,7 +266,7 @@ int GiD_fEndCoordinates(GiD_FILE fd);
 
 /*
  * This function open a group of mesh. This makes possible specifying
- * multiples meshes withing the group.
+ * multiples meshes within the group.
  */
 
 GIDPOST_API
@@ -414,44 +439,6 @@ int GiD_WriteCircleMat(int id, int nid, double r,
 GIDPOST_API
 int GiD_fWriteCircleMat(GiD_FILE fd, int id, int nid, double r,
 		        double nx, double ny, double nz, int mat);
-
-/*
- *  Write a cluster element member at the current Elements Block.
- *  A cluster element is defined by:
- *
- *     id: element id
- *
- *     nid: node center given by the node id specified previously in
- *          the coordinate block.
- *  
- */
-
-GIDPOST_API
-int GiD_WriteCluster(int id, int nid);
-
-GIDPOST_API
-int GiD_fWriteCluster(GiD_FILE fd, int id, int nid);
-
-/*
- *  Write a cluster element member at the current Elements
- *  Block. Providing also a material identification.
- *  
- *  A cluster element is defined by:
- *
- *     id: element id
- *
- *     nid: node center given by the node id specified previously in
- *          the coordinate block.
- *
- *     mat: material identification.
- *  
- */
-
-GIDPOST_API
-int GiD_WriteClusterMat(int id, int nid, int mat);
-
-GIDPOST_API
-int GiD_fWriteClusterMat(GiD_FILE fd, int id, int nid, int mat);
 
 /* ---------------------------------------------------------------------------
  *
@@ -893,6 +880,18 @@ int GiD_fWriteComplexVector( GiD_FILE fd, int id,
                              double x_real, double x_imag,
                              double y_real, double y_imag,
                              double z_real, double z_imag);
+
+GIDPOST_API
+int GiD_WriteNurbsSurface( int id, int n, double* v );
+
+GIDPOST_API
+int GiD_fWriteNurbsSurface( GiD_FILE fd, int id, int n, double* v );
+
+GIDPOST_API
+int GiD_WriteNurbsSurfaceVector( int id, int n, int num_comp, double* v );
+
+GIDPOST_API
+int GiD_fWriteNurbsSurfaceVector( GiD_FILE fd, int id, int n, int num_comp, double* v );
 
 #ifdef __cplusplus
 }

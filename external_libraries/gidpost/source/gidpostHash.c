@@ -1,4 +1,4 @@
-/* gidpost 2.0 */
+/* gidpost */
 /* -*- mode: c++ -*-
  *
  *  gidpostHash.c --
@@ -45,25 +45,18 @@ pthread_mutex_t lock;
 
 int GiD_HashInit()
 {
-  //printf("ENTER: GiD_HashInit\n");
-  if (fd_pool)
-    {
-    //printf("LEAVE: GiD_HashInit Already inited\n"); 
-    return 0;
-    }
   _INIT_MUTEX_;
 
-  fd_pool = remkroot(sizeof(GiD_FILE));
+  if(!fd_pool){
+    fd_pool = remkroot(sizeof(GiD_FILE));
+  }
            
   if (!hashTable) {
-    hashTable = gid_hcreate(16);
+    hashTable = hcreate(16);
     assert(hashTable);
-    //printf("LEAVE: GiD_HashInit %p\n", hashTable);  
     return 0;
   }
-  //printf("LEAVE: GiD_HashInit\n");  
   return -1;
-
 }
 
 int GiD_HashDone()

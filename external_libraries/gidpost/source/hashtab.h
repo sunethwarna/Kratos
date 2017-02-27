@@ -71,7 +71,7 @@ typedef  struct htab  htab;
    RETURNS:
      the new table
  */
-htab *gid_hcreate(/*_ word logsize _*/);
+htab *hcreate(/*_ word logsize _*/);
 
 
 /* hdestroy - destroy a hash table

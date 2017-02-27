@@ -1,4 +1,4 @@
-/* gidpost 1.8 */
+/* gidpost */
 
 #include <assert.h>
 #include <stdarg.h>

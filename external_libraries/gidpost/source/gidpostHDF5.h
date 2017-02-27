@@ -34,8 +34,6 @@ int GiD_WriteSphere_HDF5(int id, int nid, double r);
 int GiD_WriteSphereMat_HDF5(int id, int nid, double r, int mat);
 int GiD_WriteCircle_HDF5(int id, int nid, double r,double nx, double ny, double nz);
 int GiD_WriteCircleMat_HDF5(int id, int nid, double r,double nx, double ny, double nz, int mat);
-int GiD_WriteCluster_HDF5(int id, int nid);
-int GiD_WriteClusterMat_HDF5(int id, int nid, int mat);
 
 /*################################################################################
 *#    Results file
@@ -124,6 +122,9 @@ int GiD_WriteComplexVector_HDF5(int id,
 				double x_real, double x_imag,
 				double y_real, double y_imag,
 				double z_real, double z_imag);
+/* OnNurbsSurface results */
+int GiD_WriteNurbsSurface_HDF5(int id, int n, double* v);//scalar
+int GiD_WriteNurbsSurfaceVector_HDF5( int id, int n, int num_comp, double* v );//vector3
 
 #endif
 

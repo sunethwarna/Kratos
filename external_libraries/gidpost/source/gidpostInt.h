@@ -41,19 +41,24 @@ typedef struct _CBufferValues CBufferValues;
 
 typedef enum {
   POST_UNDEFINED,
-  POST_S0,           /* TOP level */
-  POST_MESH_S0,      /* MESH header */
-  POST_MESH_COORD0,  /* inside a Coordinate block */
-  POST_MESH_COORD1,  /* after a Coordinate block but inside a MESH */
-  POST_MESH_ELEM,    /* inside an Element block */
-  POST_GAUSS_S0,     /* GAUSS point block: implicit */
-  POST_GAUSS_GIVEN,  /* GAUSS point block: explicit */
-  POST_RANGE_S0,     /* RANGE table block */
+  POST_S0,               /* TOP level */
+  POST_MESH_S0,          /* MESH header */
+  POST_MESHGROUP_S0,     /* MESHGROUP TOP level */
+  POST_MESH_COORD0,      /* inside a Coordinate block */
+  POST_MESH_COORD1,      /* after a Coordinate block but inside a MESH */
+  POST_MESH_ELEM,        /* inside an Element block */
+  POST_GAUSS_S0,         /* GAUSS point block: implicit */
+  POST_GAUSS_GIVEN,      /* GAUSS point block: explicit */
+  POST_RANGE_S0,         /* RANGE table block */
+  POST_RESULT_ONGROUP,   /* OnGroup result */
+  POST_RESULT_DEPRECATED,   /* Deprecated result block */
   POST_RESULT_SINGLE,    /* Result block */
-  POST_RESULT_GROUP, /* Result group block */
-  POST_RESULT_DESC,  /* Result description block */
-  POST_RESULT_VALUES /* writing values */
+  POST_RESULT_GROUP,     /* Result group block */
+  POST_RESULT_DESC,      /* Result description block */
+  POST_RESULT_VALUES     /* writing values */
 } post_state;
+
+#define STACK_STATE_SIZE 10
 
 struct _CPostFile
 {
@@ -66,9 +71,14 @@ struct _CPostFile
   int gauss_written;
   int flag_isgroup;
   int flag_begin_values;
+  int has_mesh;
+  int has_meshgroup;
 
   post_state level_mesh;
   post_state level_res;
+
+  post_state stack_state[STACK_STATE_SIZE];
+  int stack_pos;
   
   int (*ptr_Open)            (CPostFile* this, GP_CONST char *name);
   int (*ptr_Close)           (CPostFile* this);
@@ -83,15 +93,21 @@ struct _CPostFile
   int (*ptr_WriteDouble)     (CPostFile* this, double x, int op);
   int (*ptr_WriteValuesVA)   (CPostFile* this, int id,   int n, va_list ap);
   int (*ptr_WriteValues)     (CPostFile* this, int id,   int n, double* );
+  int (*ptr_WriteValuesNS)   (CPostFile* this, int id,   int n, double* );
+  int (*ptr_WriteValuesNSV)  (CPostFile* this, int id,   int n, int num_comp, double* );
   int (*ptr_Write2D)         (CPostFile* this, double x, double y);
   int (*ptr_Write3D)         (CPostFile* this, double x, double y, double z);
   int (*ptr_WriteElement)    (CPostFile* this, int id,   int n, int nid[]);
   int (*ptr_WritePostHeader) (CPostFile* this);
+  int (*ptr_WritePostHeaderIGA) (CPostFile* this);
 };
 
 int CPostFile_Release         (CPostFile*);
 int CPostFile_Open            (CPostFile* this, GP_CONST char * name);
 int CPostFile_Close           (CPostFile* this);
+post_state CPostFile_TopState ( CPostFile* this );
+int CPostFile_PushState       ( CPostFile* this, post_state s );
+post_state CPostFile_PopState (CPostFile* this);
 int CPostFile_Flush           (CPostFile* this);
 int CPostFile_IsBinary        (CPostFile* this);
 int CPostFile_WriteString     (CPostFile* this, GP_CONST char * str);
@@ -103,6 +119,8 @@ int CPostFile_WriteInteger    (CPostFile* this, int i,    int op);
 int CPostFile_WriteDouble     (CPostFile* this, double x, int op);
 int CPostFile_WriteValuesVA   (CPostFile* this, int id,   int n, ...);
 int CPostFile_WriteValues     (CPostFile* this, int id,   int n, double*);
+int CPostFile_WriteValuesNS   (CPostFile* this, int id,   int n, double*);
+int CPostFile_WriteValuesNSV  (CPostFile* this, int id,   int n, int num_comp, double*);
 int CPostFile_Write2D         (CPostFile* this, double x, double y);
 int CPostFile_Write3D         (CPostFile* this, double x, double y, double z);
 int CPostFile_WriteElement    (CPostFile* this, int id,   int n, int nid[]);
