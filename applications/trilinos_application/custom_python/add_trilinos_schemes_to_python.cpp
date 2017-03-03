@@ -1,8 +1,13 @@
+//    |  /           |
+//    ' /   __| _` | __|  _ \   __|
+//    . \  |   (   | |   (   |\__ `
+//   _|\_\_|  \__,_|\__|\___/ ____/
+//                   Multi-Physics
 //
-//   Project Name:        Kratos
-//   Last modified by:    $Author: rrossi $
-//   Date:                $Date: 2008-12-09 20:20:55 $
-//   Revision:            $Revision: 1.5 $
+//  License:		 BSD License
+//					 Kratos default license: kratos/license.txt
+//
+//  Main authors:    Riccardo Rossi, Jordi Cotela
 //
 //
 
@@ -168,7 +173,7 @@ void  AddSchemes()
            (
                "TrilinosResidualBasedNewmarkScheme", init<double >()
            );
-           
+
     class_ < TrilinosResidualBasedBossakDisplacementScheme< TrilinosSparseSpaceType, TrilinosLocalSpaceType>,
            bases< TrilinosBaseSchemeType >, boost::noncopyable >
            (
@@ -216,16 +221,14 @@ void  AddSchemes()
             boost::noncopyable >
             (
                 "TrilinosResidualBasedPredictorCorrectorBDFScheme", init<unsigned int, Variable<double>& >()
-                )
-           ;
-
+            );
 
     class_ < TrilinosResidualBasedPredictorCorrectorVelocityBossakSchemeDPGEnriched< TrilinosSparseSpaceType, TrilinosLocalSpaceType>,
            bases< TrilinosPredictorCorrectorVelocityBossakScheme< TrilinosSparseSpaceType, TrilinosLocalSpaceType> >, boost::noncopyable >
            (
                "TrilinosResidualBasedPredictorCorrectorVelocityBossakSchemeDPGEnriched", init<double, double, unsigned int>()
            );
-	   
+
     class_ < TrilinosResidualBasedIncrementalUpdateStaticVariablePropertyScheme< TrilinosSparseSpaceType, TrilinosLocalSpaceType>,
            bases< TrilinosResidualBasedIncrementalUpdateStaticSchemeType >, boost::noncopyable >
            (
@@ -236,13 +239,15 @@ void  AddSchemes()
 
     class_ < GearSchemeBaseType,
             bases< TrilinosBaseSchemeType >, boost::noncopyable >
-            ( "GearSchemeBaseType", init<Process::Pointer >() );
+            ( "GearSchemeBaseType", init<unsigned int, Process::Pointer >() );
 
     class_< TrilinosGearScheme<TrilinosSparseSpaceType,TrilinosLocalSpaceType>,
             bases<GearSchemeBaseType>, boost::noncopyable >
-            ( "TrilinosGearScheme", init<Process::Pointer>() )
-            .def(init<>()) // constructor without a turbulence model
-            .def(init<const Variable<int>&>()) // constructor for periodic conditions
+            ( "TrilinosGearScheme", init<unsigned int>() )                              // default constructor
+            .def(init<unsigned int, const Variable<double>&>())                         // constructor for user-defined slip condition var
+            .def(init<unsigned int, Process::Pointer>())                                // constructor with a turbulence model
+            .def(init<unsigned int, const Variable<double>&, Process::Pointer>())       // constructor with a turbulence model and user-defined slip condition var
+            .def(init<unsigned int, const Variable<int>&>())                            // constructor for periodic conditions
             ;
 }
 

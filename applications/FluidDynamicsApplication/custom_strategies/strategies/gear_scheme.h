@@ -1,46 +1,15 @@
-/*
-==============================================================================
-KratosFluidDynamicsApplication
-A library based on:
-Kratos
-A General Purpose Software for Multi-Physics Finite Element Analysis
-Version 1.0 (Released on march 05, 2007).
-
-Copyright 2007
-Pooyan Dadvand, Riccardo Rossi, Janosch Stascheit, Felix Nagel
-pooyan@cimne.upc.edu
-rrossi@cimne.upc.edu
-janosch.stascheit@rub.de
-nagel@sd.rub.de
-- CIMNE (International Center for Numerical Methods in Engineering),
-Gran Capita' s/n, 08034 Barcelona, Spain
-- Ruhr-University Bochum, Institute for Structural Mechanics, Germany
-
-
-Permission is hereby granted, free  of charge, to any person obtaining
-a  copy  of this  software  and  associated  documentation files  (the
-"Software"), to  deal in  the Software without  restriction, including
-without limitation  the rights to  use, copy, modify,  merge, publish,
-distribute,  sublicense and/or  sell copies  of the  Software,  and to
-permit persons to whom the Software  is furnished to do so, subject to
-the following condition:
-
-Distribution of this code for  any  commercial purpose  is permissible
-ONLY BY DIRECT ARRANGEMENT WITH THE COPYRIGHT OWNERS.
-
-The  above  copyright  notice  and  this permission  notice  shall  be
-included in all copies or substantial portions of the Software.
-
-THE  SOFTWARE IS  PROVIDED  "AS  IS", WITHOUT  WARRANTY  OF ANY  KIND,
-EXPRESS OR  IMPLIED, INCLUDING  BUT NOT LIMITED  TO THE  WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT  SHALL THE AUTHORS OR COPYRIGHT HOLDERS  BE LIABLE FOR ANY
-CLAIM, DAMAGES OR  OTHER LIABILITY, WHETHER IN AN  ACTION OF CONTRACT,
-TORT  OR OTHERWISE, ARISING  FROM, OUT  OF OR  IN CONNECTION  WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-==============================================================================
- */
+//    |  /           |
+//    ' /   __| _` | __|  _ \   __|
+//    . \  |   (   | |   (   |\__ `
+//   _|\_\_|  \__,_|\__|\___/ ____/
+//                   Multi-Physics
+//
+//  License:		 BSD License
+//					 Kratos default license: kratos/license.txt
+//
+//  Main authors:    Jordi Cotela
+//
+//
 
 #if !defined(KRATOS_GEAR_SCHEME_H_INCLUDED )
 #define  KRATOS_GEAR_SCHEME_H_INCLUDED
@@ -60,12 +29,13 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "includes/define.h"
 //#include "includes/serializer.h"
 #include "includes/dof.h"
-//#include "includes/variables.h"
+#include "includes/variables.h"
 #include "fluid_dynamics_application_variables.h"
 #include "includes/model_part.h"
 #include "processes/process.h"
 #include "containers/pointer_vector_set.h"
 #include "utilities/openmp_utils.h"
+#include "utilities/coordinate_transformation_utilities.h"
 
 
 namespace Kratos
@@ -121,10 +91,28 @@ public:
     ///@name Life Cycle
     ///@{
 
-    /// Default constructor.
-    GearScheme()
+    /// Default constructor without turbulence model.
+    /**
+     * @param DomainSize problem dimensions
+     */
+    GearScheme(
+        unsigned int DomainSize)
         :
-        Scheme<TSparseSpace, TDenseSpace>()
+        Scheme<TSparseSpace, TDenseSpace>(),
+        mRotationTool(DomainSize,DomainSize+1,IS_STRUCTURE,0.0) // Second argument is number of matrix rows per node: monolithic elements have velocity and pressure dofs.
+    {}
+
+    /// Default constructor without turbulence model and user-defined slip variable.
+    /**
+     * @param DomainSize problem dimensions
+     * @param rSlipVar reference to the slip variable
+     */
+    GearScheme(
+        unsigned int DomainSize,
+        const Variable<double>& rSlipVar)
+        :
+        Scheme<TSparseSpace, TDenseSpace>(),
+        mRotationTool(DomainSize,DomainSize+1,rSlipVar,0.0) // Second argument is number of matrix rows per node: monolithic elements have velocity and pressure dofs.
     {}
 
     /// Constructor to use the formulation combined with a turbulence model.
@@ -132,11 +120,34 @@ public:
      * The turbulence model is assumed to be implemented as a Kratos::Process.
      * The model's Execute() method wil be called at the start of each
      * non-linear iteration.
+     * @param DomainSize problem dimensions
      * @param pTurbulenceModel pointer to the turbulence model
      */
-    GearScheme(Process::Pointer pTurbulenceModel)
+    GearScheme(
+        unsigned int DomainSize,
+        Process::Pointer pTurbulenceModel)
         :
         Scheme<TSparseSpace, TDenseSpace>(),
+        mRotationTool(DomainSize,DomainSize+1,IS_STRUCTURE,0.0), // Second argument is number of matrix rows per node: monolithic elements have velocity and pressure dofs.
+        mpTurbulenceModel(pTurbulenceModel)
+    {}
+
+    /// Constructor to use the formulation combined with a turbulence model and user-defined slip variable.
+    /**
+     * The turbulence model is assumed to be implemented as a Kratos::Process.
+     * The model's Execute() method wil be called at the start of each
+     * non-linear iteration.
+     * @param DomainSize problem dimensions
+     * @param rSlipVar reference to the slip variable
+     * @param pTurbulenceModel pointer to the turbulence model
+     */
+    GearScheme(
+        unsigned int DomainSize,
+        const Variable<double>& rSlipVar,
+        Process::Pointer pTurbulenceModel)
+        :
+        Scheme<TSparseSpace, TDenseSpace>(),
+        mRotationTool(DomainSize,DomainSize+1,rSlipVar,0.0), // Second argument is number of matrix rows per node: monolithic elements have velocity and pressure dofs.
         mpTurbulenceModel(pTurbulenceModel)
     {}
 
@@ -332,7 +343,11 @@ public:
     {
         KRATOS_TRY
 
+        mRotationTool.RotateVelocities(rModelPart);
+
         this->UpdateDofs(rDofSet,Dx);
+
+        mRotationTool.RecoverVelocities(rModelPart);
 
         const Vector& BDFCoefs = rModelPart.GetProcessInfo()[BDF_COEFFICIENTS];
 
@@ -367,6 +382,10 @@ public:
         this->CombineLHSContributions(LHS_Contribution,Mass,Damp,rCurrentProcessInfo);
         this->AddDynamicRHSContribution<Kratos::Element>(rCurrentElement,RHS_Contribution,Mass,rCurrentProcessInfo);
 
+        // If there is a slip condition, apply it on a rotated system of coordinates
+        mRotationTool.Rotate(LHS_Contribution,RHS_Contribution,rCurrentElement->GetGeometry());
+        mRotationTool.ApplySlipCondition(LHS_Contribution,RHS_Contribution,rCurrentElement->GetGeometry());
+
         KRATOS_CATCH("")
     }
 
@@ -394,6 +413,10 @@ public:
 
         // Add the dynamic contributions to the local system using BDF2 coefficients
         this->AddDynamicRHSContribution<Kratos::Element>(rCurrentElement,RHS_Contribution,Mass,rCurrentProcessInfo);
+
+        // If there is a slip condition, apply it on a rotated system of coordinates
+        mRotationTool.Rotate(RHS_Contribution,rCurrentElement->GetGeometry());
+        mRotationTool.ApplySlipCondition(RHS_Contribution,rCurrentElement->GetGeometry());
 
         KRATOS_CATCH("")
     }
@@ -424,6 +447,10 @@ public:
         this->CombineLHSContributions(LHS_Contribution,Mass,Damp,rCurrentProcessInfo);
         this->AddDynamicRHSContribution<Kratos::Condition>(rCurrentCondition,RHS_Contribution,Mass,rCurrentProcessInfo);
 
+        // Rotate contributions (to match coordinates for slip conditions)
+        mRotationTool.Rotate(LHS_Contribution,RHS_Contribution,rCurrentCondition->GetGeometry());
+        mRotationTool.ApplySlipCondition(LHS_Contribution,RHS_Contribution,rCurrentCondition->GetGeometry());
+
         KRATOS_CATCH("")
     }
 
@@ -451,6 +478,10 @@ public:
 
         // Add the dynamic contributions to the local system using BDF2 coefficients
         this->AddDynamicRHSContribution<Kratos::Condition>(rCurrentCondition,RHS_Contribution,Mass,rCurrentProcessInfo);
+
+        // Rotate contributions (to match coordinates for slip conditions)
+        mRotationTool.Rotate(RHS_Contribution,rCurrentCondition->GetGeometry());
+        mRotationTool.ApplySlipCondition(RHS_Contribution,rCurrentCondition->GetGeometry());
 
         KRATOS_CATCH("")
     }
@@ -800,6 +831,9 @@ private:
     ///@}
     ///@name Member Variables
     ///@{
+
+    /// Coordinate transformation utility
+    CoordinateTransformationUtils<LocalSystemMatrixType,LocalSystemVectorType,double> mRotationTool;
 
     /// Poiner to a turbulence model
     Process::Pointer mpTurbulenceModel;

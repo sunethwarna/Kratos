@@ -26,6 +26,7 @@ class NavierStokesMPISolver_VMSMonolithic(navier_stokes_solver_vmsmonolithic.Nav
         default_settings = KratosMultiphysics.Parameters("""
         {
             "solver_type": "trilinos_navier_stokes_solver_vmsmonolithic",
+            "scheme_type": "BDF2",
             "model_import_settings": {
                 "input_type": "mdpa",
                 "input_filename": "unknown_name"
@@ -160,16 +161,24 @@ class NavierStokesMPISolver_VMSMonolithic(navier_stokes_solver_vmsmonolithic.Nav
 
         ## Creating the Trilinos time scheme
         if (self.settings["turbulence_model"].GetString() == "None"):
-            if self.settings["consider_periodic_conditions"].GetBool() == True:
-                self.time_scheme = KratosTrilinos.TrilinosPredictorCorrectorVelocityBossakSchemeTurbulent(self.settings["alpha"].GetDouble(),
-                                                                                                          self.settings["move_mesh_strategy"].GetInt(),
-                                                                                                          self.computing_model_part.ProcessInfo[KratosMultiphysics.DOMAIN_SIZE],
-                                                                                                          KratosCFD.PATCH_INDEX)
-            else:
-                self.time_scheme = KratosTrilinos.TrilinosPredictorCorrectorVelocityBossakSchemeTurbulent(self.settings["alpha"].GetDouble(),
-                                                                                                          self.settings["move_mesh_strategy"].GetInt(),
-                                                                                                          self.computing_model_part.ProcessInfo[KratosMultiphysics.DOMAIN_SIZE])
-
+            if (self.settings["scheme_type"].GetString() == "Bossak"):
+                if (self.settings["consider_periodic_conditions"].GetBool() == True):
+                    self.time_scheme = KratosTrilinos.TrilinosPredictorCorrectorVelocityBossakSchemeTurbulent(self.settings["alpha"].GetDouble(),
+                                                                                                              self.settings["move_mesh_strategy"].GetInt(),
+                                                                                                              self.computing_model_part.ProcessInfo[KratosMultiphysics.DOMAIN_SIZE],
+                                                                                                              KratosCFD.PATCH_INDEX)
+                else:
+                    self.time_scheme = KratosTrilinos.TrilinosPredictorCorrectorVelocityBossakSchemeTurbulent(self.settings["alpha"].GetDouble(),
+                                                                                                              self.settings["move_mesh_strategy"].GetInt(),
+                                                                                                              self.computing_model_part.ProcessInfo[KratosMultiphysics.DOMAIN_SIZE])
+            elif (self.settings["scheme_type"].GetString() == "BDF2"):
+                if (self.settings["consider_periodic_conditions"].GetBool() == True):
+                    self.time_scheme = KratosTrilinos.TrilinosGearScheme(self.computing_model_part.ProcessInfo[KratosMultiphysics.DOMAIN_SIZE],
+                                                                         KratosCFD.PATCH_INDEX)
+                else:
+                    self.time_scheme = KratosTrilinos.TrilinosGearScheme(self.computing_model_part.ProcessInfo[KratosMultiphysics.DOMAIN_SIZE])
+        else:
+            raise Exception("Turbulence models are not added yet.")
 
         ## Set the guess_row_size (guess about the number of zero entries) for the Trilinos builder and solver
         if self.main_model_part.ProcessInfo[KratosMultiphysics.DOMAIN_SIZE] == 3:

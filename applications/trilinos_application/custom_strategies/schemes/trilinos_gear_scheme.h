@@ -1,46 +1,15 @@
-/*
-==============================================================================
-KratosTrilinosApplication
-A library based on:
-Kratos
-A General Purpose Software for Multi-Physics Finite Element Analysis
-Version 1.0 (Released on march 05, 2007).
-
-Copyright 2007
-Pooyan Dadvand, Riccardo Rossi, Janosch Stascheit, Felix Nagel
-pooyan@cimne.upc.edu
-rrossi@cimne.upc.edu
-janosch.stascheit@rub.de
-nagel@sd.rub.de
-- CIMNE (International Center for Numerical Methods in Engineering),
-Gran Capita' s/n, 08034 Barcelona, Spain
-- Ruhr-University Bochum, Institute for Structural Mechanics, Germany
-
-
-Permission is hereby granted, free  of charge, to any person obtaining
-a  copy  of this  software  and  associated  documentation files  (the
-"Software"), to  deal in  the Software without  restriction, including
-without limitation  the rights to  use, copy, modify,  merge, publish,
-distribute,  sublicense and/or  sell copies  of the  Software,  and to
-permit persons to whom the Software  is furnished to do so, subject to
-the following condition:
-
-Distribution of this code for  any  commercial purpose  is permissible
-ONLY BY DIRECT ARRANGEMENT WITH THE COPYRIGHT OWNERS.
-
-The  above  copyright  notice  and  this permission  notice  shall  be
-included in all copies or substantial portions of the Software.
-
-THE  SOFTWARE IS  PROVIDED  "AS  IS", WITHOUT  WARRANTY  OF ANY  KIND,
-EXPRESS OR  IMPLIED, INCLUDING  BUT NOT LIMITED  TO THE  WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT  SHALL THE AUTHORS OR COPYRIGHT HOLDERS  BE LIABLE FOR ANY
-CLAIM, DAMAGES OR  OTHER LIABILITY, WHETHER IN AN  ACTION OF CONTRACT,
-TORT  OR OTHERWISE, ARISING  FROM, OUT  OF OR  IN CONNECTION  WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-==============================================================================
- */
+//    |  /           |
+//    ' /   __| _` | __|  _ \   __|
+//    . \  |   (   | |   (   |\__ `
+//   _|\_\_|  \__,_|\__|\___/ ____/
+//                   Multi-Physics
+//
+//  License:		 BSD License
+//					 Kratos default license: kratos/license.txt
+//
+//  Main authors:    Jordi Cotela
+//
+//
 
 #if !defined(KRATOS_TRILINOS_GEAR_SCHEME )
 #define  KRATOS_TRILINOS_GEAR_SCHEME
@@ -130,8 +99,10 @@ public:
     /** Constructor.
      */
 
-    TrilinosGearScheme():
-        GearScheme<TSparseSpace,TDenseSpace>(),
+    TrilinosGearScheme(
+        unsigned int DomainSize)
+        :
+        GearScheme<TSparseSpace,TDenseSpace>(DomainSize),
         mImporterIsInitialized(false),
         mrPeriodicIdVar(Kratos::Variable<int>::StaticObject())
     {
@@ -141,8 +112,25 @@ public:
             std::cout << "Using the Trilinos BDF2 time scheme" << std::endl;
     }
 
-    TrilinosGearScheme(Process::Pointer pTurbulenceModel):
-        GearScheme<TSparseSpace,TDenseSpace>(pTurbulenceModel),
+    TrilinosGearScheme(
+        unsigned int DomainSize,
+        const Variable<double>& rSlipVar)
+        :
+        GearScheme<TSparseSpace,TDenseSpace>(DomainSize, rSlipVar),
+        mImporterIsInitialized(false),
+        mrPeriodicIdVar(Kratos::Variable<int>::StaticObject())
+    {
+        int rank;
+        MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+        if (rank == 0)
+            std::cout << "Using the Trilinos BDF2 time scheme" << std::endl;
+    }
+
+    TrilinosGearScheme(
+        unsigned int DomainSize,
+        Process::Pointer pTurbulenceModel)
+        :
+        GearScheme<TSparseSpace,TDenseSpace>(DomainSize, pTurbulenceModel),
         mImporterIsInitialized(false),
         mrPeriodicIdVar(Kratos::Variable<int>::StaticObject())
     {
@@ -152,8 +140,26 @@ public:
             std::cout << "Using the Trilinos BDF2 time scheme (with turbulence model)" << std::endl;
     }
 
-    TrilinosGearScheme(const Variable<int>& rPeriodicIdVar):
-        GearScheme<TSparseSpace,TDenseSpace>(),
+    TrilinosGearScheme(
+        unsigned int DomainSize,
+        const Variable<double>& rSlipVar,
+        Process::Pointer pTurbulenceModel)
+        :
+        GearScheme<TSparseSpace,TDenseSpace>(DomainSize, rSlipVar, pTurbulenceModel),
+        mImporterIsInitialized(false),
+        mrPeriodicIdVar(Kratos::Variable<int>::StaticObject())
+    {
+        int rank;
+        MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+        if (rank == 0)
+            std::cout << "Using the Trilinos BDF2 time scheme (with turbulence model)" << std::endl;
+    }
+
+    TrilinosGearScheme(
+        unsigned int DomainSize,
+        const Variable<int>& rPeriodicIdVar)
+        :
+        GearScheme<TSparseSpace,TDenseSpace>(DomainSize),
         mImporterIsInitialized(false),
         mrPeriodicIdVar(rPeriodicIdVar)
     {
@@ -543,5 +549,3 @@ private:
 } /* namespace Kratos.*/
 
 #endif /* KRATOS_TRILINOS_GEAR_SCHEME  defined */
-
-

@@ -23,6 +23,7 @@ class NavierStokesSolver_VMSMonolithic(navier_stokes_base_solver.NavierStokesBas
         default_settings = KratosMultiphysics.Parameters("""
         {
             "solver_type": "navier_stokes_solver_vmsmonolithic",
+            "scheme_type": "BDF2",
             "model_import_settings": {
                 "input_type": "mdpa",
                 "input_filename": "unknown_name"
@@ -125,15 +126,18 @@ class NavierStokesSolver_VMSMonolithic(navier_stokes_base_solver.NavierStokesBas
                                                      self.settings["absolute_pressure_tolerance"].GetDouble())
 
         if (self.settings["turbulence_model"].GetString() == "None"):
-            if self.settings["consider_periodic_conditions"].GetBool() == True:
-                self.time_scheme = KratosCFD.ResidualBasedPredictorCorrectorVelocityBossakSchemeTurbulent(self.settings["alpha"].GetDouble(),
-                                                                                                          self.settings["move_mesh_strategy"].GetInt(),
-                                                                                                          self.computing_model_part.ProcessInfo[KratosMultiphysics.DOMAIN_SIZE],
-                                                                                                          KratosCFD.PATCH_INDEX)
-            else:
-                self.time_scheme = KratosCFD.ResidualBasedPredictorCorrectorVelocityBossakSchemeTurbulent(self.settings["alpha"].GetDouble(),
-                                                                                                          self.settings["move_mesh_strategy"].GetInt(),
-                                                                                                          self.computing_model_part.ProcessInfo[KratosMultiphysics.DOMAIN_SIZE])
+            if (self.settings["scheme_type"].GetString() == "Bossak"):
+                if self.settings["consider_periodic_conditions"].GetBool() == True:
+                    self.time_scheme = KratosCFD.ResidualBasedPredictorCorrectorVelocityBossakSchemeTurbulent(self.settings["alpha"].GetDouble(),
+                                                                                                              self.settings["move_mesh_strategy"].GetInt(),
+                                                                                                              self.computing_model_part.ProcessInfo[KratosMultiphysics.DOMAIN_SIZE],
+                                                                                                              KratosCFD.PATCH_INDEX)
+                else:
+                    self.time_scheme = KratosCFD.ResidualBasedPredictorCorrectorVelocityBossakSchemeTurbulent(self.settings["alpha"].GetDouble(),
+                                                                                                              self.settings["move_mesh_strategy"].GetInt(),
+                                                                                                              self.computing_model_part.ProcessInfo[KratosMultiphysics.DOMAIN_SIZE])
+            elif (self.settings["scheme_type"].GetString() == "BDF2"):
+                self.time_scheme = KratosCFD.GearScheme(self.computing_model_part.ProcessInfo[KratosMultiphysics.DOMAIN_SIZE])
         else:
             raise Exception("Turbulence models are not added yet.")
 
