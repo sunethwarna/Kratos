@@ -804,6 +804,34 @@ class VertexMorphingMethod:
         return X
 
     # --------------------------------------------------------------------------
+    def output_absolute_shape_updates(self):
+
+        f_tb_created = open("final_shape_change.txt", 'w')
+        f_tb_created.write("Begin NodalData SHAPE_CHANGE_ABSOLUTE_X\n")
+        for node in self.opt_model_part.Nodes:
+            f_tb_created.write("\t"+str(node.Id))
+            f_tb_created.write("\t0")
+            f_tb_created.write("\t"+str(node.GetSolutionStepValue(SHAPE_CHANGE_ABSOLUTE_X)))
+            f_tb_created.write("\n")
+        f_tb_created.write("End NodalData\n")
+
+        f_tb_created.write("Begin NodalData SHAPE_CHANGE_ABSOLUTE_Y\n")
+        for node in self.opt_model_part.Nodes:
+            f_tb_created.write("\t"+str(node.Id))
+            f_tb_created.write("\t0")
+            f_tb_created.write("\t"+str(node.GetSolutionStepValue(SHAPE_CHANGE_ABSOLUTE_Y)))
+            f_tb_created.write("\n")
+        f_tb_created.write("End NodalData\n")
+
+        f_tb_created.write("Begin NodalData SHAPE_CHANGE_ABSOLUTE_Z\n")
+        for node in self.opt_model_part.Nodes:
+            f_tb_created.write("\t"+str(node.Id))
+            f_tb_created.write("\t0")
+            f_tb_created.write("\t"+str(node.GetSolutionStepValue(SHAPE_CHANGE_ABSOLUTE_Z)))
+            f_tb_created.write("\n")
+        f_tb_created.write("End NodalData\n") 
+        f_tb_created.close()               
+                                  
 
 # ==============================================================================
 class Controller:
