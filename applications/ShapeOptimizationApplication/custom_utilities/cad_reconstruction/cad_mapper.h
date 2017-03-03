@@ -911,13 +911,10 @@ class CADMapper
 																   t1rs_s, t2rs_s, t3rs_s,
 																   t1_der_rs_s, t2_der_rs_s, t3_der_rs_s );	
 
-		// Check if master and slave tangent point in same direction. If yes, we have to subtract in the following.
-		int sign_factor = 1;
-		if( inner_prod(T1_m,T1_s) > 0 )
-			sign_factor = -1;
-
-		KRATOS_WATCH(sign_factor);
 		
+		double fac = inner_prod(T3_m, T1_s);
+		KRATOS_WATCH(fac);
+
 		// First we consider contribution to the m_mapping_rhs_vector
 
 		// Master-Master-relation ( MM )
@@ -928,13 +925,9 @@ class CADMapper
 			{
 				unsigned int R_row_id = mapping_matrix_ids_gpi_master(j,i);
 
-				double pre_fac = inner_prod(T1_m,T1_s) + sign_factor*1;
-
-				KRATOS_WATCH(pre_fac);
-
-				m_mapping_rhs_vector(3*R_row_id+0) += penalty_factor_tangent_continuity * gp_i_weight * J1 * pre_fac * inner_prod(t1r_m[3*k_row+0],T1_s);
-				m_mapping_rhs_vector(3*R_row_id+1) += penalty_factor_tangent_continuity * gp_i_weight * J1 * pre_fac * inner_prod(t1r_m[3*k_row+1],T1_s);
-				m_mapping_rhs_vector(3*R_row_id+2) += penalty_factor_tangent_continuity * gp_i_weight * J1 * pre_fac * inner_prod(t1r_m[3*k_row+2],T1_s);
+				m_mapping_rhs_vector(3*R_row_id+0) += penalty_factor_tangent_continuity * gp_i_weight * J1 * fac * inner_prod(t3r_m[3*k_row+0],T1_s);
+				m_mapping_rhs_vector(3*R_row_id+1) += penalty_factor_tangent_continuity * gp_i_weight * J1 * fac * inner_prod(t3r_m[3*k_row+1],T1_s);
+				m_mapping_rhs_vector(3*R_row_id+2) += penalty_factor_tangent_continuity * gp_i_weight * J1 * fac * inner_prod(t3r_m[3*k_row+2],T1_s);
 
 				k_row++;
 			}
@@ -948,11 +941,9 @@ class CADMapper
 			{
 				unsigned int R_row_id = mapping_matrix_ids_gpi_slave(j,i);
 
-				double pre_fac = inner_prod(T1_m,T1_s) + sign_factor*1;
-
-				m_mapping_rhs_vector(3*R_row_id+0) += penalty_factor_tangent_continuity * gp_i_weight * J1 * pre_fac * inner_prod(t1r_s[3*k_row+0],T1_m);
-				m_mapping_rhs_vector(3*R_row_id+1) += penalty_factor_tangent_continuity * gp_i_weight * J1 * pre_fac * inner_prod(t1r_s[3*k_row+1],T1_m);
-				m_mapping_rhs_vector(3*R_row_id+2) += penalty_factor_tangent_continuity * gp_i_weight * J1 * pre_fac * inner_prod(t1r_s[3*k_row+2],T1_m);
+				m_mapping_rhs_vector(3*R_row_id+0) += penalty_factor_tangent_continuity * gp_i_weight * J1 * fac * inner_prod(t1r_s[3*k_row+0],T3_m);
+				m_mapping_rhs_vector(3*R_row_id+1) += penalty_factor_tangent_continuity * gp_i_weight * J1 * fac * inner_prod(t1r_s[3*k_row+1],T3_m);
+				m_mapping_rhs_vector(3*R_row_id+2) += penalty_factor_tangent_continuity * gp_i_weight * J1 * fac * inner_prod(t1r_s[3*k_row+2],T3_m);
 
 				k_row++;
 			}
@@ -961,122 +952,140 @@ class CADMapper
 		// Then we consider the contribution to the m_mapping_matrix_CAD_CAD
 
 		// Master-Master-relation ( MM )
-		unsigned int k_coll = 0;
+		k_row = 0;
 		for(unsigned int i=0; i<mapping_matrix_ids_gpi_master.size2();i++)
 		{
 			for(unsigned int j=0; j<mapping_matrix_ids_gpi_master.size1();j++)
 			{
 				unsigned int R_row_id = mapping_matrix_ids_gpi_master(j,i);
 
-		     	unsigned int k_row = 0;
+		     	unsigned int k_coll = 0;
 				for(unsigned int k=0; k<mapping_matrix_ids_gpi_master.size2();k++)
 				{
 					for(unsigned int l=0; l<mapping_matrix_ids_gpi_master.size1();l++)
 					{
 						unsigned int R_coll_id = mapping_matrix_ids_gpi_master(l,k);
-
-						double pre_fac = inner_prod(T1_m,T1_s) + sign_factor*1;
 						
-						double term_1_x = inner_prod(t1r_m[3*k_coll+0],T1_s) * inner_prod(t1r_m[3*k_row+0],T1_s);
-						double term_1_y = inner_prod(t1r_m[3*k_coll+1],T1_s) * inner_prod(t1r_m[3*k_row+1],T1_s);
-						double term_1_z = inner_prod(t1r_m[3*k_coll+2],T1_s) * inner_prod(t1r_m[3*k_row+2],T1_s);
+						double term_1_x = inner_prod(t3r_m[3*k_coll+0],T1_s) * inner_prod(t3r_m[3*k_row+0],T1_s);
+						double term_1_y = inner_prod(t3r_m[3*k_coll+1],T1_s) * inner_prod(t3r_m[3*k_row+1],T1_s);
+						double term_1_z = inner_prod(t3r_m[3*k_coll+2],T1_s) * inner_prod(t3r_m[3*k_row+2],T1_s);
 
-						// KRATOS_WATCH(t1rs_m[3*k_coll+0][3*k_row+0]);
-						// KRATOS_WATCH(t1rs_m[3*k_coll+0][3*k_row+1]);
-						// KRATOS_WATCH(t1rs_m[3*k_coll+0][3*k_row+2]);
-
-						double term_2_x = pre_fac * inner_prod(t1rs_m[3*k_row+0][3*k_coll+0],T1_s);
-						double term_2_y = pre_fac * inner_prod(t1rs_m[3*k_row+1][3*k_coll+1],T1_s);
-						double term_2_z = pre_fac * inner_prod(t1rs_m[3*k_row+2][3*k_coll+2],T1_s);
+						double term_2_x = fac * inner_prod(t3rs_m[3*k_row+0][3*k_coll+0],T1_s);
+						double term_2_y = fac * inner_prod(t3rs_m[3*k_row+1][3*k_coll+1],T1_s);
+						double term_2_z = fac * inner_prod(t3rs_m[3*k_row+2][3*k_coll+2],T1_s);
 
 						m_mapping_matrix_CAD_CAD(3*R_row_id+0,3*R_coll_id+0) += penalty_factor_tangent_continuity * gp_i_weight * J1 * ( term_1_x + term_2_x );
 						m_mapping_matrix_CAD_CAD(3*R_row_id+1,3*R_coll_id+1) += penalty_factor_tangent_continuity * gp_i_weight * J1 * ( term_1_y + term_2_y );
 						m_mapping_matrix_CAD_CAD(3*R_row_id+2,3*R_coll_id+2) += penalty_factor_tangent_continuity * gp_i_weight * J1 * ( term_1_z + term_2_z );					
 
-						k_row++;								
+						k_coll++;								
 					}
 				}
-				k_coll++;
+				k_row++;
 			}
 		}
 
 		// Slave-Slave-relation ( SS )
-		k_coll = 0;
+		k_row = 0;
 		for(unsigned int i=0; i<mapping_matrix_ids_gpi_slave.size2();i++)
 		{
 			for(unsigned int j=0; j<mapping_matrix_ids_gpi_slave.size1();j++)
 			{
 				unsigned int R_row_id = mapping_matrix_ids_gpi_slave(j,i);
 
-		     	unsigned int k_row = 0;
+		     	unsigned int k_coll = 0;
+				for(unsigned int k=0; k<mapping_matrix_ids_gpi_slave.size2();k++)
+				{
+					for(unsigned int l=0; l<mapping_matrix_ids_gpi_slave.size1();l++)
+					{
+						unsigned int R_coll_id = mapping_matrix_ids_gpi_slave(l,k);
+						
+						double term_1_x = inner_prod(t1r_s[3*k_coll+0],T3_m) * inner_prod(T3_m, t1r_s[3*k_row+0]);
+						double term_1_y = inner_prod(t1r_s[3*k_coll+1],T3_m) * inner_prod(T3_m, t1r_s[3*k_row+1]);
+						double term_1_z = inner_prod(t1r_s[3*k_coll+2],T3_m) * inner_prod(T3_m, t1r_s[3*k_row+2]);
+
+						double term_2_x = fac * inner_prod(T3_m, t1rs_s[3*k_row+0][3*k_coll+0]);
+						double term_2_y = fac * inner_prod(T3_m, t1rs_s[3*k_row+1][3*k_coll+1]);
+						double term_2_z = fac * inner_prod(T3_m, t1rs_s[3*k_row+2][3*k_coll+2]);
+
+						m_mapping_matrix_CAD_CAD(3*R_row_id+0,3*R_coll_id+0) += penalty_factor_tangent_continuity * gp_i_weight * J1 * ( term_1_x + term_2_x );
+						m_mapping_matrix_CAD_CAD(3*R_row_id+1,3*R_coll_id+1) += penalty_factor_tangent_continuity * gp_i_weight * J1 * ( term_1_y + term_2_y );
+						m_mapping_matrix_CAD_CAD(3*R_row_id+2,3*R_coll_id+2) += penalty_factor_tangent_continuity * gp_i_weight * J1 * ( term_1_z + term_2_z );					
+
+						k_coll++;								
+					}
+				}
+				k_row++;
+			}
+		}	
+
+		// Master-slave-relation ( MS )
+		k_row = 0;
+		for(unsigned int i=0; i<mapping_matrix_ids_gpi_master.size2();i++)
+		{
+			for(unsigned int j=0; j<mapping_matrix_ids_gpi_master.size1();j++)
+			{
+				unsigned int R_row_id = mapping_matrix_ids_gpi_master(j,i);
+
+		     	unsigned int k_coll = 0;
 				for(unsigned int k=0; k<mapping_matrix_ids_gpi_slave.size2();k++)
 				{
 					for(unsigned int l=0; l<mapping_matrix_ids_gpi_slave.size1();l++)
 					{
 						unsigned int R_coll_id = mapping_matrix_ids_gpi_slave(l,k);
 
-						double pre_fac = inner_prod(T1_m,T1_s) + sign_factor*1;
-						
-						double term_1_x = inner_prod(t1r_s[3*k_coll+0],T1_m) * inner_prod(t1r_s[3*k_row+0],T1_m);
-						double term_1_y = inner_prod(t1r_s[3*k_coll+1],T1_m) * inner_prod(t1r_s[3*k_row+1],T1_m);
-						double term_1_z = inner_prod(t1r_s[3*k_coll+2],T1_m) * inner_prod(t1r_s[3*k_row+2],T1_m);
+						double term_1_x = inner_prod(T3_m,t1r_s[3*k_coll+0]) * inner_prod(t3r_m[3*k_row+0],T1_s);
+						double term_1_y = inner_prod(T3_m,t1r_s[3*k_coll+1]) * inner_prod(t3r_m[3*k_row+1],T1_s);
+						double term_1_z = inner_prod(T3_m,t1r_s[3*k_coll+2]) * inner_prod(t3r_m[3*k_row+2],T1_s);
 
-						double term_2_x = pre_fac * inner_prod(t1rs_s[3*k_row+0][3*k_coll+0],T1_m);
-						double term_2_y = pre_fac * inner_prod(t1rs_s[3*k_row+1][3*k_coll+1],T1_m);
-						double term_2_z = pre_fac * inner_prod(t1rs_s[3*k_row+2][3*k_coll+2],T1_m);
+						double term_2_x = fac * inner_prod(t3r_m[3*k_row+0],t1r_s[3*k_coll+0]);
+						double term_2_y = fac * inner_prod(t3r_m[3*k_row+1],t1r_s[3*k_coll+1]);
+						double term_2_z = fac * inner_prod(t3r_m[3*k_row+2],t1r_s[3*k_coll+2]);
 
 						m_mapping_matrix_CAD_CAD(3*R_row_id+0,3*R_coll_id+0) += penalty_factor_tangent_continuity * gp_i_weight * J1 * ( term_1_x + term_2_x );
 						m_mapping_matrix_CAD_CAD(3*R_row_id+1,3*R_coll_id+1) += penalty_factor_tangent_continuity * gp_i_weight * J1 * ( term_1_y + term_2_y );
-						m_mapping_matrix_CAD_CAD(3*R_row_id+2,3*R_coll_id+2) += penalty_factor_tangent_continuity * gp_i_weight * J1 * ( term_1_z + term_2_z );					
+						m_mapping_matrix_CAD_CAD(3*R_row_id+2,3*R_coll_id+2) += penalty_factor_tangent_continuity * gp_i_weight * J1 * ( term_1_z + term_2_z );											
 
-						k_row++;								
+						k_coll++;								
 					}
 				}
-				k_coll++;
-			}
-		}	
-
-		// Master-slave-relation ( MS & SM )
-		unsigned int k_m = 0;
-		for(unsigned int i=0; i<mapping_matrix_ids_gpi_master.size2();i++)
-		{
-			for(unsigned int j=0; j<mapping_matrix_ids_gpi_master.size1();j++)
-			{
-				unsigned int R_m_id = mapping_matrix_ids_gpi_master(j,i);
-
-		     	unsigned int k_s = 0;
-				for(unsigned int k=0; k<mapping_matrix_ids_gpi_slave.size2();k++)
-				{
-					for(unsigned int l=0; l<mapping_matrix_ids_gpi_slave.size1();l++)
-					{
-						unsigned int R_s_id = mapping_matrix_ids_gpi_slave(l,k);
-
-						double pre_fac = inner_prod(T1_m,T1_s) + sign_factor*1;
-						
-						double term_1_x = inner_prod(t1r_m[3*k_m+0],T1_s) * inner_prod(T1_m,t1r_s[3*k_s+0]);
-						double term_1_y = inner_prod(t1r_m[3*k_m+1],T1_s) * inner_prod(T1_m,t1r_s[3*k_s+1]);
-						double term_1_z = inner_prod(t1r_m[3*k_m+2],T1_s) * inner_prod(T1_m,t1r_s[3*k_s+2]);
-
-						double term_2_x = pre_fac * inner_prod(t1r_m[3*k_m+0],t1r_s[3*k_s+0]);
-						double term_2_y = pre_fac * inner_prod(t1r_m[3*k_m+1],t1r_s[3*k_s+1]);
-						double term_2_z = pre_fac * inner_prod(t1r_m[3*k_m+2],t1r_s[3*k_s+2]);
-
-						// MS
-						m_mapping_matrix_CAD_CAD(3*R_m_id+0,3*R_s_id+0) += penalty_factor_tangent_continuity * gp_i_weight * J1 * ( term_1_x + term_2_x );
-						m_mapping_matrix_CAD_CAD(3*R_m_id+1,3*R_s_id+1) += penalty_factor_tangent_continuity * gp_i_weight * J1 * ( term_1_y + term_2_y );
-						m_mapping_matrix_CAD_CAD(3*R_m_id+2,3*R_s_id+2) += penalty_factor_tangent_continuity * gp_i_weight * J1 * ( term_1_z + term_2_z );					
-
-						// SM
-						m_mapping_matrix_CAD_CAD(3*R_s_id+0,3*R_m_id+0) += penalty_factor_tangent_continuity * gp_i_weight * J1 * ( term_1_x + term_2_x );
-						m_mapping_matrix_CAD_CAD(3*R_s_id+1,3*R_m_id+1) += penalty_factor_tangent_continuity * gp_i_weight * J1 * ( term_1_y + term_2_y );
-						m_mapping_matrix_CAD_CAD(3*R_s_id+2,3*R_m_id+2) += penalty_factor_tangent_continuity * gp_i_weight * J1 * ( term_1_z + term_2_z );								
-
-						k_s++;								
-					}
-				}
-				k_m++;
+				k_row++;
 			}
 		}
+
+		// Master-slave-relation ( SM )
+		k_row = 0;
+		for(unsigned int i=0; i<mapping_matrix_ids_gpi_slave.size2();i++)
+		{
+			for(unsigned int j=0; j<mapping_matrix_ids_gpi_slave.size1();j++)
+			{
+				unsigned int R_row_id = mapping_matrix_ids_gpi_slave(j,i);
+
+		     	unsigned int k_coll = 0;
+				for(unsigned int k=0; k<mapping_matrix_ids_gpi_master.size2();k++)
+				{
+					for(unsigned int l=0; l<mapping_matrix_ids_gpi_master.size1();l++)
+					{
+						unsigned int R_coll_id = mapping_matrix_ids_gpi_master(l,k);
+
+						double term_1_y = inner_prod(t3r_m[3*k_coll+1], T1_s) * inner_prod(T3_m, t1r_s[3*k_row+1]);
+						double term_1_z = inner_prod(t3r_m[3*k_coll+2], T1_s) * inner_prod(T3_m, t1r_s[3*k_row+2]);
+						double term_1_x = inner_prod(t3r_m[3*k_coll+0], T1_s) * inner_prod(T3_m, t1r_s[3*k_row+0]);
+
+						double term_2_x = fac * inner_prod(t3r_m[3*k_coll+0], t1r_s[3*k_row+0]);
+						double term_2_y = fac * inner_prod(t3r_m[3*k_coll+1], t1r_s[3*k_row+1]);
+						double term_2_z = fac * inner_prod(t3r_m[3*k_coll+2], t1r_s[3*k_row+2]);
+
+						m_mapping_matrix_CAD_CAD(3*R_row_id+0,3*R_coll_id+0) += penalty_factor_tangent_continuity * gp_i_weight * J1 * ( term_1_x + term_2_x );
+						m_mapping_matrix_CAD_CAD(3*R_row_id+1,3*R_coll_id+1) += penalty_factor_tangent_continuity * gp_i_weight * J1 * ( term_1_y + term_2_y );
+						m_mapping_matrix_CAD_CAD(3*R_row_id+2,3*R_coll_id+2) += penalty_factor_tangent_continuity * gp_i_weight * J1 * ( term_1_z + term_2_z );											
+
+						k_coll++;								
+					}
+				}
+				k_row++;
+			}
+		}		
 	}
 
 	// --------------------------------------------------------------------------
@@ -1185,9 +1194,9 @@ class CADMapper
 		{
 			unsigned int mapping_id = node_i->GetValue(MAPPING_MATRIX_ID);
 
-			dx[3*mapping_id+0] = node_i->GetValue(SHAPE_UPDATE_X);
-			dx[3*mapping_id+1] = node_i->GetValue(SHAPE_UPDATE_Y);
-			dx[3*mapping_id+2] = node_i->GetValue(SHAPE_UPDATE_Z);
+			dx[3*mapping_id+0] = node_i->GetValue(SHAPE_CHANGE_ABSOLUTE_X);
+			dx[3*mapping_id+1] = node_i->GetValue(SHAPE_CHANGE_ABSOLUTE_Y);
+			dx[3*mapping_id+2] = node_i->GetValue(SHAPE_CHANGE_ABSOLUTE_Z);
 		}
 		noalias(m_mapping_rhs_vector) += prod(m_mapping_matrix_CAD_FEM,dx);
 
