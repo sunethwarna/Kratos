@@ -50,6 +50,7 @@ KratosStructuralMechanicsApplication::KratosStructuralMechanicsApplication():
     mShellThickCorotationalElement3D4N( 0, Element::GeometryType::Pointer( new Quadrilateral3D4 <Node<3> >( Element::GeometryType::PointsArrayType( 4 ) ) ), true ),
     mShellThinElement3D3N( 0, Element::GeometryType::Pointer( new Triangle3D3 <Node<3> >( Element::GeometryType::PointsArrayType( 3 ) ) ), false ),
     mShellThinCorotationalElement3D3N( 0, Element::GeometryType::Pointer( new Triangle3D3 <Node<3> >( Element::GeometryType::PointsArrayType( 3 ) ) ), true ),
+    mShellThinCorotationalElement3D4N( 0, Element::GeometryType::Pointer( new Quadrilateral3D4 <Node<3> >( Element::GeometryType::PointsArrayType( 4 ) ) ), true ),
     // Adding the membrane element
     mMembraneElement3D3N( 0, Element::GeometryType::Pointer( new Triangle3D3 <Node<3> >( Element::GeometryType::PointsArrayType( 3 ) ) ) ),
     // Adding the SPRISM element
@@ -68,9 +69,9 @@ void KratosStructuralMechanicsApplication::Register()
 {
     // calling base class register to register Kratos components
     KratosApplication::Register();
-    std::cout << "     KRATOS   ___|  |                   |                   |               " << std::endl;
-    std::cout << "            \\___ \\  __|  __| |   |  __| __| |   |  __| _` | |               " << std::endl;
-    std::cout << "                  | |   |    |   | (    |   |   | |   (   | |               " << std::endl;
+    std::cout << "     KRATOS   ___|  |                   |                   |                     " << std::endl;
+    std::cout << "            \\___ \\  __|  __| |   |  __| __| |   |  __| _` | |                   " << std::endl;
+    std::cout << "                  | |   |    |   | (    |   |   | |   (   | |                     " << std::endl;
     std::cout << "            _____/ \\__|_|   \\__,_|\\___|\\__|\\__,_|_|  \\__,_|_| MECHANICS     " << std::endl;
 
 
@@ -156,6 +157,7 @@ void KratosStructuralMechanicsApplication::Register()
     KRATOS_REGISTER_ELEMENT( "ShellThickElementCorotational3D4N", mShellThickCorotationalElement3D4N )
     KRATOS_REGISTER_ELEMENT( "ShellThinElement3D3N", mShellThinElement3D3N )
     KRATOS_REGISTER_ELEMENT( "ShellThinElementCorotational3D3N", mShellThinCorotationalElement3D3N )
+    KRATOS_REGISTER_ELEMENT( "ShellThinElementCorotational3D4N", mShellThinCorotationalElement3D4N )
 
     // Register the membrane element
     KRATOS_REGISTER_ELEMENT( "MembraneElement3D3N", mMembraneElement3D3N )
