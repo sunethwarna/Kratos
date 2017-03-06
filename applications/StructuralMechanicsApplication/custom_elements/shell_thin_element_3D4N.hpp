@@ -21,22 +21,8 @@
 #include "includes/element.h"
 #include "custom_utilities/shell_cross_section.hpp"
 #include "utilities/quaternion.h"
-#include "custom_utilities/shellq4_corotational_coordinate_transformation.hpp"
-
-
-
-/*
-// Project includes
-#include "includes/element.h"
-#include "custom_utilities/shell_cross_section.hpp"
-#include "utilities/quaternion.h"
-
-
-#include "custom_utilities/shellq4_corotational_coordinate_transformation.hpp"
-#include "custom_utilities/shellq4_local_coordinate_system.hpp" mine!
-//#include "geometries/quadrilateral_3d_4.h"
-
-*/
+#include "custom_utilities/shellq4_local_coordinate_system.hpp"
+//#include "custom_utilities/shellq4_corotational_coordinate_transformation.hpp"
 
 namespace Kratos
 {
@@ -49,11 +35,10 @@ namespace Kratos
 	///@name Type Definitions
 	///@{
 	///@}
-	//class Kratos::ShellQ4_CorotationalCoordinateTransformation;
 
 	class ShellQ4_CoordinateTransformation;
 
-	//class ShellQ4_LocalCoordinateSystem;
+	class ShellQ4_LocalCoordinateSystem;
 
 	///@name  Enum's
 	///@{
@@ -93,7 +78,7 @@ namespace Kratos
 
 		typedef array_1d<double, 3> Vector3Type;
 
-		//typedef Quaternion<double> QuaternionType;
+		typedef Quaternion<double> QuaternionType;
 
 		///@}
 
@@ -188,37 +173,36 @@ namespace Kratos
 
 		void GetDofList(DofsVectorType& ElementalDofList, ProcessInfo& CurrentProcessInfo);
 
-		//int Check(const ProcessInfo& rCurrentProcessInfo);
+		int Check(const ProcessInfo& rCurrentProcessInfo);
 
-		//void CleanMemory();
+		void CleanMemory();
 
-		//void GetValuesVector(Vector& values, int Step = 0);
+		void GetValuesVector(Vector& values, int Step = 0); // needed for dyn
 
-		//void GetFirstDerivativesVector(Vector& values, int Step = 0);
+		void GetFirstDerivativesVector(Vector& values, int Step = 0); //needed for dyn
 
-		//void GetSecondDerivativesVector(Vector& values, int Step = 0);
+		void GetSecondDerivativesVector(Vector& values, int Step = 0); //needed for dyn
 
-		//void InitializeNonLinearIteration(ProcessInfo& CurrentProcessInfo);
+		void InitializeNonLinearIteration(ProcessInfo& CurrentProcessInfo);	//needed for corotational
 
-		//void FinalizeNonLinearIteration(ProcessInfo& CurrentProcessInfo);
+		void FinalizeNonLinearIteration(ProcessInfo& CurrentProcessInfo);	//needed for corotational
 
-		//void InitializeSolutionStep(ProcessInfo& CurrentProcessInfo);
+		void InitializeSolutionStep(ProcessInfo& CurrentProcessInfo);		//needed for corotational
 
-		//void FinalizeSolutionStep(ProcessInfo& CurrentProcessInfo);
+		void FinalizeSolutionStep(ProcessInfo& CurrentProcessInfo);			//needed for corotational
 
-		//void CalculateMassMatrix(MatrixType& rMassMatrix, ProcessInfo& rCurrentProcessInfo);
+		void CalculateMassMatrix(MatrixType& rMassMatrix, ProcessInfo& rCurrentProcessInfo);	// needed for dyn
 
-		//void CalculateDampingMatrix(MatrixType& rDampingMatrix, ProcessInfo& rCurrentProcessInfo);
+		void CalculateDampingMatrix(MatrixType& rDampingMatrix, ProcessInfo& rCurrentProcessInfo);	// needed for dyn
 
 		void CalculateLocalSystem(MatrixType& rLeftHandSideMatrix,
 			VectorType& rRightHandSideVector,
 			ProcessInfo& rCurrentProcessInfo);
 
-		//void CalculateRightHandSide(VectorType& rRightHandSideVector,
-		//	ProcessInfo& rCurrentProcessInfo);
+		void CalculateRightHandSide(VectorType& rRightHandSideVector,
+			ProcessInfo& rCurrentProcessInfo);
 
 		// Results calculation on integration points
-		/*
 		void GetValueOnIntegrationPoints(const Variable<double>& rVariable, std::vector<double>& rValues, const ProcessInfo& rCurrentProcessInfo);
 
 		void GetValueOnIntegrationPoints(const Variable<Vector>& rVariable, std::vector<Vector>& rValues, const ProcessInfo& rCurrentProcessInfo);
@@ -228,7 +212,7 @@ namespace Kratos
 		void GetValueOnIntegrationPoints(const Variable<array_1d<double, 3> >& rVariable, std::vector<array_1d<double, 3> >& rValues, const ProcessInfo& rCurrentProcessInfo);
 
 		void GetValueOnIntegrationPoints(const Variable<array_1d<double, 6> >& rVariable, std::vector<array_1d<double, 6> >& rValues, const ProcessInfo& rCurrentProcessInfo);
-		*/
+
 		///@}
 
 		///@name Public specialized Access - Temporary
@@ -280,10 +264,12 @@ namespace Kratos
 											*
 											*/
 
-
-			MatrixType L;
+			MatrixType L_mem;
 			MatrixType L_bend;
 			MatrixType L_bend_mod;
+
+			MatrixType Z;
+			MatrixType HZ;
 
 			MatrixType Q1;
 			MatrixType Q2;
@@ -334,13 +320,12 @@ namespace Kratos
 			bool CalculateRHS; /*!< flag for the calculation of the right-hand-side vector */
 			bool CalculateLHS; /*!< flag for the calculation of the left-hand-side vector */
 
-							   // ---------------------------------------
-							   // calculation-variable data
-							   // ---------------------------------------
-							   // these data are updated during the
-							   // calculations
+			// ---------------------------------------
+			// calculation-variable data
+			// ---------------------------------------
+			// these data are updated during the
+			// calculations
 
-			double beta0;
 			size_t gpIndex;
 
 			// ---------------------------------------
@@ -363,7 +348,7 @@ namespace Kratos
 
 			ShellCrossSection::Parameters SectionParameters; /*!< parameters for cross section calculations */
 
-			array_1d< Vector3Type, 3 > Sig;
+			//array_1d< Vector3Type, 3 > Sig;
 
 		public:
 
@@ -371,7 +356,8 @@ namespace Kratos
 
 		public:
 
-			CalculationData(const CoordinateTransformationBasePointerType& pCoordinateTransformation,
+			CalculationData(const ShellQ4_LocalCoordinateSystem& localcoordsys,
+				const ShellQ4_LocalCoordinateSystem& refcoordsys,
 				const ProcessInfo& rCurrentProcessInfo);
 
 		};
@@ -381,7 +367,7 @@ namespace Kratos
 		///@name Private Operations
 		///@{
 
-		//void DecimalCorrection(Vector& a);
+		void DecimalCorrection(Vector& a);
 
 		void SetupOrientationAngles();
 
@@ -391,25 +377,22 @@ namespace Kratos
 
 		void CalculateB_h_mats(CalculationData& data);
 
-		void CalculateBMatrix(CalculationData& data);
+		void CalculateMembraneAlt(CalculationData& data);
 
-		void CalculateBeta0(CalculationData& data);
+		void CalculateBMatrix(CalculationData& data);
 
 		void CalculateSectionResponse(CalculationData& data);
 
 		void CalculateGaussPointContribution(CalculationData& data, MatrixType& LHS, VectorType& RHS);
 
-		//void ApplyCorrectionToRHS(CalculationData& data, VectorType& RHS);
-
-		//void AddBodyForces(CalculationData& data, VectorType& rRightHandSideVector);
+		void AddBodyForces(CalculationData& data, VectorType& rRightHandSideVector); //not required for dyn
 
 		void CalculateAll(MatrixType& rLeftHandSideMatrix,
 			VectorType& rRightHandSideVector,
 			ProcessInfo& rCurrentProcessInfo,
 			const bool LHSrequired,
 			const bool RHSrequired);
-
-		/*
+		
 		bool TryGetValueOnIntegrationPoints_MaterialOrientation(const Variable<array_1d<double, 3> >& rVariable,
 		std::vector<array_1d<double, 3> >& rValues,
 		const ProcessInfo& rCurrentProcessInfo);
@@ -417,7 +400,6 @@ namespace Kratos
 		bool TryGetValueOnIntegrationPoints_GeneralizedStrainsOrStresses(const Variable<Matrix>& rVariable,
 		std::vector<Matrix>& rValues,
 		const ProcessInfo& rCurrentProcessInfo);
-		*/
 
 		void printMatrix(Matrix& matrixIn, std::string stringIn);
 
