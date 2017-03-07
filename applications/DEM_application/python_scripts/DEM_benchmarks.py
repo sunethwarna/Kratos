@@ -9,7 +9,6 @@ from KratosMultiphysics.DEMApplication import *
 
 import plot_variables                # Related to benchmarks in Chung, Ooi
 import DEM_benchmarks_class as DBC   # Related to benchmarks in Chung, Ooi
-#from glob import glob
 
 sys.path.insert(0,'')
 # DEM Application
@@ -22,15 +21,6 @@ listDEMFEM    = list(range(13,18))
 listCONT      = list(range(20,27))
 listDISclZHAO = [30,32]
 listDISclRK   = [31,33]
-
-'''
-listDISCONT   = [] #list(range(1,12))
-listROLLFR    = [] #list(range(12,13))
-listDEMFEM    = [] #list(range(13,18))
-listCONT      = [] #list(range(20,27))
-listDISclZHAO = [] #[30,32]
-listDISclRK   = [] #[31,33]
-'''
 
 if benchmark_number in listDISCONT:
     import DEM_explicit_solver_var as DEM_parameters
@@ -126,12 +116,11 @@ for coeff_of_restitution_iteration in range(1, number_of_coeffs_of_restitution +
         contact_model_part    = ModelPart("ContactPart")
         all_model_parts = DEM_procedures.SetOfModelParts(spheres_model_part, rigid_face_model_part, cluster_model_part, DEM_inlet_model_part, mapping_model_part, contact_model_part)
 
-# Constructing a utilities objects
+        # Constructing a utilities objects
         creator_destructor = ParticleCreatorDestructor()
         dem_fem_search = DEM_FEM_Search()
 
         scheme = procedures.SetScheme()
-        #solver = SolverStrategy.ExplicitStrategy(spheres_model_part, rigid_face_model_part, cluster_model_part, DEM_inlet_model_part, contact_model_part, creator_destructor, dem_fem_search, scheme, DEM_parameters, procedures)
         solver = SolverStrategy.ExplicitStrategy(all_model_parts, creator_destructor, dem_fem_search, scheme, DEM_parameters, procedures)
 
         procedures.AddAllVariablesInAllModelParts(solver, scheme, all_model_parts, DEM_parameters)
@@ -260,7 +249,6 @@ for coeff_of_restitution_iteration in range(1, number_of_coeffs_of_restitution +
 
         while (time < final_time):
 
-            #SLS dt   = spheres_model_part.ProcessInfo.GetValue(DELTA_TIME) # Possible modifications of DELTA_TIME
             time = time + dt
             step += 1
 

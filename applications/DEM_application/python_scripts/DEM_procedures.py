@@ -897,41 +897,6 @@ class DEMFEMProcedures(object):
         self.mesh_motion.MoveAllMeshes(rigid_face_model_part, time, dt)
         self.mesh_motion.MoveAllMeshes(spheres_model_part, time, dt)
         self.mesh_motion.MoveAllMeshes(DEM_inlet_model_part, time, dt)
-    
-    def MoveAllMeshesUsingATable(self, model_part, time, dt):
-
-        for mesh_number in range(0, model_part.NumberOfSubModelParts()):            
-
-            if not self.aux.GetIthSubModelPartData(model_part, mesh_number, TABLE_NUMBER):
-                continue
-
-            print("Info:")
-            print(self.aux.GetIthSubModelPartData(model_part, mesh_number, IDENTIFIER))
-            print(mesh_number)
-            print(self.aux.GetIthSubModelPartData(model_part, mesh_number, TABLE_NUMBER))
-
-            for node in self.aux.GetIthSubModelPartNodes(model_part, mesh_number):
-
-                old_coords = Vector(3)
-                old_coords[0] = node.X
-                old_coords[1] = node.Y
-                old_coords[2] = node.Z
-
-                velocity = Vector(3)
-                velocity[0] = model_part.GetTable(self.aux.GetIthSubModelPartData(model_part, mesh_number, TABLE_NUMBER)).GetValue(time)
-                velocity[1] = 0.0
-                velocity[2] = 0.0
-                node.SetSolutionStepValue(VELOCITY, velocity)
-
-                node.X = old_coords[0] + velocity[0] * dt
-                node.Y = old_coords[1] + velocity[1] * dt
-                node.Z = old_coords[2] + velocity[2] * dt
-
-                displacement = Vector(3)
-                displacement[0] = node.X - node.X0
-                displacement[1] = node.Y - node.Y0
-                displacement[2] = node.Z - node.Z0
-                node.SetSolutionStepValue(DISPLACEMENT, displacement)    
 
     def UpdateTimeInModelParts(self, all_model_parts, time,dt,step):  
         

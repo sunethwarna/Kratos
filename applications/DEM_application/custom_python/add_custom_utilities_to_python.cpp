@@ -21,6 +21,7 @@
 #include "custom_utilities/inlet.h"
 #include "custom_utilities/reorder_consecutive_from_given_ids_model_part_io.h"
 #include "custom_utilities/AuxiliaryUtilities.h" 
+#include "custom_utilities/performance_utilities.h" 
 
 #include "boost/python/list.hpp"
 #include "boost/python/extract.hpp"
@@ -160,6 +161,7 @@ void AddCustomUtilitiesToPython() {
         ("DEMFEMUtilities", init<>())
         .def("ChangeMeshVelocity", &DEMFEMUtilities::ChangeMeshVelocity)
         .def("MoveAllMeshes", &DEMFEMUtilities::MoveAllMeshes)
+        .def("MoveAllMeshesUsingATable", &DEMFEMUtilities::MoveAllMeshesUsingATable)
         .def("CreateRigidFacesFromAllElements", &DEMFEMUtilities::CreateRigidFacesFromAllElements)     
         ;
 
@@ -185,6 +187,12 @@ void AddCustomUtilitiesToPython() {
         .def("GetIthSubModelPartNodes", &AuxiliaryUtilities::GetIthSubModelPartNodes)          
         ;
     
+    class_<PerformanceUtilities, boost::noncopyable >
+        ("PerformanceUtilities", init<>())
+        .def("PerformanceAccessingGetYoung", &PerformanceUtilities::PerformanceAccessingGetYoung)
+        .def("PerformanceAccessingGetPropertiesYoungModulus", &PerformanceUtilities::PerformanceAccessingGetPropertiesYoungModulus)
+        .def("PerformanceAccessingProcessInfo", &PerformanceUtilities::PerformanceAccessingProcessInfo)     
+        ;
     }
 
 

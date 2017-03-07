@@ -60,6 +60,8 @@ class Solution:
         
         # Creating necessary directories:
         self.main_path = os.getcwd()
+        print(self.main_path)
+        
         [self.post_path, self.data_and_results, self.graphs_path, MPI_results] = self.procedures.CreateDirectories(str(self.main_path), str(DEM_parameters.problem_name))
 
         self.demio         = DEM_procedures.DEMIo(DEM_parameters, self.post_path)
@@ -161,12 +163,19 @@ class Solution:
         self.report.total_steps_expected = int(DEM_parameters.FinalTime / dt)
         self.KRATOSprint(self.report.BeginReport(timer))
         
-        
+    def GetMpFilename(self):
+        return DEM_parameters.problem_name + "DEM"
+    
+    def GetInletFilename(self):
+        return DEM_parameters.problem_name + "DEM_Inlet"
+
     def ReadModelParts(self):
         
         os.chdir(self.main_path)
+        print(os.getcwd())
+        print(self.main_path)
         # Reading the model_part
-        spheres_mp_filename   = DEM_parameters.problem_name + "DEM"
+        spheres_mp_filename   = self.GetMpFilename()
         model_part_io_spheres = model_part_reader(spheres_mp_filename)
 
         if (hasattr(DEM_parameters, "do_not_perform_initial_partition") and DEM_parameters.do_not_perform_initial_partition == 1):
@@ -200,7 +209,7 @@ class Solution:
         max_node_Id = self.creator_destructor.FindMaxNodeIdInModelPart(self.cluster_model_part)
         max_elem_Id = self.creator_destructor.FindMaxElementIdInModelPart(self.cluster_model_part)
         max_cond_Id = self.creator_destructor.FindMaxConditionIdInModelPart(self.cluster_model_part)
-        DEM_Inlet_filename = DEM_parameters.problem_name + "DEM_Inlet"  
+        DEM_Inlet_filename = self.GetInletFilename()  
         model_part_io_demInlet = model_part_reader(DEM_Inlet_filename,max_node_Id+1, max_elem_Id+1, max_cond_Id+1)
         model_part_io_demInlet.ReadModelPart(self.DEM_inlet_model_part)
         
@@ -213,15 +222,14 @@ class Solution:
         
         while (time < DEM_parameters.FinalTime):
             
-            self.InitializeTimeStep()
+            dt = self.InitializeTimeStep()
 
-            dt    = self.spheres_model_part.ProcessInfo.GetValue(DELTA_TIME) # Possible modifications of DELTA_TIME
             time  = time + dt
             step += 1
 
-            self.DEMFEMProcedures.UpdateTimeInModelParts(self.all_model_parts, time,dt,step) 
+            self.DEMFEMProcedures.UpdateTimeInModelParts(self.all_model_parts, time, dt, step) 
             
-            self.BeforeSolveOperations()
+            self.BeforeSolveOperations(time)
 
             #### SOLVE #########################################
             self.solver.Solve()
@@ -251,6 +259,8 @@ class Solution:
             self.DEMFEMProcedures.PrintBallsGraph(time)
 
             self.DEMEnergyCalculator.CalculateEnergyAndPlot(time)
+            
+            self.BeforePrintingOperations()
 
             #### GiD IO ##########################################
             time_to_print = time - time_old_print
@@ -261,6 +271,9 @@ class Solution:
                 time_old_print = time
                 
             self.FinalizeTimeStep()
+        
+            
+        
                 
     
     def PrintResultsForGiD(self, time):
@@ -286,14 +299,22 @@ class Solution:
         
         
     def InitializeTimeStep(self):
-        pass
+        return self.spheres_model_part.ProcessInfo.GetValue(DELTA_TIME) # Possible modifications of DELTA_TIME
     
     
-    def BeforeSolveOperations(self):
+    def BeforeSolveOperations(self, time):
         pass
     
     
     def AfterSolveOperations(self):
+        pass
+    
+    
+    def BeforePrintingOperations(self):
+        pass
+    
+    
+    def BeforeFinalizeOperations(self):
         pass
     
     

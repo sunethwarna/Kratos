@@ -1,9 +1,5 @@
 from __future__ import print_function, absolute_import, division #makes KratosMultiphysics backward compatible with python 2.6 and 2.7
-import os
-import subprocess
-import sys
-import platform
-import smtplib
+import os, subprocess, sys, platform, smtplib
 
 kratos_benchmarking_path = '../../../benchmarking'
 sys.path.append(kratos_benchmarking_path)
@@ -55,14 +51,11 @@ def Run():
     Text = ""
     f = open("BenchTemp.txt", "w")
     failure = False
-    #list_of_failed_tests = []
     
     #Discontinuum Tests. From 1 to 17
-    D_DEM_Benchmarks_list = list(range(1,18))
-        
+    D_DEM_Benchmarks_list = list(range(1,18))     
     #Continuum Tests
     C_DEM_Benchmarks_list = list(range(20,26))
-
     #Discontinuum Clusters Tests. From 30 to 33
     Dcl_DEM_Benchmarks_list = list(range(30,34))
         
@@ -75,20 +68,18 @@ def Run():
         try:
             if platform.system()=="Windows":
                 os.system("setenv OMP_NUM_THREADS 1") # Is that the correct way to run on Windows?
-                subprocess.check_call(["python", path + "/DEM_benchmarks.py", str(benchmark), ">", "BenchTemp.txt"], stdout=f, stderr=f)
+                subprocess.check_call(["python", path + "/DEM_benchmarks_test.py", str(benchmark), ">", "BenchTemp.txt"], stdout=f, stderr=f)
                 os.system("setenv OMP_NUM_THREADS 16") # Trying to set a 'default' value
                 
             else:
                 os.system("export OMP_NUM_THREADS=1")
                 if sys.version_info >= (3, 0):
-                    subprocess.check_call(["python3", path + "/DEM_benchmarks.py", str(benchmark), ">", "BenchTemp.txt"], stdout=f, stderr=f)
+                    subprocess.check_call(["python3", path + "/DEM_benchmarks_test.py", str(benchmark), ">", "BenchTemp.txt"], stdout=f, stderr=f)
                     
                 else:
-                    subprocess.check_call(["python", "-3", path + "/DEM_benchmarks.py", str(benchmark), ">", "BenchTemp.txt"], stdout=f, stderr=f)
+                    subprocess.check_call(["python", "-3", path + "/DEM_benchmarks_test.py", str(benchmark), ">", "BenchTemp.txt"], stdout=f, stderr=f)
                 os.system("export OMP_NUM_THREADS=16") # Trying to set a 'default' value
         except:
-            #failure = True
-            #list_of_failed_tests += [benchmark]
             print("A problem was found in DEM Benchmark " + str(benchmark) + "... Resuming...\n")
             g = open("errors.txt", "a")
             if benchmark == 10:
@@ -155,22 +146,15 @@ def Run():
     
     Text += file_contents.rstrip("\n")
     Text += "\n\n\n"
-    
-    # To send an email summary to the DEM Team
-    #list_of_failed_tests = ', '.join(str(e) for e in list_of_failed_tests)
-    #subject = "DEM Benchmarks Results. Problems found in tests number "
-    #subject += list_of_failed_tests
+
     recipients = ["latorre@cimne.upc.edu"]
     recipients += ["maceli@cimne.upc.edu", "msantasusana@cimne.upc.edu", "gcasas@cimne.upc.edu", "farrufat@cimne.upc.edu", "jirazabal@cimne.upc.edu"]
     subject = "Problems found in DEM Benchmarks"   
     message = "From: Kratos Benchmarking <no-reply-kratos-benchmarking@cimne.upc.es>\nSubject: " + subject + "\n" + Text
-    
-    #if failure:
-    #if (__name__ != '__main__' and failure):
+
     if (False):
         smtplib.SMTP("smtps.cimne.upc.es").sendmail("Kratos Benchmarking <no-reply-kratos-benchmarking@cimne.upc.es>", recipients, message)
     return Text
-
 
 if __name__ == '__main__':
     print(Run())

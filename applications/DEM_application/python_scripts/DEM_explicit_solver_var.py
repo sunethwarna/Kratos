@@ -1,0 +1,3 @@
+import KratosMultiphysics
+import KratosMultiphysics.DEMApplication
+
