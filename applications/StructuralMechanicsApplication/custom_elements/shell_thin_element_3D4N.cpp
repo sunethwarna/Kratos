@@ -2500,7 +2500,7 @@ namespace Kratos
 				std::cout << std::fixed << std::setprecision(1) << std::setw(8) << matrixIn(i, j) << " | ";
 			}
 			std::cout << std::endl;
-			//std::cout << "|" << std::endl;
+
 		}
 		std::cout << std::endl;
 	}
