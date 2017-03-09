@@ -63,6 +63,10 @@ class SprismBendingPatchTests(StructuralMechanichsTestFactory):
     file_name = "sprism_test/patch_bending_test"
 
 
+class ShellQ4ThinTensionTests(StructuralMechanichsTestFactory):
+    file_name = "shell_test/Shell_Q4_Thin__Tension_test"
+
+
 class ShellQ4ThinBendingRollUpTests(StructuralMechanichsTestFactory):
     file_name = "shell_test/Shell_Q4_Thin__BendingRollUp_test"
 

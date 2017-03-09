@@ -14,6 +14,7 @@ from SmallTests import DynamicBossakTests as TDynamicBossakTests
 from SmallTests import DynamicNewmarkTests as TDynamicNewmarkTests
 from SmallTests import SprismMembranePatchTests as TSprismMembranePatchTests
 from SmallTests import SprismBendingPatchTests as TSprismBendingPatchTests
+from SmallTests import ShellQ4ThinTensionTests as TShellQ4ThinTensionTests
 from SmallTests import ShellQ4ThinBendingRollUpTests as TShellQ4ThinBendingRollUpTests
 from SmallTests import ShellQ4ThinDrillingRollUpTests as TShellQ4ThinDrillingRollUpTests
 from SmallTests import ShellQ4ThickBendingRollUpTests as TShellQ4ThickBendingRollUpTests
@@ -50,6 +51,7 @@ def AssambleTestSuites():
     smallSuite.addTest(TDynamicNewmarkTests('test_execution'))
     smallSuite.addTest(TSprismMembranePatchTests('test_execution'))
     smallSuite.addTest(TSprismBendingPatchTests('test_execution'))
+    smallSuite.addTest(TShellQ4ThinTensionTests('test_execution'))
     smallSuite.addTest(TShellQ4ThinBendingRollUpTests('test_execution'))
     smallSuite.addTest(TShellQ4ThinDrillingRollUpTests('test_execution'))
     smallSuite.addTest(TShellQ4ThickBendingRollUpTests('test_execution'))
@@ -77,6 +79,7 @@ def AssambleTestSuites():
             TDynamicNewmarkTests,
             TSprismMembranePatchTests,
             TSprismBendingPatchTests,
+            TShellQ4ThinTensionTests,
             TShellQ4ThinBendingRollUpTests,
             TShellQ4ThinDrillingRollUpTests,
             TShellQ4ThickBendingRollUpTests,
