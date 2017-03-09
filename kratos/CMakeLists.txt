@@ -1,12 +1,10 @@
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-
 # ## add the include directories needed for the compilation
 # message("current dir = " ${CMAKE_CURRENT_SOURCE_DIR})
 # include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/sources )
 # include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/container )
 # include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/python )
-
 
 ## generate variables with the sources
 set( KRATOS_CORE_SOURCES
@@ -52,7 +50,7 @@ set( KRATOS_CORE_SOURCES
 	${CMAKE_CURRENT_SOURCE_DIR}/sources/prime_numbers.cpp;
 	${CMAKE_CURRENT_SOURCE_DIR}/modeler/tetrahedra_ball.cpp;
 	${CMAKE_CURRENT_SOURCE_DIR}/modeler/tetrahedra_edge_shell.cpp;
-     )
+)
 
 set( KRATOS_PYTHON_SOURCES
 	${CMAKE_CURRENT_SOURCE_DIR}/python/add_banded_matrix_to_python.cpp
@@ -100,15 +98,64 @@ set( KRATOS_PYTHON_SOURCES
 	${CMAKE_CURRENT_SOURCE_DIR}/python/add_search_strategies_to_python.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/python/add_kratos_parameters_to_python.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/python/add_testing_to_python.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/python/add_logger_to_python.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/python/add_logger_to_python.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/python/add_model_to_python.cpp;
 	${CMAKE_CURRENT_SOURCE_DIR}/python/kratos_python.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/sources/mpi_connectivity_preserve_modeler.cpp;
 	# ${CMAKE_CURRENT_SOURCE_DIR}/processes/mdpa_reorder_consecutive_process.cpp;
-
 	# ${CMAKE_CURRENT_SOURCE_DIR}/sources/kratos_exception.cpp;
+)
 
-     )
+# List the header files so they are display when generating the project for VS
+file(GLOB_RECURSE KRATOS_CORE_HEADER
+	${CMAKE_CURRENT_SOURCE_DIR}/containers/*.h*
+	${CMAKE_CURRENT_SOURCE_DIR}/elements/*.h*
+	${CMAKE_CURRENT_SOURCE_DIR}/ecuation_systems/*.h*
+	${CMAKE_CURRENT_SOURCE_DIR}/includes/*.h*
+	${CMAKE_CURRENT_SOURCE_DIR}/input_output/*.h*
+	${CMAKE_CURRENT_SOURCE_DIR}/integration/*.h*
+	${CMAKE_CURRENT_SOURCE_DIR}/linear_solvers/*.h*
+	${CMAKE_CURRENT_SOURCE_DIR}/processes/*.h*
+	${CMAKE_CURRENT_SOURCE_DIR}/solving_strategies/*.h*
+	${CMAKE_CURRENT_SOURCE_DIR}/spaces/*.h*
+	${CMAKE_CURRENT_SOURCE_DIR}/spatial_containers/*.h*
+	${CMAKE_CURRENT_SOURCE_DIR}/testing/*.h*
+	${CMAKE_CURRENT_SOURCE_DIR}/tests/*.h*
+	${CMAKE_CURRENT_SOURCE_DIR}/utilities/*.h*
+)
+
+foreach(FILE ${KRATOS_CORE_HEADER})
+    # Get the directory of the source file
+    get_filename_component(PARENT_DIR "${FILE}" DIRECTORY)
+
+    # Remove common directory prefix to make the group
+    string(REPLACE "${CMAKE_CURRENT_SOURCE_DIR}" "" GROUP "${PARENT_DIR}")
+
+    # Make sure we are using windows slashes
+    string(REPLACE "/" "\\" GROUP "${GROUP}")
+
+    # Group into "Source Files" and "Header Files"
+  	set(GROUP "Header Files\\${GROUP}")
+
+    source_group("${GROUP}" FILES "${FILE}")
+endforeach()
+
+foreach(FILE ${KRATOS_CORE_SOURCES})
+    # Get the directory of the source file
+    get_filename_component(PARENT_DIR "${FILE}" DIRECTORY)
+
+    # Remove common directory prefix to make the group
+    string(REPLACE "${CMAKE_CURRENT_SOURCE_DIR}" "" GROUP "${PARENT_DIR}")
+
+    # Make sure we are using windows slashes
+    string(REPLACE "/" "\\" GROUP "${GROUP}")
+
+    # Group into "Source Files" and "Header Files"
+  	set(GROUP "Source Files\\${GROUP}")
+
+    source_group("${GROUP}" FILES "${FILE}")
+endforeach()
+
 file(GLOB_RECURSE KRATOS_CORE_TESTING_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/testing/*.cpp)
 file(GLOB_RECURSE KRATOS_CORE_INPUT_OUTPUT_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/input_output/*.cpp)
 
@@ -116,10 +163,9 @@ if(${KRATOS_BUILD_TESTING} MATCHES ON)
 	file(GLOB_RECURSE KRATOS_TESTING_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
 endif(${KRATOS_BUILD_TESTING} MATCHES ON)
 
-
 ###############################################################
 ## define library KratosCore to be included in all of the others
-add_library(KratosCore SHARED ${KRATOS_CORE_SOURCES} ${KRATOS_CORE_TESTING_SOURCES} ${KRATOS_TESTING_SOURCES} ${KRATOS_CORE_INPUT_OUTPUT_SOURCES})
+add_library(KratosCore SHARED ${KRATOS_CORE_HEADER} ${KRATOS_CORE_SOURCES} ${KRATOS_CORE_TESTING_SOURCES} ${KRATOS_TESTING_SOURCES} ${KRATOS_CORE_INPUT_OUTPUT_SOURCES})
 target_link_libraries(KratosCore ${Boost_PYTHON_LIBRARIES} ${PYTHON_LIBRARIES} gidpost )
 set_target_properties(KratosCore PROPERTIES COMPILE_DEFINITIONS "KRATOS_CORE=IMPORT,API")
 install(TARGETS KratosCore DESTINATION libs )
