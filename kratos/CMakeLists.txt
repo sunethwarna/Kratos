@@ -5,10 +5,12 @@ file(GLOB_RECURSE KRATOS_CORE_HEADERS
 	${CMAKE_CURRENT_SOURCE_DIR}/containers/*.h*
 	${CMAKE_CURRENT_SOURCE_DIR}/elements/*.h*
 	${CMAKE_CURRENT_SOURCE_DIR}/ecuation_systems/*.h*
+	${CMAKE_CURRENT_SOURCE_DIR}/geometries/*.h*
 	${CMAKE_CURRENT_SOURCE_DIR}/includes/*.h*
 	${CMAKE_CURRENT_SOURCE_DIR}/input_output/*.h*
 	${CMAKE_CURRENT_SOURCE_DIR}/integration/*.h*
 	${CMAKE_CURRENT_SOURCE_DIR}/linear_solvers/*.h*
+	${CMAKE_CURRENT_SOURCE_DIR}/modeler/*.h*
 	${CMAKE_CURRENT_SOURCE_DIR}/processes/*.h*
 	${CMAKE_CURRENT_SOURCE_DIR}/solving_strategies/*.h*
 	${CMAKE_CURRENT_SOURCE_DIR}/spaces/*.h*
@@ -116,31 +118,31 @@ set( KRATOS_PYTHON_SOURCES
 	# ${CMAKE_CURRENT_SOURCE_DIR}/sources/kratos_exception.cpp;
 )
 
-file(GLOB_RECURSE KRATOS_CORE_TESTER_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/testing/*.h*)
-file(GLOB_RECURSE KRATOS_CORE_TESTER_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/testing/*.cpp)
+file(GLOB_RECURSE KRATOS_CORE_TESTING_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/testing/*.h*)
+file(GLOB_RECURSE KRATOS_CORE_TESTING_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/testing/*.cpp)
 
 file(GLOB_RECURSE KRATOS_CORE_INPUT_OUTPUT_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/input_output/*.h*)
 file(GLOB_RECURSE KRATOS_CORE_INPUT_OUTPUT_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/input_output/*.cpp)
 
 # Group the files based on their path to improve VisualStudio visibility
-generate_source_group("" "${KRATOS_CORE_HEADERS}")
-generate_source_group("" "${KRATOS_CORE_SOURCES}")
+generate_source_group("Headers" "${KRATOS_CORE_HEADERS}")
+generate_source_group("Sources" "${KRATOS_CORE_SOURCES}")
 
-generate_source_group("" "${KRATOS_CORE_TESTER_HEADERS}")
-generate_source_group("" "${KRATOS_CORE_TESTER_SOURCES}")
+generate_source_group("Headers" "${KRATOS_CORE_TESTING_HEADERS}")
+generate_source_group("Sources" "${KRATOS_CORE_TESTING_SOURCES}")
 
-generate_source_group("" "${KRATOS_CORE_INPUT_OUTPUT_HEADERS}")
-generate_source_group("" "${KRATOS_CORE_INPUT_OUTPUT_SOURCES}")
+generate_source_group("Headers" "${KRATOS_CORE_INPUT_OUTPUT_HEADERS}")
+generate_source_group("Sources" "${KRATOS_CORE_INPUT_OUTPUT_SOURCES}")
 
-generate_source_group("" "${KRATOS_PYTHON_HEADERS}")
-generate_source_group("" "${KRATOS_PYTHON_SOURCES}")
+generate_source_group("Headers" "${KRATOS_PYTHON_HEADERS}")
+generate_source_group("Sources" "${KRATOS_PYTHON_SOURCES}")
 
-# Add tests if enabled
+# Build tests if enabled and add them to the soruce group
 if(${KRATOS_BUILD_TESTING} MATCHES ON)
-	file(GLOB_RECURSE KRATOS_CORE_TESTER_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
-	file(GLOB_RECURSE KRATOS_CORE_TESTER_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.h*)
-	generate_source_group("" "${KRATOS_CORE_TESTING_HEADERS}")
-	generate_source_group("" "${KRATOS_CORE_TESTING_SOURCES}")
+	file(GLOB_RECURSE KRATOS_CORE_TESTS_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
+	file(GLOB_RECURSE KRATOS_CORE_TESTS_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.h*)
+	generate_source_group("Tests" "${KRATOS_CORE_TESTS_HEADERS}")
+	generate_source_group("Tests" "${KRATOS_CORE_TESTS_SOURCES}")
 endif(${KRATOS_BUILD_TESTING} MATCHES ON)
 
 ###############################################################
@@ -152,8 +154,8 @@ add_library(KratosCore SHARED
 	${KRATOS_CORE_TESTING_SOURCES}
 	${KRATOS_CORE_INPUT_OUTPUT_HEADERS}
 	${KRATOS_CORE_INPUT_OUTPUT_SOURCES}
-	${KRATOS_CORE_TESTER_HEADERS}
-	${KRATOS_CORE_TESTER_SOURCES}
+	${KRATOS_CORE_TESTS_HEADERS}
+	${KRATOS_CORE_TESTS_SOURCES}
 )
 
 target_link_libraries(KratosCore ${Boost_PYTHON_LIBRARIES} ${PYTHON_LIBRARIES} gidpost )
@@ -171,7 +173,10 @@ endif(${INSTALL_PYTHON_FILES} MATCHES ON)
 
 ###############################################################
 ## define library Kratos which defines the basic python interface
-add_library(Kratos SHARED ${KRATOS_PYTHON_SOURCES})
+add_library(Kratos SHARED
+	${KRATOS_PYTHON_HEADERS}
+	${KRATOS_PYTHON_SOURCES}
+)
 target_link_libraries(Kratos KratosCore)
 set_target_properties(Kratos PROPERTIES PREFIX "")
 
