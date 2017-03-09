@@ -9,6 +9,25 @@ set (KratosMultiphysics_PATCH_VERSION 0)
 # Get subversion data. This is done automagically by the cmakes
 include (GenerateExportHeader)
 
+# Function to generate VS trees correctly
+function(generate_source_group ROOT ORIGIN)
+	foreach(FILE ${ORIGIN})
+	    # Get the directory of the source file
+	    get_filename_component(PARENT_DIR "${FILE}" DIRECTORY)
+
+	    # Remove common directory prefix to make the group
+	    string(REPLACE "${CMAKE_CURRENT_SOURCE_DIR}" "" GROUP "${PARENT_DIR}")
+
+	    # Make sure we are using windows slashes
+	    string(REPLACE "/" "\\" GROUP "${GROUP}")
+
+	    # Group into "Source Files" and "Header Files"
+	  	set(GROUP "${ROOT}\\${GROUP}")
+
+	    source_group("${GROUP}" FILES "${FILE}")
+	endforeach()
+endfunction(generate_source_group)
+
 # Search the SHA1 Associated with the commit in the HEAD
 find_package(Git)
 if(GIT_FOUND)
@@ -42,7 +61,7 @@ if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC  -funroll-loops -Wall -Wno-unused-local-typedef -Wno-unknown-pragmas  ")
     set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -fPIC -funroll-loops -Wall -Wno-unknown-pragmas  ")
     set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--no-undefined")
-    message("additional default options were set for intel compiler")
+    message("additional default options were set for clang compiler")
     message("CMAKE_CXX_FLAGS = ${CMAKE_CXX_FLAGS}")
     message("CMAKE_C_FLAGS = ${CMAKE_C_FLAGS}")
   endif(${CMAKE_CXX_COMPILER_ID} MATCHES Clang)
