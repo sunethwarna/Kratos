@@ -22,63 +22,63 @@ def initialize_time_parameters(benchmark_number):
     elif benchmark_number==2:
 
         final_time                      = 0.007
-        dt                              = 3e-7 #3e-7 # Complies Rayleigh's condition????????????????
+        dt                              = 3e-7 # Complies Rayleigh's condition????????????????
         output_time_step                = 0.0001
         number_of_points_in_the_graphic = 6
 
     elif benchmark_number==3:
 
         final_time                      = 0.00031
-        dt                              = 1.0e-8  #1.1e-9 # Complies Rayleigh's condition
+        dt                              = 8.1e-9 #1.1e-9 # Complies Rayleigh's condition
         output_time_step                = 0.000001
         number_of_points_in_the_graphic = 6
 
     elif benchmark_number==4:
 
         final_time                      = 0.0002  #0.00003
-        dt                              = 1.9e-8  #1.9e-9 # Complies Rayleigh's condition
+        dt                              = 2e-8 #1.9e-9 # Complies Rayleigh's condition
         output_time_step                = 0.000001
         number_of_points_in_the_graphic = 17
 
     elif benchmark_number==5:
 
         final_time                      = 0.0000005
-        dt                              = 3.6e-11  #3.6e-12 # Complies Rayleigh's condition
+        dt                              = 3.6e-11 #3.6e-12 # Complies Rayleigh's condition
         output_time_step                = 0.00000005
         number_of_points_in_the_graphic = 17
 
     elif benchmark_number==6:
 
         final_time                      = 0.01
-        dt                              = 1.0e-6  #1.0e-7 # Complies Rayleigh's condition ????????????????
+        dt                              = 1.0e-6 #1.0e-7 # Complies Rayleigh's condition ????????????????
         output_time_step                = 0.00025
         number_of_points_in_the_graphic = 17
 
     elif benchmark_number==7:
 
         final_time                      = 0.0005
-        dt                              = 4e-7 #4.4614e-8 # Complies Rayleigh's condition ????????????????
+        dt                              = 4.4614e-7 #4.4614e-8 # Complies Rayleigh's condition ????????????????
         output_time_step                = 0.000005
         number_of_points_in_the_graphic = 17
 
     elif benchmark_number==8:
 
         final_time                      = 0.02
-        dt                              = 1.0e-6 #5.0e-7 # Complies Rayleigh's condition
+        dt                              = 2.0e-6 #5.0e-7 # Complies Rayleigh's condition
         output_time_step                = 0.0001
         number_of_points_in_the_graphic = 17
 
     elif benchmark_number==9:
 
         final_time                      = 0.001 #0.0005
-        dt                              = 5.0e-8 #6.4e-8 # Complies Rayleigh's condition
+        dt                              = 5.0e-8 # 3.4e-8 # Complies Rayleigh's condition
         output_time_step                = 0.000005
         number_of_points_in_the_graphic = 6
 
     elif benchmark_number==10:
 
         final_time                      = 0.00015 #0.0005
-        dt                              = 2.0e-8 #2.0e-9  #3.6e-12 # Complies Rayleigh's condition
+        dt                              = 2.0e-8  #3.6e-12 # Complies Rayleigh's condition
         output_time_step                = 0.00001
         number_of_points_in_the_graphic = 10
         number_of_coeffs_of_restitution = 4
@@ -86,7 +86,7 @@ def initialize_time_parameters(benchmark_number):
     elif benchmark_number==11:
 
         final_time                      = 0.00015 #0.0005
-        dt                              = 2.0e-8 #2.0e-9 #3.6e-12 # Complies Rayleigh's condition
+        dt                              = 1.0e-7 #3.6e-12 # Complies Rayleigh's condition
         output_time_step                = 0.00001
         number_of_points_in_the_graphic = 10
         number_of_coeffs_of_restitution = 4
@@ -263,7 +263,7 @@ class Benchmark1:
         self.gnuplot_outfile = open(gnuplot_script_name, 'w')
         self.gnuplot_outfile.write("set grid; plot '" + normal_contact_force_outfile_name + "' every 20 u 1:8 w lp lt -1 lw 1.5 ps 1 pt 4")
         self.gnuplot_outfile.close()
-        print_gnuplot_files_on_screen(gnuplot_script_name)
+        #print_gnuplot_files_on_screen(gnuplot_script_name)
 
         error1, error2, error3 = self.compute_errors(normal_contact_force_outfile_name)
 
@@ -331,7 +331,7 @@ class Benchmark2:
         self.gnuplot_outfile = open(gnuplot_script_name, 'w')
         self.gnuplot_outfile.write("set grid; plot '" + normal_contact_force_outfile_name + "' every 10 u 1:10 w lp lt 3 lw 1.5 ps 1 pt 6")
         self.gnuplot_outfile.close()
-        print_gnuplot_files_on_screen(gnuplot_script_name)
+        #print_gnuplot_files_on_screen(gnuplot_script_name)
 
         error1, error2, error3 = self.compute_errors(normal_contact_force_outfile_name)
 
@@ -390,7 +390,9 @@ class Benchmark3:
 
         for node in modelpart.Nodes:
             self.initial_normal_vel = node.GetSolutionStepValue(VELOCITY_Z)
+            
             modelpart.GetProperties()[1][COEFFICIENT_OF_RESTITUTION] = number
+            
 
     def generate_graph_points(self, modelpart, rigid_face_model_part, cluster_model_part, time, output_time_step, dt):
         pass
@@ -402,6 +404,7 @@ class Benchmark3:
 
         for node in modelpart.Nodes:
             final_vel = node.GetSolutionStepValue(VELOCITY_Z)
+            
 
         restitution_coefficient = -final_vel / self.initial_normal_vel
         self.restitution_numbers_list.append(restitution_coefficient)
@@ -446,7 +449,7 @@ class Benchmark3:
         self.gnuplot_outfile.write("'paper_data/benchmark3_graph1.dat' w lp ls 2 t 'Cast iron'\n")
         self.gnuplot_outfile.close()
 
-        print_gnuplot_files_on_screen(gnuplot_script_name_1)
+        #print_gnuplot_files_on_screen(gnuplot_script_name_1)
 
     def compute_errors(self, restitution_numbers_vector_list_outfile_name):
 
@@ -594,10 +597,10 @@ class Benchmark4:
         self.gnuplot_outfile.write("'paper_data/benchmark4_graph3.dat' index 1 w lp ls 2 t 'Al. alloy',\\\n")
         self.gnuplot_outfile.write("'paper_data/benchmark4_graph3.dat' index 2 w p pt 7 ps 2 lt -1 t 'Experimental'\n")
         self.gnuplot_outfile.close()
-        
+        '''
         print_gnuplot_files_on_screen(gnuplot_script_name_1)
         print_gnuplot_files_on_screen(gnuplot_script_name_2)
-        print_gnuplot_files_on_screen(gnuplot_script_name_3)
+        print_gnuplot_files_on_screen(gnuplot_script_name_3)'''
 
     def compute_errors(self, tangential_restitution_coefficient_list_outfile_name, final_angular_vel_list_outfile_name, rebound_angle_list_outfile_name):
 
@@ -773,9 +776,9 @@ class Benchmark5:
         self.gnuplot_outfile.write("'paper_data/benchmark5_graph2.dat' index 1 w lp ls 2 t 'Polyethylene',\\\n")
         self.gnuplot_outfile.write("'paper_data/benchmark5_graph2.dat' index 2 w p pt 7 ps 2 lt -1 t 'FEM'\n")
         self.gnuplot_outfile.close()
-        
+        '''
         print_gnuplot_files_on_screen(gnuplot_script_name_1)
-        print_gnuplot_files_on_screen(gnuplot_script_name_2)
+        print_gnuplot_files_on_screen(gnuplot_script_name_2)'''
 
     def compute_errors(self, Vst_prima_div_mu_per_Vcn_prima_list_outfile_name, r_w1_prima_div_mu_per_Vcn_list_outfile_name):
 
@@ -933,9 +936,9 @@ class Benchmark6:
         self.gnuplot_outfile.write("'paper_data/benchmark6_graph2.dat' index 0 w lp ls 1 t 'Al. alloy',\\\n")
         self.gnuplot_outfile.write("'paper_data/benchmark6_graph2.dat' index 1 w lp ls 2 t 'Nylon'\n")
         self.gnuplot_outfile.close()
-        
+        '''
         print_gnuplot_files_on_screen(gnuplot_script_name_1)
-        print_gnuplot_files_on_screen(gnuplot_script_name_2)
+        print_gnuplot_files_on_screen(gnuplot_script_name_2)'''
 
     def compute_errors(self, beta_list_outfile_name, Vst_prima_div_Vcn_prima_list_outfile_name):
 
@@ -1097,9 +1100,9 @@ class Benchmark7:
         self.gnuplot_outfile.write("'paper_data/benchmark7_graph2.dat' w lp ls 1 t 'Al. alloy',\\\n")
         self.gnuplot_outfile.write("'paper_data/benchmark7_graph2.dat' w lp ls 2 t 'Copper'\n")
         self.gnuplot_outfile.close()
-        
+        '''
         print_gnuplot_files_on_screen(gnuplot_script_name_1)
-        print_gnuplot_files_on_screen(gnuplot_script_name_2)
+        print_gnuplot_files_on_screen(gnuplot_script_name_2)'''
 
     def compute_errors(self, final_tangential_center_vel_list_outfile_name, final_angular_vel_list_outfile_name):
 
@@ -1253,9 +1256,9 @@ class Benchmark8:
         self.gnuplot_outfile.write("'paper_data/benchmark8_graph2.dat' index 0 w lp ls 1 t 'Al. alloy',\\\n")
         self.gnuplot_outfile.write("'paper_data/benchmark8_graph2.dat' index 1 w lp ls 2 t 'Nylon'\n")
         self.gnuplot_outfile.close()
-        
+        '''
         print_gnuplot_files_on_screen(gnuplot_script_name_1)
-        print_gnuplot_files_on_screen(gnuplot_script_name_2)
+        print_gnuplot_files_on_screen(gnuplot_script_name_2)'''
 
     def compute_errors(self, beta_list_outfile_name, Vst_prima_div_Vcn_prima_list_outfile_name):
 
@@ -1406,7 +1409,7 @@ class Benchmark9:
         self.gnuplot_outfile.write("'paper_data/benchmark9_graph1.dat' w lp ls 2 t 'Cast iron'\n")
         self.gnuplot_outfile.close()
 
-        print_gnuplot_files_on_screen(gnuplot_script_name_1)
+        #print_gnuplot_files_on_screen(gnuplot_script_name_1)
 
     def compute_errors(self, restitution_numbers_vector_list_outfile_name):
 
@@ -1590,10 +1593,10 @@ class Benchmark10: ########## LINEAR THORNTON
         self.gnuplot_outfile.write("plot [0:10][0.5:1.0] '" + tangential_coefficient_of_restitution_list_outfile_name + "' w lp lt 1 lw 1.5 ps 2 pt 5,\\\n")
         self.gnuplot_outfile.write("'paper_data/bench_10_tang_coeff_rest_e_" + coeff_of_rest_string + ".dat' index 1 w lp ls 1 t 'Paper data'\n")
         self.gnuplot_outfile.close()
-
+        '''
         print_gnuplot_files_on_screen(gnuplot_script_name_1)
         print_gnuplot_files_on_screen(gnuplot_script_name_2)
-        print_gnuplot_files_on_screen(gnuplot_script_name_3)
+        print_gnuplot_files_on_screen(gnuplot_script_name_3)'''
 
 
     def compute_errors(self, normalized_rebound_tangential_surface_vel_list_outfile_name,
@@ -1845,10 +1848,10 @@ class Benchmark11: ########## HERTZIAN THORNTON
         self.gnuplot_outfile.write("plot [0:10][0.5:1.0] '" + tangential_coefficient_of_restitution_list_outfile_name + "' w lp lt 1 lw 1.5 ps 2 pt 5,\\\n")
         self.gnuplot_outfile.write("'paper_data/bench_10_tang_coeff_rest_e_" + coeff_of_rest_string + ".dat' index 0 w lp ls 1 t 'Paper data'\n")
         self.gnuplot_outfile.close()
-
+        '''
         print_gnuplot_files_on_screen(gnuplot_script_name_1)
         print_gnuplot_files_on_screen(gnuplot_script_name_2)
-        print_gnuplot_files_on_screen(gnuplot_script_name_3)
+        print_gnuplot_files_on_screen(gnuplot_script_name_3)'''
         
 
     def compute_errors(self, normalized_rebound_tangential_surface_vel_list_outfile_name,

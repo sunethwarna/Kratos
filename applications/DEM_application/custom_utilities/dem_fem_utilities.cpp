@@ -98,7 +98,6 @@ namespace Kratos
             
             for (ModelPart::SubModelPartsContainerType::iterator sub_model_part = r_model_part.SubModelPartsBegin();
                                                                  sub_model_part != r_model_part.SubModelPartsEnd(); ++sub_model_part) {
-                
                 ModelPart& submp = *sub_model_part;
                 NodesArrayType& rNodes = submp.Nodes();
                 const int table_number = submp[TABLE_NUMBER];

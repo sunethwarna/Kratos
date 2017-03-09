@@ -504,7 +504,7 @@ class Procedures(object):
         if (abs(var) > 1e-9):
             std_dev = var ** 0.5
 
-        if (i>0.0):
+        if i>0.0 and mean:
             rel_std_dev = std_dev / mean
 
         Model_Data.write("Radius Mean: " + str(mean) + '\n')
@@ -898,7 +898,7 @@ class DEMFEMProcedures(object):
         self.mesh_motion.MoveAllMeshes(spheres_model_part, time, dt)
         self.mesh_motion.MoveAllMeshes(DEM_inlet_model_part, time, dt)
 
-    def UpdateTimeInModelParts(self, all_model_parts, time,dt,step):  
+    def UpdateTimeInModelParts(self, all_model_parts, time, dt, step):  
         
         spheres_model_part = all_model_parts.spheres_model_part
         cluster_model_part = all_model_parts.cluster_model_part
@@ -1459,6 +1459,7 @@ class DEMIo(object):
             mfilelist.index = 1
 
     def PrintMultifileLists(self, time, post_path):
+        
         for mfilelist in self.multifilelists:
 
             if mfilelist.index == mfilelist.step:

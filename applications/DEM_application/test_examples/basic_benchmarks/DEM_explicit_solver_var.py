@@ -86,7 +86,7 @@ ElementType                      = "SphericPartDEMElement3D"
 
 GraphExportFreq                  = 1e-5
 VelTrapGraphExportFreq           = 1e-3
-OutputTimeStep                   = 1e-3
+OutputTimeStep                   = 1e-1
 PostDisplacement                 = "1"
 PostVelocity                     = "1"
 PostElasticForces                = "1"
@@ -123,5 +123,5 @@ MeanRadius                       = 0.0001
 
 # Declare Python Variables
 
-problem_name="benchmark5"
+problem_name="benchmark2"
 kratos_path="D:\Kratos"
