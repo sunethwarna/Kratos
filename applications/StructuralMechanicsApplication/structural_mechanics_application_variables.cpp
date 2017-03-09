@@ -72,16 +72,16 @@ KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS( POINT_TORQUE )
 
 // Adding the SPRISM EAS variables
 KRATOS_CREATE_VARIABLE(double, ALPHA_EAS);
-KRATOS_CREATE_VARIABLE(bool, EAS_IMP);
-KRATOS_CREATE_VARIABLE(bool, SPRISM_TL_UL);
+KRATOS_CREATE_VARIABLE(bool, EAS_IMP);      // TODO: Use a template
+KRATOS_CREATE_VARIABLE(bool, SPRISM_TL_UL); // TODO: Use a template
 
-// Adding the SPRISM additional variables
+// Adding the SPRISM additional variables // TODO: Define the local axis
 KRATOS_CREATE_VARIABLE(double, ANG_ROT);
 
-// Adding the Sprism number of transversal integration points
+// Adding the Sprism number of transversal integration points // TODO: Define a more general variable
 KRATOS_CREATE_VARIABLE(int, NINT_TRANS);
 
-// Adding the SPRISM variable to deactivate the quadratic interpolation
+// Adding the SPRISM variable to deactivate the quadratic interpolation // TODO: Use a template
 KRATOS_CREATE_VARIABLE(bool, QUAD_ON);
 
 // Additional strain measures

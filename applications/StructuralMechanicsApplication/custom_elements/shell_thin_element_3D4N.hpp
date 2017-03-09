@@ -252,8 +252,8 @@ namespace Kratos
 			// these data are allocated and constructed
 			// at the beginning of the calculation
 
+                        ShellQ4_LocalCoordinateSystem LCS;  /*!< current coordinate system */
 			ShellQ4_LocalCoordinateSystem LCS0; /*!< reference coordinate system */
-			ShellQ4_LocalCoordinateSystem LCS;  /*!< current coordinate system */
 
 			Vector s_xi, s_eta, s_24, s_13;
 			array_1d<double, 4> N_pw;

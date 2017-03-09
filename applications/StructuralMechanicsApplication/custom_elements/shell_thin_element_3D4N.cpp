@@ -226,11 +226,15 @@ namespace Kratos
 		const PropertiesType & props = GetProperties();
 
 		if (geom.PointsNumber() != OPT_NUM_NODES)
-			KRATOS_THROW_ERROR(std::logic_error, "ShellThinElement3D4N Element - Wrong number of nodes", geom.PointsNumber());
+                {
+                    KRATOS_ERROR << "ShellThinElement3D4N Element - Wrong number of nodes " << geom.PointsNumber() << std::endl;
+                }
 
 		const GeometryType::IntegrationPointsArrayType & integrationPoints = geom.IntegrationPoints(GetIntegrationMethod());
 		if (integrationPoints.size() != OPT_NUM_GP)
-			KRATOS_THROW_ERROR(std::logic_error, "ShellThinElement3D4N Element - Wrong integration scheme", integrationPoints.size());
+                {
+                    KRATOS_ERROR << "ShellThinElement3D4N Element - Wrong integration scheme" << integrationPoints.size() << std::endl;
+                }
 
 		if (mSections.size() != OPT_NUM_GP)
 		{
@@ -313,45 +317,45 @@ namespace Kratos
 	{
 		KRATOS_TRY
 
-			GeometryType& geom = GetGeometry();
+                GeometryType& geom = GetGeometry();
 
 		// verify that the variables are correctly initialized
 		if (DISPLACEMENT.Key() == 0)
-			KRATOS_THROW_ERROR(std::invalid_argument, "DISPLACEMENT has Key zero! (check if the application is correctly registered", "");
+			KRATOS_ERROR << "DISPLACEMENT has Key zero! (check if the application is correctly registered" << std::endl;
 		if (ROTATION.Key() == 0)
-			KRATOS_THROW_ERROR(std::invalid_argument, "ROTATION has Key zero! (check if the application is correctly registered", "");
+			KRATOS_ERROR << "ROTATION has Key zero! (check if the application is correctly registered" << std::endl;
 		if (VELOCITY.Key() == 0)
-			KRATOS_THROW_ERROR(std::invalid_argument, "VELOCITY has Key zero! (check if the application is correctly registered", "");
+			KRATOS_ERROR << "VELOCITY has Key zero! (check if the application is correctly registered" << std::endl;
 		if (ACCELERATION.Key() == 0)
-			KRATOS_THROW_ERROR(std::invalid_argument, "ACCELERATION has Key zero! (check if the application is correctly registered", "");
+			KRATOS_ERROR << "ACCELERATION has Key zero! (check if the application is correctly registered" << std::endl;
 		if (DENSITY.Key() == 0)
-			KRATOS_THROW_ERROR(std::invalid_argument, "DENSITY has Key zero! (check if the application is correctly registered", "");
+			KRATOS_ERROR << "DENSITY has Key zero! (check if the application is correctly registered" << std::endl;
 		if (SHELL_CROSS_SECTION.Key() == 0)
-			KRATOS_THROW_ERROR(std::invalid_argument, "SHELL_CROSS_SECTION has Key zero! (check if the application is correctly registered", "");
+			KRATOS_ERROR << "SHELL_CROSS_SECTION has Key zero! (check if the application is correctly registered" << std::endl;
 		if (THICKNESS.Key() == 0)
-			KRATOS_THROW_ERROR(std::invalid_argument, "THICKNESS has Key zero! (check if the application is correctly registered", "");
+			KRATOS_ERROR << "THICKNESS has Key zero! (check if the application is correctly registered" << std::endl;
 		if (CONSTITUTIVE_LAW.Key() == 0)
-			KRATOS_THROW_ERROR(std::invalid_argument, "CONSTITUTIVE_LAW has Key zero! (check if the application is correctly registered", "");
+			KRATOS_ERROR << "CONSTITUTIVE_LAW has Key zero! (check if the application is correctly registered" << std::endl;
 
 		// verify that the dofs exist
 		for (unsigned int i = 0; i<geom.size(); i++)
 		{
 			if (geom[i].SolutionStepsDataHas(DISPLACEMENT) == false)
-				KRATOS_THROW_ERROR(std::invalid_argument, "missing variable DISPLACEMENT on node ", geom[i].Id());
+				KRATOS_ERROR << "missing variable DISPLACEMENT on node " << geom[i].Id() << std::endl;
 			if (geom[i].HasDofFor(DISPLACEMENT_X) == false || geom[i].HasDofFor(DISPLACEMENT_Y) == false || geom[i].HasDofFor(DISPLACEMENT_Z) == false)
-				KRATOS_THROW_ERROR(std::invalid_argument, "missing one of the dofs for the variable DISPLACEMENT on node ", GetGeometry()[i].Id());
+				KRATOS_ERROR << "missing one of the dofs for the variable DISPLACEMENT on node " << GetGeometry()[i].Id() << std::endl;
 			if (geom[i].SolutionStepsDataHas(ROTATION) == false)
-				KRATOS_THROW_ERROR(std::invalid_argument, "missing variable ROTATION on node ", geom[i].Id());
+				KRATOS_ERROR << "missing variable ROTATION on node " << geom[i].Id() << std::endl;
 			if (geom[i].HasDofFor(ROTATION_X) == false || geom[i].HasDofFor(ROTATION_Y) == false || geom[i].HasDofFor(ROTATION_Z) == false)
-				KRATOS_THROW_ERROR(std::invalid_argument, "missing one of the dofs for the variable ROTATION on node ", geom[i].Id());
+				KRATOS_ERROR << "missing one of the dofs for the variable ROTATION on node " << geom[i].Id() << std::endl;;
 
 			if (geom[i].GetBufferSize() < 2)
-				KRATOS_THROW_ERROR(std::logic_error, "This Element needs at least a buffer size = 2", "");
+				KRATOS_ERROR << "This Element needs at least a buffer size = 2" << std::endl;
 		}
 
 		// check properties
 		if (this->pGetProperties() == NULL)
-			KRATOS_THROW_ERROR(std::logic_error, "Properties not provided for element ", this->Id());
+			KRATOS_ERROR << "Properties not provided for element " << this->Id() << std::endl;
 
 		const PropertiesType & props = this->GetProperties();
 
@@ -359,22 +363,22 @@ namespace Kratos
 		{
 			const ShellCrossSection::Pointer & section = props[SHELL_CROSS_SECTION];
 			if (section == NULL)
-				KRATOS_THROW_ERROR(std::logic_error, "SHELL_CROSS_SECTION not provided for element ", this->Id());
+				KRATOS_ERROR << "SHELL_CROSS_SECTION not provided for element " << this->Id() << std::endl;
 
 			section->Check(props, geom, rCurrentProcessInfo);
 		}
 		else // ... allow the automatic creation of a homogeneous section from a material and a thickness
 		{
 			if (!props.Has(CONSTITUTIVE_LAW))
-				KRATOS_THROW_ERROR(std::logic_error, "CONSTITUTIVE_LAW not provided for element ", this->Id());
+				KRATOS_ERROR << "CONSTITUTIVE_LAW not provided for element " << this->Id() << std::endl;
 			const ConstitutiveLaw::Pointer& claw = props[CONSTITUTIVE_LAW];
 			if (claw == NULL)
-				KRATOS_THROW_ERROR(std::logic_error, "CONSTITUTIVE_LAW not provided for element ", this->Id());
+				KRATOS_ERROR << "CONSTITUTIVE_LAW not provided for element " << this->Id() << std::endl;
 
 			if (!props.Has(THICKNESS))
-				KRATOS_THROW_ERROR(std::logic_error, "THICKNESS not provided for element ", this->Id());
+				KRATOS_ERROR << "THICKNESS not provided for element " << this->Id() << std::endl;
 			if (props[THICKNESS] <= 0.0)
-				KRATOS_THROW_ERROR(std::logic_error, "wrong THICKNESS value provided for element ", this->Id());
+				KRATOS_ERROR << "wrong THICKNESS value provided for element " << this->Id() << std::endl;
 
 			ShellCrossSection::Pointer dummySection = ShellCrossSection::Pointer(new ShellCrossSection());
 			dummySection->BeginStack();
@@ -1137,11 +1141,11 @@ namespace Kratos
 		Vector s_41 = Vector(data.LCS0.P4() - data.LCS0.P1());
 		const double l_41 = std::sqrt(inner_prod(s_41, s_41));
 
-		Vector s_13 = Vector(data.LCS0.P1() - data.LCS0.P3());
-		const double l_13 = std::sqrt(inner_prod(s_13, s_13));
+		Vector s_13 = Vector(data.LCS0.P1() - data.LCS0.P3()); 
+// 		const double l_13 = std::sqrt(inner_prod(s_13, s_13)); // NOTE: Unused
 
 		Vector s_24 = Vector(data.LCS0.P2() - data.LCS0.P4());
-		const double l_24 = std::sqrt(inner_prod(s_24, s_24));
+// 		const double l_24 = std::sqrt(inner_prod(s_24, s_24)); // NOTE: Unused
 
 
 
@@ -1585,33 +1589,33 @@ namespace Kratos
 	{
 		std::cout << "Using alternate membrane formulation\n!\n!\n!\n!\n!\n!" << std::endl;
 		//DOFs are ordered as per paper, then transformed at the end!
-		const double x12 = data.LCS0.X1() - data.LCS0.X2();
+// 		const double x12 = data.LCS0.X1() - data.LCS0.X2(); // NOTE: Unused
 		const double x13 = data.LCS0.X1() - data.LCS0.X3();
-		const double x23 = data.LCS0.X2() - data.LCS0.X3();
+// 		const double x23 = data.LCS0.X2() - data.LCS0.X3(); // NOTE: Unused
 		const double x24 = data.LCS0.X2() - data.LCS0.X4();
-		const double x34 = data.LCS0.X3() - data.LCS0.X4();
-		const double x41 = data.LCS0.X4() - data.LCS0.X1();
+// 		const double x34 = data.LCS0.X3() - data.LCS0.X4(); // NOTE: Unused
+// 		const double x41 = data.LCS0.X4() - data.LCS0.X1(); // NOTE: Unused
 
-		const double x21 = -x12;
+// 		const double x21 = -x12; // NOTE: Unused
 		const double x31 = -x13;
-		const double x32 = -x23;
+// 		const double x32 = -x23; // NOTE: Unused
 		const double x42 = -x24;
-		const double x43 = -x34;
-		const double x14 = -x41;
+// 		const double x43 = -x34; // NOTE: Unused
+// 		const double x14 = -x41; // NOTE: Unused
 
-		const double y12 = data.LCS0.Y1() - data.LCS0.Y2();
+// 		const double y12 = data.LCS0.Y1() - data.LCS0.Y2(); // NOTE: Unused
 		const double y13 = data.LCS0.Y1() - data.LCS0.Y3();
-		const double y23 = data.LCS0.Y2() - data.LCS0.Y3();
+// 		const double y23 = data.LCS0.Y2() - data.LCS0.Y3(); // NOTE: Unused
 		const double y24 = data.LCS0.Y2() - data.LCS0.Y4();
-		const double y34 = data.LCS0.Y3() - data.LCS0.Y4();
-		const double y41 = data.LCS0.Y4() - data.LCS0.Y1();
+// 		const double y34 = data.LCS0.Y3() - data.LCS0.Y4(); // NOTE: Unused
+// 		const double y41 = data.LCS0.Y4() - data.LCS0.Y1(); // NOTE: Unused
 
-		const double y21 = -y12;
+// 		const double y21 = -y12; // NOTE: Unused
 		const double y31 = -y13;
-		const double y32 = -y23;
+// 		const double y32 = -y23; // NOTE: Unused
 		const double y42 = -y24;
-		const double y43 = -y34;
-		const double y14 = -y41;
+// 		const double y43 = -y34; // NOTE: Unused
+// 		const double y14 = -y41; // NOTE: Unused
 
 		//eqn 5.2.12
 		array_1d<Vector, 4> r_cartesian;
@@ -1659,7 +1663,7 @@ namespace Kratos
 		}
 
 		//eqn 5.2.21
-		double a = 0.0;
+// 		double a = 0.0; // NOTE: Unused
 		array_1d<double, 4> v_h;
 		v_h[0] = 1.0;
 		v_h[1] = -1.0;
@@ -2387,7 +2391,7 @@ namespace Kratos
 
 			// get a reference of the current integration point and shape functions
 
-			const GeometryType::IntegrationPointType & ip = geom.IntegrationPoints()[i];
+// 			const GeometryType::IntegrationPointType & ip = geom.IntegrationPoints()[i]; // NOTE: Unused
 
 			noalias(iN) = row(shapeFunctions, i);
 
