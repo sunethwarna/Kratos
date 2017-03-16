@@ -373,12 +373,6 @@ namespace Kratos
 
 		void InitializeCalculationData(CalculationData& data);
 
-		void CalculateQMatrices(CalculationData& data);
-
-		void CalculateB_h_mats(CalculationData& data);
-
-		void CalculateMembraneAlt(CalculationData& data);
-
 		void CalculateBMatrix(CalculationData& data);
 
 		void CalculateSectionResponse(CalculationData& data);

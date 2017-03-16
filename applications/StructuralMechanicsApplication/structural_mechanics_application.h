@@ -222,7 +222,6 @@ private:
     const IsotropicShellElement  mIsotropicShellElement3D3N;
 
     const ShellThickElement3D4N  mShellThickElement3D4N;
-	const ShellThinElement3D4N   mShellThinElement3D4N;
 	
     const ShellThickElement3D4N  mShellThickCorotationalElement3D4N;
 	const ShellThinElement3D4N   mShellThinCorotationalElement3D4N;
