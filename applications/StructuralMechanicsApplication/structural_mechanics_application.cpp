@@ -39,20 +39,13 @@
 #include "geometries/prism_3d_6.h"
 
 //======= PW debugging element include ==============================================================================
-#include "custom_elements\shell_thick_element_3D4N_pw.hpp"
-#include "custom_elements\shell_thick_element_3D3N.hpp"
-#include "custom_elements\shell_thin_element_3D4N.hpp"
+//#include "custom_elements/shell_thick_element_3D3N.hpp"
+//#include "custom_elements/shell_thin_element_3D4N.hpp"
 
 namespace Kratos
 {
 KratosStructuralMechanicsApplication::KratosStructuralMechanicsApplication():
     /* ELEMENTS */
-
-	//=================================adding pw shell elements - debugging======================================================
-	mShellThickElement3D4N_pw(0, Element::GeometryType::Pointer(new Quadrilateral3D4 <Node<3> >(Element::GeometryType::PointsArrayType(4))), false),
-	
-
-	//===========================================================================================================================
 
     // Adding the beam element
     mSmallDisplacementBeamElement3D2N( 0, Element::GeometryType::Pointer( new Line3D2 <Node<3> >( Element::GeometryType::PointsArrayType( 2 ) ) ) ),
@@ -173,10 +166,6 @@ void KratosStructuralMechanicsApplication::Register()
     KRATOS_REGISTER_ELEMENT( "SmallDisplacementBeamElement3D2N", mSmallDisplacementBeamElement3D2N )
 
     //Register the shells elements
-
-				//Register PW debugging element =======================================================================================================
-				KRATOS_REGISTER_ELEMENT("ShellThickElement3D4N_pw", mShellThickElement3D4N_pw)
-				//Register PW debugging element =======================================================================================================
 
 	KRATOS_REGISTER_ELEMENT( "IsotropicShellElement3D3N", mIsotropicShellElement3D3N )
     KRATOS_REGISTER_ELEMENT( "ShellThickElement3D4N", mShellThickElement3D4N )

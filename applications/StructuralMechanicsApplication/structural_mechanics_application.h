@@ -33,11 +33,8 @@
 #include "custom_elements/membrane_element.hpp"
 #include "custom_elements/shell_thick_element_3D4N.hpp"
 #include "custom_elements/shell_thin_element_3D4N.hpp"
-#include "custom_elements/shell_thick_element_3D3N.hpp"
-//Add PW debugging element =================================================================================
-#include "custom_elements/shell_thick_element_3D4N_pw.hpp"
-//Add PW debugging element =================================================================================
 #include "custom_elements/shell_thin_element_3D3N.hpp"
+#include "custom_elements/shell_thick_element_3D3N.hpp"
 
 /* Adding the SPRISM element */
 #include "custom_elements/nodal_concentrated_element.hpp"
@@ -221,11 +218,6 @@ private:
     const SmallDisplacementBeamElement3D2N   mSmallDisplacementBeamElement3D2N;
 
     // Adding the shells elements 
-
-			//Add PW debugging element ==================================================================
-			const ShellThickElement3D4N_pw  mShellThickElement3D4N_pw;
-			
-			//Add PW debugging element ==================================================================
 
     const IsotropicShellElement  mIsotropicShellElement3D3N;
 
