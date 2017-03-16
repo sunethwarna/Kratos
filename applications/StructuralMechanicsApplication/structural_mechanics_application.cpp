@@ -38,19 +38,40 @@
 #include "geometries/point_3d.h"
 #include "geometries/prism_3d_6.h"
 
+//======= PW debugging element include ==============================================================================
+#include "custom_elements\shell_thick_element_3D4N_pw.hpp"
+#include "custom_elements\shell_thick_element_3D3N.hpp"
+#include "custom_elements\shell_thin_element_3D4N.hpp"
+
 namespace Kratos
 {
 KratosStructuralMechanicsApplication::KratosStructuralMechanicsApplication():
     /* ELEMENTS */
+
+	//=================================adding pw shell elements - debugging======================================================
+	mShellThickElement3D4N_pw(0, Element::GeometryType::Pointer(new Quadrilateral3D4 <Node<3> >(Element::GeometryType::PointsArrayType(4))), false),
+	
+
+	//===========================================================================================================================
+
     // Adding the beam element
     mSmallDisplacementBeamElement3D2N( 0, Element::GeometryType::Pointer( new Line3D2 <Node<3> >( Element::GeometryType::PointsArrayType( 2 ) ) ) ),
     // Adding the shells elements
     mIsotropicShellElement3D3N( 0, Element::GeometryType::Pointer( new Triangle3D3 <Node<3> >( Element::GeometryType::PointsArrayType( 3 ) ) ) ),
+
     mShellThickElement3D4N( 0, Element::GeometryType::Pointer( new Quadrilateral3D4 <Node<3> >( Element::GeometryType::PointsArrayType( 4 ) ) ), false ),
-    mShellThickCorotationalElement3D4N( 0, Element::GeometryType::Pointer( new Quadrilateral3D4 <Node<3> >( Element::GeometryType::PointsArrayType( 4 ) ) ), true ),
+	mShellThinElement3D4N(0, Element::GeometryType::Pointer(new Quadrilateral3D4 <Node<3> >(Element::GeometryType::PointsArrayType(4))), false),
+
+	mShellThickCorotationalElement3D4N(0, Element::GeometryType::Pointer(new Quadrilateral3D4 <Node<3> >(Element::GeometryType::PointsArrayType(4))), true),
+	mShellThinCorotationalElement3D4N(0, Element::GeometryType::Pointer(new Quadrilateral3D4 <Node<3> >(Element::GeometryType::PointsArrayType(4))), true),
+
+
     mShellThinElement3D3N( 0, Element::GeometryType::Pointer( new Triangle3D3 <Node<3> >( Element::GeometryType::PointsArrayType( 3 ) ) ), false ),
     mShellThinCorotationalElement3D3N( 0, Element::GeometryType::Pointer( new Triangle3D3 <Node<3> >( Element::GeometryType::PointsArrayType( 3 ) ) ), true ),
-    mShellThinCorotationalElement3D4N( 0, Element::GeometryType::Pointer( new Quadrilateral3D4 <Node<3> >( Element::GeometryType::PointsArrayType( 4 ) ) ), true ),
+
+	mShellThickElement3D3N(0, Element::GeometryType::Pointer( new Triangle3D3 <Node<3> >( Element::GeometryType::PointsArrayType(3))), false),
+	mShellThickCorotationalElement3D3N(0, Element::GeometryType::Pointer(new Triangle3D3 <Node<3> >(Element::GeometryType::PointsArrayType(3))), true),
+
     // Adding the membrane element
     mMembraneElement3D3N( 0, Element::GeometryType::Pointer( new Triangle3D3 <Node<3> >( Element::GeometryType::PointsArrayType( 3 ) ) ) ),
     // Adding the SPRISM element
@@ -69,9 +90,9 @@ void KratosStructuralMechanicsApplication::Register()
 {
     // calling base class register to register Kratos components
     KratosApplication::Register();
-    std::cout << "     KRATOS   ___|  |                   |                   |                     " << std::endl;
-    std::cout << "            \\___ \\  __|  __| |   |  __| __| |   |  __| _` | |                   " << std::endl;
-    std::cout << "                  | |   |    |   | (    |   |   | |   (   | |                     " << std::endl;
+    std::cout << "     KRATOS   ___|  |                   |                   |               " << std::endl;
+    std::cout << "            \\___ \\  __|  __| |   |  __| __| |   |  __| _` | |               " << std::endl;
+    std::cout << "                  | |   |    |   | (    |   |   | |   (   | |               " << std::endl;
     std::cout << "            _____/ \\__|_|   \\__,_|\\___|\\__|\\__,_|_|  \\__,_|_| MECHANICS     " << std::endl;
 
 
@@ -151,13 +172,25 @@ void KratosStructuralMechanicsApplication::Register()
     // Register the beam element
     KRATOS_REGISTER_ELEMENT( "SmallDisplacementBeamElement3D2N", mSmallDisplacementBeamElement3D2N )
 
-    //Register the shells elements // FIXME: Discuss about the name (Example: ShellThickElementCorotational3D4N -> ShellThickCorotationalElement3D4N)
-    KRATOS_REGISTER_ELEMENT( "IsotropicShellElement3D3N", mIsotropicShellElement3D3N )
+    //Register the shells elements
+
+				//Register PW debugging element =======================================================================================================
+				KRATOS_REGISTER_ELEMENT("ShellThickElement3D4N_pw", mShellThickElement3D4N_pw)
+				//Register PW debugging element =======================================================================================================
+
+	KRATOS_REGISTER_ELEMENT( "IsotropicShellElement3D3N", mIsotropicShellElement3D3N )
     KRATOS_REGISTER_ELEMENT( "ShellThickElement3D4N", mShellThickElement3D4N )
-    KRATOS_REGISTER_ELEMENT( "ShellThickElementCorotational3D4N", mShellThickCorotationalElement3D4N )
+	KRATOS_REGISTER_ELEMENT("ShellThinElement3D4N", mShellThinElement3D4N)
+
+	
+	KRATOS_REGISTER_ELEMENT( "ShellThickElementCorotational3D4N", mShellThickCorotationalElement3D4N )
+	KRATOS_REGISTER_ELEMENT("ShellThinElementCorotational3D4N", mShellThinCorotationalElement3D4N)
+
     KRATOS_REGISTER_ELEMENT( "ShellThinElement3D3N", mShellThinElement3D3N )
     KRATOS_REGISTER_ELEMENT( "ShellThinElementCorotational3D3N", mShellThinCorotationalElement3D3N )
-    KRATOS_REGISTER_ELEMENT( "ShellThinElementCorotational3D4N", mShellThinCorotationalElement3D4N )
+
+	KRATOS_REGISTER_ELEMENT("ShellThickElement3D3N", mShellThickElement3D3N)
+	KRATOS_REGISTER_ELEMENT("ShellThickElementCorotational3D3N", mShellThickCorotationalElement3D3N)
 
     // Register the membrane element
     KRATOS_REGISTER_ELEMENT( "MembraneElement3D3N", mMembraneElement3D3N )

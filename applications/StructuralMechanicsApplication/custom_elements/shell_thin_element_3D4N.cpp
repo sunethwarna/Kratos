@@ -226,15 +226,11 @@ namespace Kratos
 		const PropertiesType & props = GetProperties();
 
 		if (geom.PointsNumber() != OPT_NUM_NODES)
-                {
-                    KRATOS_ERROR << "ShellThinElement3D4N Element - Wrong number of nodes " << geom.PointsNumber() << std::endl;
-                }
+			KRATOS_THROW_ERROR(std::logic_error, "ShellThinElement3D4N Element - Wrong number of nodes", geom.PointsNumber());
 
 		const GeometryType::IntegrationPointsArrayType & integrationPoints = geom.IntegrationPoints(GetIntegrationMethod());
 		if (integrationPoints.size() != OPT_NUM_GP)
-                {
-                    KRATOS_ERROR << "ShellThinElement3D4N Element - Wrong integration scheme" << integrationPoints.size() << std::endl;
-                }
+			KRATOS_THROW_ERROR(std::logic_error, "ShellThinElement3D4N Element - Wrong integration scheme", integrationPoints.size());
 
 		if (mSections.size() != OPT_NUM_GP)
 		{
@@ -317,45 +313,45 @@ namespace Kratos
 	{
 		KRATOS_TRY
 
-                GeometryType& geom = GetGeometry();
+			GeometryType& geom = GetGeometry();
 
 		// verify that the variables are correctly initialized
 		if (DISPLACEMENT.Key() == 0)
-			KRATOS_ERROR << "DISPLACEMENT has Key zero! (check if the application is correctly registered" << std::endl;
+			KRATOS_THROW_ERROR(std::invalid_argument, "DISPLACEMENT has Key zero! (check if the application is correctly registered", "");
 		if (ROTATION.Key() == 0)
-			KRATOS_ERROR << "ROTATION has Key zero! (check if the application is correctly registered" << std::endl;
+			KRATOS_THROW_ERROR(std::invalid_argument, "ROTATION has Key zero! (check if the application is correctly registered", "");
 		if (VELOCITY.Key() == 0)
-			KRATOS_ERROR << "VELOCITY has Key zero! (check if the application is correctly registered" << std::endl;
+			KRATOS_THROW_ERROR(std::invalid_argument, "VELOCITY has Key zero! (check if the application is correctly registered", "");
 		if (ACCELERATION.Key() == 0)
-			KRATOS_ERROR << "ACCELERATION has Key zero! (check if the application is correctly registered" << std::endl;
+			KRATOS_THROW_ERROR(std::invalid_argument, "ACCELERATION has Key zero! (check if the application is correctly registered", "");
 		if (DENSITY.Key() == 0)
-			KRATOS_ERROR << "DENSITY has Key zero! (check if the application is correctly registered" << std::endl;
+			KRATOS_THROW_ERROR(std::invalid_argument, "DENSITY has Key zero! (check if the application is correctly registered", "");
 		if (SHELL_CROSS_SECTION.Key() == 0)
-			KRATOS_ERROR << "SHELL_CROSS_SECTION has Key zero! (check if the application is correctly registered" << std::endl;
+			KRATOS_THROW_ERROR(std::invalid_argument, "SHELL_CROSS_SECTION has Key zero! (check if the application is correctly registered", "");
 		if (THICKNESS.Key() == 0)
-			KRATOS_ERROR << "THICKNESS has Key zero! (check if the application is correctly registered" << std::endl;
+			KRATOS_THROW_ERROR(std::invalid_argument, "THICKNESS has Key zero! (check if the application is correctly registered", "");
 		if (CONSTITUTIVE_LAW.Key() == 0)
-			KRATOS_ERROR << "CONSTITUTIVE_LAW has Key zero! (check if the application is correctly registered" << std::endl;
+			KRATOS_THROW_ERROR(std::invalid_argument, "CONSTITUTIVE_LAW has Key zero! (check if the application is correctly registered", "");
 
 		// verify that the dofs exist
 		for (unsigned int i = 0; i<geom.size(); i++)
 		{
 			if (geom[i].SolutionStepsDataHas(DISPLACEMENT) == false)
-				KRATOS_ERROR << "missing variable DISPLACEMENT on node " << geom[i].Id() << std::endl;
+				KRATOS_THROW_ERROR(std::invalid_argument, "missing variable DISPLACEMENT on node ", geom[i].Id());
 			if (geom[i].HasDofFor(DISPLACEMENT_X) == false || geom[i].HasDofFor(DISPLACEMENT_Y) == false || geom[i].HasDofFor(DISPLACEMENT_Z) == false)
-				KRATOS_ERROR << "missing one of the dofs for the variable DISPLACEMENT on node " << GetGeometry()[i].Id() << std::endl;
+				KRATOS_THROW_ERROR(std::invalid_argument, "missing one of the dofs for the variable DISPLACEMENT on node ", GetGeometry()[i].Id());
 			if (geom[i].SolutionStepsDataHas(ROTATION) == false)
-				KRATOS_ERROR << "missing variable ROTATION on node " << geom[i].Id() << std::endl;
+				KRATOS_THROW_ERROR(std::invalid_argument, "missing variable ROTATION on node ", geom[i].Id());
 			if (geom[i].HasDofFor(ROTATION_X) == false || geom[i].HasDofFor(ROTATION_Y) == false || geom[i].HasDofFor(ROTATION_Z) == false)
-				KRATOS_ERROR << "missing one of the dofs for the variable ROTATION on node " << geom[i].Id() << std::endl;;
+				KRATOS_THROW_ERROR(std::invalid_argument, "missing one of the dofs for the variable ROTATION on node ", geom[i].Id());
 
 			if (geom[i].GetBufferSize() < 2)
-				KRATOS_ERROR << "This Element needs at least a buffer size = 2" << std::endl;
+				KRATOS_THROW_ERROR(std::logic_error, "This Element needs at least a buffer size = 2", "");
 		}
 
 		// check properties
 		if (this->pGetProperties() == NULL)
-			KRATOS_ERROR << "Properties not provided for element " << this->Id() << std::endl;
+			KRATOS_THROW_ERROR(std::logic_error, "Properties not provided for element ", this->Id());
 
 		const PropertiesType & props = this->GetProperties();
 
@@ -363,22 +359,22 @@ namespace Kratos
 		{
 			const ShellCrossSection::Pointer & section = props[SHELL_CROSS_SECTION];
 			if (section == NULL)
-				KRATOS_ERROR << "SHELL_CROSS_SECTION not provided for element " << this->Id() << std::endl;
+				KRATOS_THROW_ERROR(std::logic_error, "SHELL_CROSS_SECTION not provided for element ", this->Id());
 
 			section->Check(props, geom, rCurrentProcessInfo);
 		}
 		else // ... allow the automatic creation of a homogeneous section from a material and a thickness
 		{
 			if (!props.Has(CONSTITUTIVE_LAW))
-				KRATOS_ERROR << "CONSTITUTIVE_LAW not provided for element " << this->Id() << std::endl;
+				KRATOS_THROW_ERROR(std::logic_error, "CONSTITUTIVE_LAW not provided for element ", this->Id());
 			const ConstitutiveLaw::Pointer& claw = props[CONSTITUTIVE_LAW];
 			if (claw == NULL)
-				KRATOS_ERROR << "CONSTITUTIVE_LAW not provided for element " << this->Id() << std::endl;
+				KRATOS_THROW_ERROR(std::logic_error, "CONSTITUTIVE_LAW not provided for element ", this->Id());
 
 			if (!props.Has(THICKNESS))
-				KRATOS_ERROR << "THICKNESS not provided for element " << this->Id() << std::endl;
+				KRATOS_THROW_ERROR(std::logic_error, "THICKNESS not provided for element ", this->Id());
 			if (props[THICKNESS] <= 0.0)
-				KRATOS_ERROR << "wrong THICKNESS value provided for element " << this->Id() << std::endl;
+				KRATOS_THROW_ERROR(std::logic_error, "wrong THICKNESS value provided for element ", this->Id());
 
 			ShellCrossSection::Pointer dummySection = ShellCrossSection::Pointer(new ShellCrossSection());
 			dummySection->BeginStack();
@@ -859,6 +855,7 @@ namespace Kratos
 
 		//Template constants
 		//std::cout << "Alpha set to zero!!!!!" << std::endl;
+		//data.alpha = 0.0;
 		const double alpha_6 = data.alpha / 6.0;
 		const double alpha_3 = data.alpha / 3.0;
 
@@ -1095,7 +1092,7 @@ namespace Kratos
 
 
 
-		//CalculateMembraneAlt(data);
+		CalculateMembraneAlt(data);
 
 		//calculate Bh bar
 		data.B_h_bar.resize(3, 7, false);
@@ -1141,11 +1138,11 @@ namespace Kratos
 		Vector s_41 = Vector(data.LCS0.P4() - data.LCS0.P1());
 		const double l_41 = std::sqrt(inner_prod(s_41, s_41));
 
-		Vector s_13 = Vector(data.LCS0.P1() - data.LCS0.P3()); 
-// 		const double l_13 = std::sqrt(inner_prod(s_13, s_13)); // NOTE: Unused
+		Vector s_13 = Vector(data.LCS0.P1() - data.LCS0.P3());
+		const double l_13 = std::sqrt(inner_prod(s_13, s_13));
 
 		Vector s_24 = Vector(data.LCS0.P2() - data.LCS0.P4());
-// 		const double l_24 = std::sqrt(inner_prod(s_24, s_24)); // NOTE: Unused
+		const double l_24 = std::sqrt(inner_prod(s_24, s_24));
 
 
 
@@ -1303,6 +1300,8 @@ namespace Kratos
 		//5.2.29
 		Vector r_xi = Vector((data.r_cartesian[1] + data.r_cartesian[2] - data.r_cartesian[0] - data.r_cartesian[3]));
 		Vector r_eta = Vector((data.r_cartesian[2] + data.r_cartesian[3] - data.r_cartesian[0] - data.r_cartesian[1]));
+		//r_xi *= 4; //pwmod
+		//r_eta *= 4; //pwmod
 		r_xi *= 0.5;
 		r_eta *= 0.5;
 		double l_xi = std::sqrt(inner_prod(r_xi, r_xi));	//value checked
@@ -1329,20 +1328,23 @@ namespace Kratos
 			//verified
 		}
 
-
 		Vector chi_xi_i = Vector(4, 0.0);
 		for (int i = 0; i < 4; i++)
 		{
 			chi_xi_i[i] = d_xi_i[i] / l_xi;
+			//chi_xi_i[i] = d_xi_i[i] / l_xi * 2.0;
 			//checked
 		}
+		
 
 		Vector chi_eta_i = Vector(4, 0.0);
 		for (int i = 0; i < 4; i++)
 		{
 			chi_eta_i[i] = d_eta_i[i] / l_eta;
+			//chi_eta_i[i] = d_eta_i[i] / l_eta * 2.0;
 			//checked
 		}
+		
 		//printVector(chi_xi_i, "Printing chi_xi_i");
 		//printVector(chi_eta_i, "Printing chi_eta_i");
 
@@ -1358,6 +1360,8 @@ namespace Kratos
 		double d_24 = std::sqrt(inner_prod(MathUtils<double>::CrossProduct(r_13*-1, e_24), MathUtils<double>::CrossProduct(r_13, e_24)));
 		double d_13 = std::sqrt(inner_prod(MathUtils<double>::CrossProduct(r_13*-1, e_24), MathUtils<double>::CrossProduct(r_13, e_24)));
 
+		
+
 		//double d_24 = std::sqrt(inner_prod(MathUtils<double>::CrossProduct(r_24*-1, e_13), MathUtils<double>::CrossProduct(r_24, e_13)));
 		//double d_13 = std::sqrt(inner_prod(MathUtils<double>::CrossProduct(r_13*-1, e_24), MathUtils<double>::CrossProduct(r_13, e_24)));
 
@@ -1367,8 +1371,10 @@ namespace Kratos
 		//printVector(centerpoint, "Printing recovered center point");
 
 
-		double chi_24 = d_24 / 2.0 / l_24;
-		double chi_13 = d_13 / 2.0 / l_13;
+
+		
+		double chi_24 = d_24 / l_24 / 2.0;	
+		double chi_13 = d_13 / l_13 / 2.0;	
 
 		//5.2.31
 		double chi_xi_t = l_eta / l_xi;
@@ -1388,9 +1394,9 @@ namespace Kratos
 			chi_eta_bar += chi_eta_i[i] / 4.0;
 		}
 
+		
 		data.s_13 = Vector(r_13 / l_13);
 		data.s_24 = Vector(r_24 / l_24);
-
 
 		double c_13_xi = MathUtils<double>::Dot(data.s_13, data.s_xi);
 		double c_13_eta = MathUtils<double>::Dot(data.s_13, data.s_eta);
@@ -1587,35 +1593,35 @@ namespace Kratos
 
 	void ShellThinElement3D4N::CalculateMembraneAlt(CalculationData& data)
 	{
-		std::cout << "Using alternate membrane formulation\n!\n!\n!\n!\n!\n!" << std::endl;
+		std::cout << "Using alternate membrane formulation!" << std::endl;
 		//DOFs are ordered as per paper, then transformed at the end!
-// 		const double x12 = data.LCS0.X1() - data.LCS0.X2(); // NOTE: Unused
+		const double x12 = data.LCS0.X1() - data.LCS0.X2();
 		const double x13 = data.LCS0.X1() - data.LCS0.X3();
-// 		const double x23 = data.LCS0.X2() - data.LCS0.X3(); // NOTE: Unused
+		const double x23 = data.LCS0.X2() - data.LCS0.X3();
 		const double x24 = data.LCS0.X2() - data.LCS0.X4();
-// 		const double x34 = data.LCS0.X3() - data.LCS0.X4(); // NOTE: Unused
-// 		const double x41 = data.LCS0.X4() - data.LCS0.X1(); // NOTE: Unused
+		const double x34 = data.LCS0.X3() - data.LCS0.X4();
+		const double x41 = data.LCS0.X4() - data.LCS0.X1();
 
-// 		const double x21 = -x12; // NOTE: Unused
+		const double x21 = -x12;
 		const double x31 = -x13;
-// 		const double x32 = -x23; // NOTE: Unused
+		const double x32 = -x23;
 		const double x42 = -x24;
-// 		const double x43 = -x34; // NOTE: Unused
-// 		const double x14 = -x41; // NOTE: Unused
+		const double x43 = -x34;
+		const double x14 = -x41;
 
-// 		const double y12 = data.LCS0.Y1() - data.LCS0.Y2(); // NOTE: Unused
+		const double y12 = data.LCS0.Y1() - data.LCS0.Y2();
 		const double y13 = data.LCS0.Y1() - data.LCS0.Y3();
-// 		const double y23 = data.LCS0.Y2() - data.LCS0.Y3(); // NOTE: Unused
+		const double y23 = data.LCS0.Y2() - data.LCS0.Y3();
 		const double y24 = data.LCS0.Y2() - data.LCS0.Y4();
-// 		const double y34 = data.LCS0.Y3() - data.LCS0.Y4(); // NOTE: Unused
-// 		const double y41 = data.LCS0.Y4() - data.LCS0.Y1(); // NOTE: Unused
+		const double y34 = data.LCS0.Y3() - data.LCS0.Y4();
+		const double y41 = data.LCS0.Y4() - data.LCS0.Y1();
 
-// 		const double y21 = -y12; // NOTE: Unused
+		const double y21 = -y12;
 		const double y31 = -y13;
-// 		const double y32 = -y23; // NOTE: Unused
+		const double y32 = -y23;
 		const double y42 = -y24;
-// 		const double y43 = -y34; // NOTE: Unused
-// 		const double y14 = -y41; // NOTE: Unused
+		const double y43 = -y34;
+		const double y14 = -y41;
 
 		//eqn 5.2.12
 		array_1d<Vector, 4> r_cartesian;
@@ -1663,19 +1669,44 @@ namespace Kratos
 		}
 
 		//eqn 5.2.21
-// 		double a = 0.0; // NOTE: Unused
 		array_1d<double, 4> v_h;
-		v_h[0] = 1.0;
-		v_h[1] = -1.0;
-		v_h[2] = 1.0;
-		v_h[3] = -1.0;
+		//v_h[0] = 1.0;
+		//v_h[1] = -1.0;
+		//v_h[2] = 1.0;
+		//v_h[3] = -1.0;
+		std::cout << "Supernatural quad H_tv parameters!" << std::endl;
+		double A_0 = data.LCS0.Area();	//as per Felippa supernatural quad paper eqn 63
+		double A_1 = 0.5*(x34*y12 - x12*y34);
+		double A_2 = 0.5*(x23*y14 - x14*y23);
+		v_h[0] = (A_0 + A_1 + A_2) / 2.0 / A_0;	//as per Felippa supernatural quad paper eqn 65
+		v_h[1] = (-1.0*A_0 + A_1 - A_2) / 2.0 / A_0;
+		v_h[2] = (A_0 - A_1 - A_2) / 2.0 / A_0;
+		v_h[3] = (-1.0*A_0 - A_1 + A_2) / 2.0 / A_0;
 
+		//xi and eta unit vectors
+		Vector s_xi = Vector(r_cartesian[1] + r_cartesian[2]);
+		s_xi /= std::sqrt(inner_prod(s_xi, s_xi));
+		
+		Vector s_eta = Vector(r_cartesian[2] + r_cartesian[3]);
+		s_eta /= std::sqrt(inner_prod(s_eta, s_eta));
+
+		
+		
+		
 		Matrix H_tv = Matrix(2, 12, 0.0);
 		for (int i = 0; i < 4; i++)
 		{
-			H_tv(0, i) = v_h[i];
-			H_tv(1, 4+i) = v_h[i];
+			// x-components
+			H_tv(0, i) = v_h[i] * s_xi[0];
+			H_tv(1, i) = v_h[i] * s_eta[0];
+
+			//y components
+			H_tv(0, 4 + i) = v_h[i] * s_xi[1];
+			H_tv(1, 4 + i) = v_h[i] * s_eta[1];
 		}
+		
+		
+		
 
 		//eqn 5.2.26
 		Matrix H = Matrix(7, 12, 0.0);
@@ -1697,16 +1728,12 @@ namespace Kratos
 		array_1d<double, 4> chi_xi_i;
 		array_1d<double, 4> chi_eta_i;
 
-				//xi and eta unit vectors
-				Vector s_xi = Vector(r_cartesian[1] + r_cartesian[2]);
-				s_xi /= std::sqrt(inner_prod(s_xi, s_xi));
-				Vector s_eta = Vector(r_cartesian[2] + r_cartesian[3]);
-				s_eta /= std::sqrt(inner_prod(s_eta, s_eta));
+				
 
 		Vector r_xi = Vector(r_cartesian[1] + r_cartesian[2] - r_cartesian[0] - r_cartesian[3]);
-		r_xi /= 2;
+		r_xi /= 2.0;
 		Vector r_eta = Vector(r_cartesian[2] + r_cartesian[3] - r_cartesian[0] - r_cartesian[1]);
-		r_eta /= 2;
+		r_eta /= 2.0;
 		double l_xi = std::sqrt(inner_prod(r_xi, r_xi));
 		double l_eta = std::sqrt(inner_prod(r_eta, r_eta));
 
@@ -1722,11 +1749,13 @@ namespace Kratos
 			chi_eta_i[i] = d_eta_i[i] / l_eta;
 		}
 
-		std::cout << "This could be cross of r31 and r24" << std::endl;
+		//std::cout << "This could be cross of r31 and r24" << std::endl;
 		Vector r_24 = Vector(r_cartesian[1] - r_cartesian[3]);
 		Vector r_13 = Vector(r_cartesian[0] - r_cartesian[2]);
 		double l_24 = std::sqrt(inner_prod(r_24, r_24));
 		double l_13 = std::sqrt(inner_prod(r_13, r_13));
+
+
 		Vector e_24 = Vector(r_24 / l_24);
 		Vector vec1 = Vector(MathUtils<double>::CrossProduct(r_13*-1.0, e_24));
 		Vector vec2 = Vector(MathUtils<double>::CrossProduct(r_13, e_24));
@@ -1745,8 +1774,8 @@ namespace Kratos
 			chi_xi_hat += chi_xi_i[i];
 			chi_eta_hat += chi_eta_i[i];
 		}
-		chi_xi_hat /= 4;
-		chi_eta_hat /= 4;
+		chi_xi_hat /= 4.0;
+		chi_eta_hat /= 4.0;
 
 		// Template constants defined in eqn 5.2.41
 		double rho1 = 0.1;
@@ -1757,7 +1786,7 @@ namespace Kratos
 		double rho6 = 0.5;
 		double rho7 = 0.0;
 		double rho8 = -0.5;
-		double beta1 = 0.6; //0.6
+		double beta1 = 0.6;
 		double beta2 = 0.0;
 
 		//s_13 and s_24 unit vectors
@@ -1893,12 +1922,16 @@ namespace Kratos
 		T_24_inv(2, 0) = s_13[0] * s_13[0];
 		T_24_inv(2, 1) = s_13[1] * s_13[1];
 		T_24_inv(2, 2) = s_13[0] * s_13[1];
+		
+
+
 		Matrix T_13 = Matrix(3, 3, 0.0);
 		Matrix T_24 = Matrix(3, 3, 0.0);
 		double t13invdet = MathUtils<double>::Det(T_13_inv);
 		MathUtils<double>::InvertMatrix(T_13_inv, T_13, t13invdet);
 		double t24invdet = MathUtils<double>::Det(T_24_inv);
 		MathUtils<double>::InvertMatrix(T_24_inv, T_24, t24invdet);
+
 
 		Matrix Bh1 = Matrix(prod(T_13, Q1));
 		Matrix Bh2 = Matrix(prod(T_24, Q2));
@@ -1919,11 +1952,8 @@ namespace Kratos
 			data.Z(4 * i + 2, i + 6) = 1.0;
 			data.Z(4 * i + 3, i + 9) = 1.0;
 		}
-		//printMatrix(data.Z, "Printing Z");
 
-		data.HZ.resize(7, 12, 0.0);
-		data.HZ.clear();
-		data.HZ = prod(H, data.Z);
+		data.H_mem_mod.resize(7, 12, 0.0);
 		data.H_mem_mod.clear();
 		data.H_mem_mod = prod(H, data.Z);
 			
@@ -1961,10 +1991,7 @@ namespace Kratos
 		// B_h
 		Matrix B_mem = Matrix(3, 12, 0.0);
 		Matrix B_hH_mem = Matrix(prod(B_h, data.H_mem_mod));
-		//std::cout << "USING ALTERNATE STIFFNESS FORMULATION" << std::endl;
-		//Matrix B_hH_mem = Matrix(prod(B_h, data.HZ));
 		B_mem += data.L_mem + B_hH_mem;
-		//B_mem += B_hH_mem;
 
 
 
@@ -2391,7 +2418,7 @@ namespace Kratos
 
 			// get a reference of the current integration point and shape functions
 
-// 			const GeometryType::IntegrationPointType & ip = geom.IntegrationPoints()[i]; // NOTE: Unused
+			const GeometryType::IntegrationPointType & ip = geom.IntegrationPoints()[i];
 
 			noalias(iN) = row(shapeFunctions, i);
 
@@ -2504,7 +2531,7 @@ namespace Kratos
 				std::cout << std::fixed << std::setprecision(1) << std::setw(8) << matrixIn(i, j) << " | ";
 			}
 			std::cout << std::endl;
-
+			//std::cout << "|" << std::endl;
 		}
 		std::cout << std::endl;
 	}

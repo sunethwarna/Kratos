@@ -32,13 +32,17 @@
 #include "custom_elements/isotropic_shell_element.hpp"
 #include "custom_elements/membrane_element.hpp"
 #include "custom_elements/shell_thick_element_3D4N.hpp"
-#include "custom_elements/shell_thin_element_3D3N.hpp"
 #include "custom_elements/shell_thin_element_3D4N.hpp"
-
-/* Adding the nodal concentrated element */
-#include "custom_elements/nodal_concentrated_element.hpp"
+#include "custom_elements/shell_thick_element_3D3N.hpp"
+//Add PW debugging element =================================================================================
+#include "custom_elements/shell_thick_element_3D4N_pw.hpp"
+//Add PW debugging element =================================================================================
+#include "custom_elements/shell_thin_element_3D3N.hpp"
 
 /* Adding the SPRISM element */
+#include "custom_elements/nodal_concentrated_element.hpp"
+
+/* Adding the nodal concentrated element */
 #include "custom_elements/SprismElement3D6N.hpp"
 
 /* CONDITIONS */
@@ -217,12 +221,25 @@ private:
     const SmallDisplacementBeamElement3D2N   mSmallDisplacementBeamElement3D2N;
 
     // Adding the shells elements 
+
+			//Add PW debugging element ==================================================================
+			const ShellThickElement3D4N_pw  mShellThickElement3D4N_pw;
+			
+			//Add PW debugging element ==================================================================
+
     const IsotropicShellElement  mIsotropicShellElement3D3N;
+
     const ShellThickElement3D4N  mShellThickElement3D4N;
+	const ShellThinElement3D4N  mShellThinElement3D4N;
+	
     const ShellThickElement3D4N  mShellThickCorotationalElement3D4N;
+	const ShellThinElement3D4N  mShellThinCorotationalElement3D4N;
+
     const ShellThinElement3D3N   mShellThinElement3D3N;
     const ShellThinElement3D3N   mShellThinCorotationalElement3D3N;
-    const ShellThinElement3D4N   mShellThinCorotationalElement3D4N;
+
+	const ShellThickElement3D3N  mShellThickElement3D3N;
+	const ShellThickElement3D3N  mShellThickCorotationalElement3D3N;
 
     // Adding the membrane element 
     const MembraneElement mMembraneElement3D3N;
@@ -230,7 +247,7 @@ private:
     // Adding the SPRISM element 
     const SprismElement3D6N mSprismElement3D6N;
     
-    // Adding the nodal concentrated element 
+    // Adding the SPRISM element 
     const NodalConcentratedElement mNodalConcentratedElement2D1N;
     const NodalConcentratedElement mNodalConcentratedElement3D1N;
 
@@ -291,5 +308,3 @@ private:
 }  // namespace Kratos.
 
 #endif // KRATOS_STRUCTURAL_MECHANICS_APPLICATION_H_INCLUDED  defined 
-
-
