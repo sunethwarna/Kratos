@@ -57,24 +57,24 @@ class DynamicNewmarkTests(StructuralMechanichsTestFactory):
 
 class SprismMembranePatchTests(StructuralMechanichsTestFactory):
     file_name = "sprism_test/patch_membrane_test"
-
+    
 
 class SprismBendingPatchTests(StructuralMechanichsTestFactory):
     file_name = "sprism_test/patch_bending_test"
-
+    
 
 class ShellQ4ThinTensionTests(StructuralMechanichsTestFactory):
     file_name = "shell_test/Shell_Q4_Thin__Tension_test"
-
+    
 
 class ShellQ4ThinBendingRollUpTests(StructuralMechanichsTestFactory):
     file_name = "shell_test/Shell_Q4_Thin__BendingRollUp_test"
-
+    
 
 class ShellQ4ThinDrillingRollUpTests(StructuralMechanichsTestFactory):
     file_name = "shell_test/Shell_Q4_Thin__DrillingRollUp_test"
-
-
+    
+    
 class ShellQ4ThickBendingRollUpTests(StructuralMechanichsTestFactory):
     file_name = "shell_test/Shell_Q4_Thick__BendingRollUp_test"
 
@@ -97,3 +97,6 @@ class EigenQ4Thick2x2PlateTests(StructuralMechanichsTestFactory):
 
 class EigenTL3D8NCubeTests(StructuralMechanichsTestFactory):
     file_name = "eigen_test/Eigen_TL_3D8N_Cube_test"
+
+class ShellThinQ4MembraneTest(StructuralMechanichsTestFactory):
+    file_name = "shell_thinQ4_test/shell_thinQ4_Membrane"

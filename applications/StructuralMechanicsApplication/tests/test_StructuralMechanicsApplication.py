@@ -23,6 +23,7 @@ from SmallTests import ShellT3ThinBendingRollUpTests as TShellT3ThinBendingRollU
 from SmallTests import ShellT3ThinDrillingRollUpTests as TShellT3ThinDrillingRollUpTests
 from SmallTests import EigenQ4Thick2x2PlateTests as TEigenQ4Thick2x2PlateTests
 from SmallTests import EigenTL3D8NCubeTests as TEigenTL3D8NCubeTests
+from SmallTests import ShellThinQ4MembraneTest as TShellThinQ4MembraneTest
 
 ## NIGTHLY TESTS
 from NightlyTests import ShellT3IsotropicScordelisTests as TShellT3IsotropicScordelisTests
@@ -32,13 +33,10 @@ from ValidationTests import SprismPanTests as TSprismPanTests
 
 def AssambleTestSuites():
     ''' Populates the test suites to run.
-
     Populates the test suites to run. At least, it should pupulate the suites:
     "small", "nighlty" and "all"
-
     Return
     ------
-
     suites: A dictionary of suites
         The set of suites with its test_cases added.
     '''
@@ -60,6 +58,7 @@ def AssambleTestSuites():
     smallSuite.addTest(TShellT3ThinDrillingRollUpTests('test_execution'))
     smallSuite.addTest(TEigenQ4Thick2x2PlateTests('test_execution'))
     smallSuite.addTest(TEigenTL3D8NCubeTests('test_execution'))
+    smallSuite.addTest(TShellThinQ4MembraneTest('test_execution'))    
 
     # Create a test suit with the selected tests plus all small tests
     nightSuite = suites['nightly']
@@ -79,14 +78,15 @@ def AssambleTestSuites():
             TDynamicNewmarkTests,
             TSprismMembranePatchTests,
             TSprismBendingPatchTests,
+            TShellQ4ThickBendingRollUpTests,
             TShellQ4ThinTensionTests,
             TShellQ4ThinBendingRollUpTests,
             TShellQ4ThinDrillingRollUpTests,
-            TShellQ4ThickBendingRollUpTests,
             TShellQ4ThickDrillingRollUpTests,
             TShellT3ThinBendingRollUpTests,
             TShellT3ThinDrillingRollUpTests,
-            TShellT3IsotropicScordelisTests
+            TShellT3IsotropicScordelisTests,
+            TShellThinQ4MembraneTest
             ######TSprismPanTests
         ])
     )
