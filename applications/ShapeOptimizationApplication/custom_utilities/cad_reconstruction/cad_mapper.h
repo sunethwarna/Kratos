@@ -300,8 +300,8 @@ class CADMapper
 
 				double norm_deltau = 100000000;
 				unsigned int k = 0;
-				unsigned int max_itr = 20;
-				while (norm_deltau > 1e-8)
+				unsigned int max_itr = 50;
+				while (norm_deltau > 1e-5)
 				{
 					// The distance between Q (on the CAD surface) and P (on the FE-mesh) is evaluated
 					Q_minus_P(0) = Q_k(0) - P(0);
@@ -327,7 +327,11 @@ class CADMapper
 					k++;
 
 					if(k>max_itr)
-						KRATOS_THROW_ERROR(std::runtime_error, "Newton-Raphson to find closest point did not converge in the following number of iterations: ", k-1);
+					{
+						std::cout << "WARNING!!! Newton-Raphson to find closest point did not converge in the following number of iterations: " << k-1 << std::endl;
+						KRATOS_WATCH(Q_k);
+						KRATOS_WATCH(P);
+					}
 				}
 
 				// Update nearest point
