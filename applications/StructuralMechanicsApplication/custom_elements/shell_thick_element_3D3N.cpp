@@ -353,7 +353,7 @@ namespace Kratos
 			dummySection->BeginStack();
 			dummySection->AddPly(props[THICKNESS], 0.0, 5, this->pGetProperties());
 			dummySection->EndStack();
-			dummySection->SetSectionBehavior(ShellCrossSection::Thin);
+			dummySection->SetSectionBehavior(ShellCrossSection::Thick);
 			dummySection->Check(props, geom, rCurrentProcessInfo);
 		}
 
@@ -687,6 +687,17 @@ namespace Kratos
 		data.D_mem *= (data.E*data.hMean / (1.0 - poisson2));
 		//printMatrix(D_mem, "Printing Dmem");
 
+		//using material mat from kratos
+		data.D_mem.clear();
+		data.D_mem(0, 0) = data.D(0, 0);
+		data.D_mem(0, 1) = data.D(0, 1);
+		data.D_mem(1, 0) = data.D(1, 0);
+		data.D_mem(1, 1) = data.D(1, 1);
+		data.D_mem(2, 2) = data.D(5, 5);
+
+
+
+
 		// Bending
 		data.D_bend.resize(3, 3, false);
 		data.D_bend.clear();
@@ -697,6 +708,17 @@ namespace Kratos
 		data.D_bend(2, 2) = (1.0 - data.poisson) / 2.0;
 		data.D_bend *= (data.E*data.hMean*data.hMean*data.hMean) / (12.0 * (1.0 - poisson2));
 		//printMatrix(D_bend, "Printing D_bend");
+
+		data.D_bend.clear();
+		data.D_bend(0, 0) = data.D(2, 2);
+		data.D_bend(0, 1) = data.D(2, 3);
+		data.D_bend(1, 0) = data.D(3, 2);
+		data.D_bend(1, 1) = data.D(3, 3);
+		data.D_bend(2, 2) = data.D(4, 4);
+
+
+
+
 
 		// Shear
 		data.D_shear.resize(2, 2, false);
@@ -709,9 +731,36 @@ namespace Kratos
 		double shearStabilisation = (k* h3 * data.G) / (h2 + data.alpha*data.h_e*data.h_e);
 		double normalShear = k*data.G * data.hMean;
 		data.D_shear *= shearStabilisation;
-		//printMatrix(D_shear, "Printing D_shear");
+		//printMatrix(data.D_shear, "Printing D_shear");
+
+		data.D_shear.clear();
+		data.D_shear(0, 0) = data.D(6, 6);
+		data.D_shear(0, 1) = data.D(6, 7);
+		data.D_shear(1, 0) = data.D(7, 6);
+		data.D_shear(1, 1) = data.D(7, 7);
+		shearStabilisation = (h2) / (h2 + data.alpha*data.h_e*data.h_e);
+		data.D_shear *= shearStabilisation;
+		//printMatrix(data.D_shear, "Printing derived D_shear");
 	}
 	
+	void ShellThickElement3D3N::CalculateSectionResponse(CalculationData& data)
+	{
+#ifdef OPT_USES_INTERIOR_GAUSS_POINTS
+		const Matrix & shapeFunctions = GetGeometry().ShapeFunctionsValues(mThisIntegrationMethod);
+		for (int nodeid = 0; nodeid < OPT_NUM_NODES; nodeid++)
+			data.N(nodeid) = shapeFunctions(0, nodeid);
+#else
+		const array_1d<double, 3>& loc = data.gpLocations[0];
+		data.N(0) = 1.0 - loc[1] - loc[2];
+		data.N(1) = loc[1];
+		data.N(2) = loc[2];
+#endif // !OPT_USES_INTERIOR_GAUSS_POINTS
+
+		ShellCrossSection::Pointer& section = mSections[0];
+		data.SectionParameters.SetShapeFunctionsValues(data.N);
+		section->CalculateSectionResponse(data.SectionParameters, ConstitutiveLaw::StressMeasure_PK2);
+	}
+
 	void ShellThickElement3D3N::InitializeCalculationData(CalculationData& data)
 	{
 
@@ -811,7 +860,7 @@ namespace Kratos
 		data.dNxy(2, 0) = y12 / A2;
 		data.dNxy(2, 1) = -x12 / A2;
 
-		
+		data.N.resize(3, false);
 
 		
 
@@ -920,6 +969,23 @@ namespace Kratos
 		//--------------------------------------
 		// Calculate material matrices
 		// 
+		data.D.resize(8, 8, false);
+		data.SectionParameters.SetElementGeometry(GetGeometry());
+		data.SectionParameters.SetMaterialProperties(GetProperties());
+		data.SectionParameters.SetProcessInfo(data.CurrentProcessInfo);
+		Vector generalizedStrains = Vector(8, 0.0);		//fixup
+		Vector generalizedStresses = Vector(8, 0.0);	//fixup
+		data.SectionParameters.SetGeneralizedStrainVector(generalizedStrains);
+		data.SectionParameters.SetGeneralizedStressVector(generalizedStresses);
+		data.SectionParameters.SetConstitutiveMatrix(data.D);
+		data.SectionParameters.SetShapeFunctionsDerivatives(data.dNxy);
+		Flags& options = data.SectionParameters.GetOptions();
+		options.Set(ConstitutiveLaw::COMPUTE_STRESS, data.CalculateRHS);
+		options.Set(ConstitutiveLaw::COMPUTE_CONSTITUTIVE_TENSOR, data.CalculateLHS);
+
+		CalculateSectionResponse(data);
+		//printMatrix(data.D, "Printing D");
+
 		calculateMaterialMatrices(data);
 
 

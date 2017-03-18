@@ -219,6 +219,7 @@ namespace Kratos
 			std::vector< array_1d<double, 3> > gpLocations;
 
 			MatrixType dNxy; /*!< shape function cartesian derivatives */
+			VectorType N; /*!< shape function vector at the current integration point */
 
 			VectorType globalDisplacements; /*!< global displacement vector */
 			VectorType localDisplacements;  /*!< local displacement vector */
@@ -261,6 +262,7 @@ namespace Kratos
 			Matrix D_mem;
 			Matrix D_bend;
 			Matrix D_shear;
+			Matrix D;
 
 			double E;
 			double G;
@@ -298,6 +300,8 @@ namespace Kratos
 		void SetupOrientationAngles();
 
 		void calculateMaterialMatrices(CalculationData& data);
+
+		void CalculateSectionResponse(CalculationData& data);
 
 		void InitializeCalculationData(CalculationData& data);
 
