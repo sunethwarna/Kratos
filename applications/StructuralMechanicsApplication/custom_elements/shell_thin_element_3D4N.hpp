@@ -319,6 +319,7 @@ namespace Kratos
 
 			bool CalculateRHS; /*!< flag for the calculation of the right-hand-side vector */
 			bool CalculateLHS; /*!< flag for the calculation of the left-hand-side vector */
+			const bool basicQuad = false;	/*!< flag for using basic membrane formulation - should be false! */
 
 			// ---------------------------------------
 			// calculation-variable data

@@ -1435,6 +1435,27 @@ namespace Kratos
 		B_mem += data.L_mem + B_hH_mem;
 
 
+		if (data.basicQuad == true)
+		{
+			// This section replaces the ANDES membrane B mat
+			// with a basic unenhanced pure displacement-based
+			// B-matrix. Only for comparison purposes!
+			B_mem.clear();
+			const GeometryType::IntegrationPointsArrayType & integrationPoints = geom.IntegrationPoints(GetIntegrationMethod());
+			double xi = integrationPoints[data.gpIndex].Coordinate(1);		//set to current parametric integration location
+			double eta = integrationPoints[data.gpIndex].Coordinate(2);
+			Matrix dN(4, 2, 0.0);
+			Utilities::ShapeFunc_NaturalDerivatives(xi, eta, dN);	// dN/dxi and dN/deta 
+			Matrix temp = Matrix(prod(data.DKQ_invJac[data.gpIndex], trans(dN)));
+			dN = trans(temp);	// dN/dx and dN/dy
+			for (int node = 0; node < 4; node++)
+			{
+				B_mem(0, 3 * node) = dN(node, 0);		//dx
+				B_mem(1, 3 * node + 1) = dN(node, 1);	//dy
+				B_mem(2, 3 * node) = B_mem(1, 3 * node + 1);
+				B_mem(2, 3 * node + 1) = B_mem(0, 3 * node);
+			}
+		}
 
 
 
@@ -1637,6 +1658,21 @@ namespace Kratos
 		{
 			data.gpIndex = i;
 			CalculateGaussPointContribution(data, rLeftHandSideMatrix, rRightHandSideVector);
+		}
+
+		// If basic membrane formulation is enabled - add drilling stiffness
+		if (data.basicQuad == true)
+		{
+			double max_stiff = 0.0;
+			for (int dof = 0; dof < 24; dof++)
+			{
+				if (rLeftHandSideMatrix(dof, dof) > max_stiff) 
+					{max_stiff = rLeftHandSideMatrix(dof, dof);}
+			}
+			for (int node = 0; node < 4; node++)
+			{
+				rLeftHandSideMatrix(6 * node + 5, 6 * node + 5) = max_stiff / 1000;
+			}
 		}
 
 		// Add all contributions to the residual vector
