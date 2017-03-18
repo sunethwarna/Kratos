@@ -243,39 +243,17 @@ namespace Kratos
 			// only once(the first time they are used)
 			// to avoid useless re-allocations
 
-			MatrixType B_total;   /*!< total strain-displacement matrix at the current integration point */
-			MatrixType B_mem;
-			MatrixType B_bend;
-			MatrixType B_shear;
+			MatrixType B;   /*!< total strain-displacement matrix at the current integration point */
 
-			double h_e;
-			double alpha = 0.1;	//modifier of shear material matrix - refer vietnamese paper 'numerical results'
+			double h_e;		/*!< longest edge of triangle */
+			double alpha = 0.1;	// modifier of shear material matrix stabilization parameter
+								// refer Lyly(1993)
 
-			VectorType membraneStrains;
-			VectorType bendingStrains;
-			VectorType shearStrains;
+			Matrix D;		/*!< section constitutive matrix at the current integration point */
 
-			VectorType membraneStresses;
-			VectorType bendingStresses;
-			VectorType shearStresses;
+			VectorType generalizedStrains;  /*!< generalized strain vector at the current integration point */
 
-			Matrix D_mem;
-			Matrix D_bend;
-			Matrix D_shear;
-			Matrix D;
-
-			double E;
-			double G;
-			double poisson;
-
-
-
-			//MatrixType D;   /*!< section constitutive matrix at the current integration point */
-			//MatrixType BTD; /*!< auxiliary matrix to store the product B'*D */
-
-			//VectorType generalizedStrains;  /*!< generalized strain vector at the current integration point */
-
-			//VectorType generalizedStresses; /*!< generalized stress vector at the current integration point */
+			VectorType generalizedStresses; /*!< generalized stress vector at the current integration point */
 
 			ShellCrossSection::Parameters SectionParameters; /*!< parameters for cross section calculations */
 
@@ -298,8 +276,6 @@ namespace Kratos
 		void DecimalCorrection(Vector& a);
 
 		void SetupOrientationAngles();
-
-		void calculateMaterialMatrices(CalculationData& data);
 
 		void CalculateSectionResponse(CalculationData& data);
 

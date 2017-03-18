@@ -663,85 +663,6 @@ namespace Kratos
 		for (CrossSectionContainerType::iterator it = mSections.begin(); it != mSections.end(); ++it)
 			(*it)->SetOrientationAngle(angle);
 	}
-
-	void ShellThickElement3D3N::calculateMaterialMatrices(CalculationData& data)
-	{
-		//Recover material properties
-		data.E = GetProperties()[YOUNG_MODULUS];;
-		data.poisson = GetProperties()[POISSON_RATIO];;
-		double poisson2 = data.poisson*data.poisson;
-		data.G = data.E / 2 / (1 + data.poisson);
-		double h2 = data.hMean*data.hMean;
-		double h3 = data.hMean*h2;
-
-
-		//Setup Material matrices
-		// Membrane
-		data.D_mem.resize(3, 3, false);
-		data.D_mem.clear();
-		data.D_mem(0, 0) = 1.0;
-		data.D_mem(0, 1) = data.poisson;
-		data.D_mem(1, 0) = data.poisson;
-		data.D_mem(1, 1) = 1.0;
-		data.D_mem(2, 2) = (1.0 - data.poisson) / 2.0;
-		data.D_mem *= (data.E*data.hMean / (1.0 - poisson2));
-		//printMatrix(D_mem, "Printing Dmem");
-
-		//using material mat from kratos
-		data.D_mem.clear();
-		data.D_mem(0, 0) = data.D(0, 0);
-		data.D_mem(0, 1) = data.D(0, 1);
-		data.D_mem(1, 0) = data.D(1, 0);
-		data.D_mem(1, 1) = data.D(1, 1);
-		data.D_mem(2, 2) = data.D(5, 5);
-
-
-
-
-		// Bending
-		data.D_bend.resize(3, 3, false);
-		data.D_bend.clear();
-		data.D_bend(0, 0) = 1.0;
-		data.D_bend(0, 1) = data.poisson;
-		data.D_bend(1, 0) = data.poisson;
-		data.D_bend(1, 1) = 1.0;
-		data.D_bend(2, 2) = (1.0 - data.poisson) / 2.0;
-		data.D_bend *= (data.E*data.hMean*data.hMean*data.hMean) / (12.0 * (1.0 - poisson2));
-		//printMatrix(D_bend, "Printing D_bend");
-
-		data.D_bend.clear();
-		data.D_bend(0, 0) = data.D(2, 2);
-		data.D_bend(0, 1) = data.D(2, 3);
-		data.D_bend(1, 0) = data.D(3, 2);
-		data.D_bend(1, 1) = data.D(3, 3);
-		data.D_bend(2, 2) = data.D(4, 4);
-
-
-
-
-
-		// Shear
-		data.D_shear.resize(2, 2, false);
-		data.D_shear.clear();
-		data.D_shear(0, 0) = 1.0;
-		data.D_shear(0, 1) = data.poisson; //poisson here?
-		data.D_shear(1, 0) = data.poisson; //poisson here?
-		data.D_shear(1, 1) = 1.0;
-		const double k = 5.0 / 6.0; // shear factor - refer eqn 23 Efficient co-rotational shell element
-		double shearStabilisation = (k* h3 * data.G) / (h2 + data.alpha*data.h_e*data.h_e);
-		double normalShear = k*data.G * data.hMean;
-		data.D_shear *= shearStabilisation;
-		//printMatrix(data.D_shear, "Printing D_shear");
-
-		data.D_shear.clear();
-		data.D_shear(0, 0) = data.D(6, 6);
-		data.D_shear(0, 1) = data.D(6, 7);
-		data.D_shear(1, 0) = data.D(7, 6);
-		data.D_shear(1, 1) = data.D(7, 7);
-		shearStabilisation = (h2) / (h2 + data.alpha*data.h_e*data.h_e);
-		data.D_shear *= shearStabilisation;
-		//printMatrix(data.D_shear, "Printing derived D_shear");
-	}
 	
 	void ShellThickElement3D3N::CalculateSectionResponse(CalculationData& data)
 	{
@@ -759,11 +680,18 @@ namespace Kratos
 		ShellCrossSection::Pointer& section = mSections[0];
 		data.SectionParameters.SetShapeFunctionsValues(data.N);
 		section->CalculateSectionResponse(data.SectionParameters, ConstitutiveLaw::StressMeasure_PK2);
+		
+		//add in shear stabilization
+		double h2 = data.hMean*data.hMean;
+		double shearStabilisation = (h2) / (h2 + data.alpha*data.h_e*data.h_e);
+		data.D(6, 6) *= shearStabilisation;
+		data.D(6, 7) *= shearStabilisation;
+		data.D(7, 6) *= shearStabilisation;
+		data.D(7, 7) *= shearStabilisation;
 	}
 
 	void ShellThickElement3D3N::InitializeCalculationData(CalculationData& data)
 	{
-
 		//-------------------------------------
 		// Computation of all stuff that remain
 		// constant throughout the calculations
@@ -869,91 +797,79 @@ namespace Kratos
 		// Total Formulation - as per Efficient Co-Rotational 3-Node Shell Element paper (2016)
 		// --------------------------------------------------------------------------
 
-		//Membrane strain-displacement matrix
-		data.B_mem.resize(3, 18, false);
-		data.B_mem.clear();
+		data.B.resize(8, 18, false);
+		data.B.clear();
 
-		//node 1
-		data.B_mem(0, 0) = y23;
-		data.B_mem(1, 1) = x32;
-		data.B_mem(2, 0) = x32;
-		data.B_mem(2, 1) = y23;
+		//Membrane components
+			//node 1
+			data.B(0, 0) = y23;
+			data.B(1, 1) = x32;
+			data.B(2, 0) = x32;
+			data.B(2, 1) = y23;
 
-		//node 2
-		data.B_mem(0, 6) = y31;
-		data.B_mem(1, 7) = x13;
-		data.B_mem(2, 6) = x13;
-		data.B_mem(2, 7) = y31;
+			//node 2
+			data.B(0, 6) = y31;
+			data.B(1, 7) = x13;
+			data.B(2, 6) = x13;
+			data.B(2, 7) = y31;
 
-		//node 3
-		data.B_mem(0, 12) = y12;
-		data.B_mem(1, 13) = x21;
-		data.B_mem(2, 12) = x21;
-		data.B_mem(2, 13) = y12;
+			//node 3
+			data.B(0, 12) = y12;
+			data.B(1, 13) = x21;
+			data.B(2, 12) = x21;
+			data.B(2, 13) = y12;
 
-		data.B_mem /= (A2);
+		//Bending components
+			//node 1
+			data.B(3, 4) = y23;
+			data.B(4, 3) = -1.0 * x32;
+			data.B(5, 3) = -1.0 * y23;
+			data.B(5, 4) = x32;
 
-		//Bending strain-displacement matrix
-		data.B_bend.resize(3, 18, false);
-		data.B_bend.clear();
+			//node 2
+			data.B(3, 10) = y31;
+			data.B(4, 9) = -1.0 * x13;
+			data.B(5, 9) = -1.0 * y31;
+			data.B(5, 10) = x13;
 
-		//node 1
-		data.B_bend(0, 4) = y23;
-		data.B_bend(1, 3) = -1.0 * x32;
-		data.B_bend(2, 3) = -1.0 * y23;
-		data.B_bend(2, 4) = x32;
+			//node 3
+			data.B(3, 16) = y12;
+			data.B(4, 15) = -1.0 * x21;
+			data.B(5, 15) = -1.0 * y12;
+			data.B(5, 16) = x21;
 
-		//node 2
-		data.B_bend(0, 10) = y31;
-		data.B_bend(1, 9) = -1.0 * x13;
-		data.B_bend(2, 9) = -1.0 * y31;
-		data.B_bend(2, 10) = x13;
+		//Shear components
+			const double a = x21;
+			const double b = y21;
+			const double c = y31;
+			const double d = x31;
+			//node 1
+			data.B(6, 2) = b - c;
+			data.B(6, 4) = A;
 
-		//node 3
-		data.B_bend(0, 16) = y12;
-		data.B_bend(1, 15) = -1.0 * x21;
-		data.B_bend(2, 15) = -1.0 * y12;
-		data.B_bend(2, 16) = x21;
+			data.B(7, 2) = d - a;
+			data.B(7, 3) = -1.0 * A;
 
-		data.B_bend /= (A2);
+			//node 2
+			data.B(6, 8) = c;
+			data.B(6, 9) = -1.0 * b*c / 2.0;
+			data.B(6, 10) = a*c / 2.0;
 
-		//Shear strain-displacement matrix
-		const double a = x21;
-		const double b = y21;
-		const double c = y31;
-		const double d = x31;
+			data.B(7, 8) = -1.0 * d;
+			data.B(7, 9) = b*d / 2.0;
+			data.B(7, 10) = -1.0 * a*d / 2.0;
 
-		data.B_shear.resize(2, 18, false);
-		data.B_shear.clear();
+			//node 3
+			data.B(6, 14) = -1.0 * b;
+			data.B(6, 15) = b*c / 2.0;
+			data.B(6, 16) = b*d / 2.0;
 
-		//node 1
-		data.B_shear(0, 2) = b - c;
-		data.B_shear(0, 4) = A;
+			data.B(7, 14) = a;
+			data.B(7, 15) = -1.0 * a*c / 2.0;
+			data.B(7, 16) = a*d / 2.0;
 
-		data.B_shear(1, 2) = d - a;
-		data.B_shear(1, 3) = -1.0 * A;
-
-		//node 2
-		data.B_shear(0, 8) = c;
-		data.B_shear(0, 9) = -1.0 * b*c / 2.0;
-		data.B_shear(0, 10) = a*c / 2.0;
-
-		data.B_shear(1, 8) = -1.0 * d;
-		data.B_shear(1, 9) = b*d / 2.0;
-		data.B_shear(1, 10) = -1.0 * a*d / 2.0;
-
-		//node 3
-		data.B_shear(0, 14) = -1.0 * b;
-		data.B_shear(0, 15) = b*c / 2.0;
-		data.B_shear(0, 16) = b*d / 2.0;
-
-		data.B_shear(1, 14) = a;
-		data.B_shear(1, 15) = -1.0 * a*c / 2.0;
-		data.B_shear(1, 16) = a*d / 2.0;
-
-		data.B_shear /= (A2);
-
-
+		//Final multiplication
+			data.B /= (A2);
 
 		//determine longest side length (eqn 22) - for shear correction
 		Vector P12 = Vector(data.LCS0.P1() - data.LCS0.P2());
@@ -964,19 +880,21 @@ namespace Kratos
 		if (edge_length > data.h_e) { data.h_e = edge_length; }
 		edge_length = std::sqrt(inner_prod(P23, P23));
 		if (edge_length > data.h_e) { data.h_e = edge_length; }
-		//std::cout << "Printing longest edge length = " << data.h_e << std::endl;
+
 
 		//--------------------------------------
 		// Calculate material matrices
 		// 
+		
+		//allocate and setup
 		data.D.resize(8, 8, false);
+		data.generalizedStrains.resize(8, false);
+		data.generalizedStresses.resize(8, false);
 		data.SectionParameters.SetElementGeometry(GetGeometry());
 		data.SectionParameters.SetMaterialProperties(GetProperties());
 		data.SectionParameters.SetProcessInfo(data.CurrentProcessInfo);
-		Vector generalizedStrains = Vector(8, 0.0);		//fixup
-		Vector generalizedStresses = Vector(8, 0.0);	//fixup
-		data.SectionParameters.SetGeneralizedStrainVector(generalizedStrains);
-		data.SectionParameters.SetGeneralizedStressVector(generalizedStresses);
+		data.SectionParameters.SetGeneralizedStrainVector(data.generalizedStrains);
+		data.SectionParameters.SetGeneralizedStressVector(data.generalizedStresses);
 		data.SectionParameters.SetConstitutiveMatrix(data.D);
 		data.SectionParameters.SetShapeFunctionsDerivatives(data.dNxy);
 		Flags& options = data.SectionParameters.GetOptions();
@@ -984,9 +902,7 @@ namespace Kratos
 		options.Set(ConstitutiveLaw::COMPUTE_CONSTITUTIVE_TENSOR, data.CalculateLHS);
 
 		CalculateSectionResponse(data);
-		//printMatrix(data.D, "Printing D");
 
-		calculateMaterialMatrices(data);
 
 
 		//--------------------------------------
@@ -999,27 +915,6 @@ namespace Kratos
 		data.localDisplacements =
 			mpCoordinateTransformation->CalculateLocalDisplacements(
 				data.LCS, data.globalDisplacements);
-
-		//--------------------------------------
-		// Finally allocate all auxiliary
-		// matrices to be used later on
-		// during the element integration.
-		// Just to avoid re-allocations
-
-		//data.B.resize(OPT_STRAIN_SIZE, OPT_NUM_DOFS, false);
-		//data.D.resize(OPT_STRAIN_SIZE, OPT_STRAIN_SIZE, false);
-		//data.BTD.resize(OPT_NUM_DOFS, OPT_STRAIN_SIZE, false);
-
-		//data.generalizedStrains.resize(OPT_STRAIN_SIZE, false);
-		//data.generalizedStresses.resize(OPT_STRAIN_SIZE, false);
-
-		data.membraneStrains.resize(3, false);
-		data.bendingStrains.resize(3, false);
-		data.shearStrains.resize(2, false);
-
-		data.membraneStresses.resize(3, false);
-		data.bendingStresses.resize(3, false);
-		data.shearStresses.resize(2, false);
 	}
 
 	void ShellThickElement3D3N::AddBodyForces(CalculationData& data, VectorType& rRightHandSideVector)
@@ -1085,8 +980,8 @@ namespace Kratos
 		const bool RHSrequired)
 	{
 		KRATOS_TRY
-			// Resize the Left Hand Side if necessary,
-			// and initialize it to Zero
+		// Resize the Left Hand Side if necessary,
+		// and initialize it to Zero
 
 			if ((rLeftHandSideMatrix.size1() != OPT_NUM_DOFS) || (rLeftHandSideMatrix.size2() != OPT_NUM_DOFS))
 				rLeftHandSideMatrix.resize(OPT_NUM_DOFS, OPT_NUM_DOFS, false);
@@ -1106,26 +1001,11 @@ namespace Kratos
 		data.CalculateRHS = RHSrequired;
 		InitializeCalculationData(data);
 
-		
-
 		// Calulate element stiffness
-		Matrix MemD = Matrix(18, 3, 0.0);
-		Matrix BendD = Matrix(18, 3, 0.0);
-		Matrix ShearD = Matrix(18, 2, 0.0);
-		Matrix Kelement = Matrix(18, 18, 0.0);
-
-		MemD = prod(trans(data.B_mem), data.D_mem);
-		Kelement += prod(MemD, data.B_mem);
-
-		BendD = prod(trans(data.B_bend), data.D_bend);
-		Kelement += prod(BendD, data.B_bend);
-
-		ShearD = prod(trans(data.B_shear), data.D_shear);
-		Kelement += prod(ShearD, data.B_shear);
-
-		// 'integrate' over area: 1GP
-		Kelement *= data.TotalArea;
-		noalias(rLeftHandSideMatrix) += Kelement;
+		Matrix BTD = Matrix(18, 8, 0.0);
+		data.D *= data.TotalArea;
+		BTD = prod(trans(data.B), data.D);
+		noalias(rLeftHandSideMatrix) += prod(BTD, data.B);
 
 		//add in z_rot artificial stiffness
 		double z_rot_multiplier = 0.001;
@@ -1275,8 +1155,7 @@ namespace Kratos
 
 		// Just to store the rotation matrix for visualization purposes
 
-		//Matrix R(OPT_STRAIN_SIZE, OPT_STRAIN_SIZE);
-		Matrix R(3, 3);
+		Matrix R(8, 8);
 		Matrix aux33(3, 3);
 
 		// Initialize common calculation variables
@@ -1295,19 +1174,10 @@ namespace Kratos
 			ShellCrossSection::Pointer& section = mSections[i];
 
 			// compute strains
-			//noalias(data.generalizedStrains) = prod(data.B, data.localDisplacements);
-			noalias(data.membraneStrains) = prod(data.B_mem, data.localDisplacements);
-			noalias(data.bendingStrains) = prod(data.B_bend, data.localDisplacements);
-			noalias(data.shearStrains) = prod(data.B_shear, data.localDisplacements);
-			
+			noalias(data.generalizedStrains) = prod(data.B, data.localDisplacements);			
 
 			// adjust output
-			//DecimalCorrection(data.generalizedStrains);
-			//DecimalCorrection(data.generalizedStresses);
-			DecimalCorrection(data.membraneStrains);
-			DecimalCorrection(data.bendingStrains);
-			DecimalCorrection(data.shearStrains);
-			
+			DecimalCorrection(data.generalizedStrains);
 
 			// store the results, but first rotate them back to the section coordinate system.
 			// we want to visualize the results in that system not in the element one!
@@ -1316,26 +1186,15 @@ namespace Kratos
 				if (ijob > 2)
 				{
 					//compute stresses
-					noalias(data.membraneStresses) = prod(data.D_mem, data.membraneStrains);
-					noalias(data.bendingStresses) = prod(data.D_bend, data.bendingStrains);
-					noalias(data.shearStresses) = prod(data.D_shear, data.shearStrains);
-
-					DecimalCorrection(data.membraneStresses);
-					DecimalCorrection(data.bendingStresses);
-					DecimalCorrection(data.shearStresses);
-
+					noalias(data.generalizedStresses) = prod(data.D, data.generalizedStrains);
+					DecimalCorrection(data.generalizedStresses);
 					section->GetRotationMatrixForGeneralizedStresses(-(section->GetOrientationAngle()), R);
-
-					data.membraneStresses = prod(R, data.membraneStresses);
-					data.bendingStresses = prod(R, data.bendingStresses);
-					data.shearStresses = prod(R, data.shearStresses);
+					data.generalizedStresses = prod(R, data.generalizedStresses);
 				}
 				else
 				{
 					section->GetRotationMatrixForGeneralizedStrains(-(section->GetOrientationAngle()), R);
-					data.membraneStrains = prod(R, data.membraneStrains);
-					data.bendingStrains = prod(R, data.bendingStrains);
-					data.shearStrains = prod(R, data.shearStrains);
+					data.generalizedStrains = prod(R, data.generalizedStrains);
 				}
 			}
 
@@ -1346,47 +1205,39 @@ namespace Kratos
 
 			if (ijob == 1) // strains
 			{
-				iValue(0, 0) = data.membraneStrains(0);		//e_xx
-				iValue(1, 1) = data.membraneStrains(1);		//e_yy
-				iValue(2, 2) = 0.0;							//e_zz
-				iValue(0, 1) = iValue(1, 0) = 
-					0.5 * data.membraneStrains(2);			//e_xy
-				iValue(0, 2) = iValue(2, 0) = 
-					data.shearStrains(0);					//e_xz - not sure about this
-				iValue(1, 2) = iValue(2, 1) = 
-					data.shearStrains(1);					//e_yz - not sure about this
+				iValue(0, 0) = data.generalizedStrains(0);
+				iValue(1, 1) = data.generalizedStrains(1);
+				iValue(2, 2) = 0.0;
+				iValue(0, 1) = iValue(1, 0) = 0.5 * data.generalizedStrains(2);
+				iValue(0, 2) = iValue(2, 0) = 0.5 * data.generalizedStrains(7);
+				iValue(1, 2) = iValue(2, 1) = 0.5 * data.generalizedStrains(6);
 			}
 			else if (ijob == 2) // curvatures
 			{
-				iValue(0, 0) = data.bendingStrains(0);		//kappa_xx
-				iValue(1, 1) = data.bendingStrains(1);		//kappa_yy
-				iValue(2, 2) = 0.0;							//kappa_zz
-				iValue(0, 1) = iValue(1, 0) = 
-					0.5 * data.bendingStrains(2);			//kappa_xy
-				iValue(0, 2) = iValue(2, 0) = 0.0;			//kappa_xz
-				iValue(1, 2) = iValue(2, 1) = 0.0;			//kappa_yz
+				iValue(0, 0) = data.generalizedStrains(3);
+				iValue(1, 1) = data.generalizedStrains(4);
+				iValue(2, 2) = 0.0;
+				iValue(0, 1) = iValue(1, 0) = 0.5 * data.generalizedStrains(5);
+				iValue(0, 2) = iValue(2, 0) = 0.0;
+				iValue(1, 2) = iValue(2, 1) = 0.0;
 			}
 			else if (ijob == 3) // forces
 			{
-				iValue(0, 0) = data.membraneStresses(0);	//q_x
-				iValue(1, 1) = data.membraneStresses(1);	//q_y
-				iValue(2, 2) = 0.0;	//q_z
-				iValue(0, 1) = iValue(1, 0) = 
-					data.membraneStresses(2);				//q_xy
-				iValue(0, 2) = iValue(2, 0) = 
-					data.shearStresses(0);					//q_xz - unsure about this!
-				iValue(1, 2) = iValue(2, 1) = 
-					data.shearStresses(1);					//q_yz - unsure about this!
+				iValue(0, 0) = data.generalizedStresses(0);
+				iValue(1, 1) = data.generalizedStresses(1);
+				iValue(2, 2) = 0.0;
+				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses(2);
+				iValue(0, 2) = iValue(2, 0) = data.generalizedStresses(7);
+				iValue(1, 2) = iValue(2, 1) = data.generalizedStresses(6);
 			}
 			else if (ijob == 4) // moments
 			{
-				iValue(0, 0) = data.bendingStresses(0);		//m_xx
-				iValue(1, 1) = data.bendingStresses(1);		//m_yy
-				iValue(2, 2) = 0.0;							//m_zz
-				iValue(0, 1) = iValue(1, 0) = 
-					data.bendingStresses(2);				//m_xy
-				iValue(0, 2) = iValue(2, 0) = 0.0;			//m_xz
-				iValue(1, 2) = iValue(2, 1) = 0.0;			//m_yz
+				iValue(0, 0) = data.generalizedStresses(3);
+				iValue(1, 1) = data.generalizedStresses(4);
+				iValue(2, 2) = 0.0;
+				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses(5);
+				iValue(0, 2) = iValue(2, 0) = 0.0;
+				iValue(1, 2) = iValue(2, 1) = 0.0;
 			}
 
 			// if requested, rotate the results in the global coordinate system
