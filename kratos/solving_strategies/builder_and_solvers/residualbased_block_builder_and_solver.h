@@ -1366,34 +1366,39 @@ private:
             partitions[i] = partitions[i - 1] + partition_size;
     }
 
-    inline void AssembleRowContribution(TSystemMatrixType& A, const Matrix& Alocal, const unsigned int i, const unsigned int i_local, Element::EquationIdVectorType& EquationId)
+    inline void AssembleRowContribution(TSystemMatrixType& A, const Matrix& Alocal, const unsigned int i, const unsigned int i_local, const Element::EquationIdVectorType& EquationId)
     {
         double* values_vector = A.value_data().begin();
-        std::size_t* index1_vector = A.index1_data().begin();
-        std::size_t* index2_vector = A.index2_data().begin();
+        const std::size_t* index1_vector = A.index1_data().begin();
+        const std::size_t* index2_vector = A.index2_data().begin();
 
-        size_t left_limit = index1_vector[i];
+        const size_t left_limit = index1_vector[i];
 //	size_t right_limit = index1_vector[i+1];
 
         //find the first entry
-        size_t last_pos = ForwardFind(EquationId[0],left_limit,index2_vector);
         size_t last_found = EquationId[0];
+        size_t last_pos = ForwardFind(last_found,left_limit,index2_vector);
+
+        
+        const double* local_data_pointer = &Alocal(i_local,0); //this should be slightly cheaper than getting the value as A(i,j)
 
 #ifndef USE_LOCKS_IN_ASSEMBLY
         double& r_a = values_vector[last_pos];
-        const double& v_a = Alocal(i_local,0);
+        const double& v_a = *(local_data_pointer);
+        local_data_pointer++; //(i_local,0);
         #pragma omp atomic
         r_a +=  v_a;
 #else
-        values_vector[last_pos] += Alocal(i_local,0);
+        values_vector[last_pos] += *(local_data_pointer);
+        local_data_pointer++; //Alocal(i_local,0);
 #endif
 
 
         //now find all of the other entries
         size_t pos = 0;
-        for(unsigned int j=1; j<EquationId.size(); j++)
+        for(unsigned int j=1; j<EquationId.size(); ++j)
         {
-            unsigned int id_to_find = EquationId[j];
+            const unsigned int id_to_find = EquationId[j];
             if(id_to_find > last_found)
                 pos = ForwardFind(id_to_find,last_pos+1,index2_vector);
             else
@@ -1401,11 +1406,13 @@ private:
 
 #ifndef USE_LOCKS_IN_ASSEMBLY
                         double& r = values_vector[pos];
-                        const double& v = Alocal(i_local,j);
+                        const double& v  = *(local_data_pointer);
+                        local_data_pointer++; //Alocal(i_local,j);
                         #pragma omp atomic
                         r +=  v;
 #else
-                        values_vector[pos] += Alocal(i_local,j);
+                        values_vector[pos] += *(local_data_pointer);
+                        local_data_pointer++; //Alocal(i_local,j);
 #endif
 
             last_found = id_to_find;
