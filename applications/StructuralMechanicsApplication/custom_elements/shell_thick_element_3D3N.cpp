@@ -681,13 +681,16 @@ namespace Kratos
 		data.SectionParameters.SetShapeFunctionsValues(data.N);
 		section->CalculateSectionResponse(data.SectionParameters, ConstitutiveLaw::StressMeasure_PK2);
 		
-		//add in shear stabilization
-		double h2 = data.hMean*data.hMean;
-		double shearStabilisation = (h2) / (h2 + data.alpha*data.h_e*data.h_e);
-		data.D(6, 6) *= shearStabilisation;
-		data.D(6, 7) *= shearStabilisation;
-		data.D(7, 6) *= shearStabilisation;
-		data.D(7, 7) *= shearStabilisation;
+		if (data.basicTriCST == false)
+		{
+			//add in shear stabilization
+			double h2 = data.hMean*data.hMean;
+			double shearStabilisation = (h2) / (h2 + data.alpha*data.h_e*data.h_e);
+			data.D(6, 6) *= shearStabilisation;
+			data.D(6, 7) *= shearStabilisation;
+			data.D(7, 6) *= shearStabilisation;
+			data.D(7, 7) *= shearStabilisation;
+		}
 	}
 
 	void ShellThickElement3D3N::InitializeCalculationData(CalculationData& data)
@@ -839,34 +842,69 @@ namespace Kratos
 			data.B(5, 16) = x21;
 
 		//Shear components
-			const double a = x21;
-			const double b = y21;
-			const double c = y31;
-			const double d = x31;
-			//node 1
-			data.B(6, 2) = b - c;
-			data.B(6, 4) = A;
+			if (data.basicTriCST == false)
+			{
+				// Use DSG method
 
-			data.B(7, 2) = d - a;
-			data.B(7, 3) = -1.0 * A;
+				const double a = x21;
+				const double b = y21;
+				const double c = y31;
+				const double d = x31;
+				//node 1
+				data.B(6, 2) = b - c;
+				data.B(6, 4) = A;
 
-			//node 2
-			data.B(6, 8) = c;
-			data.B(6, 9) = -1.0 * b*c / 2.0;
-			data.B(6, 10) = a*c / 2.0;
+				data.B(7, 2) = d - a;
+				data.B(7, 3) = -1.0 * A;
 
-			data.B(7, 8) = -1.0 * d;
-			data.B(7, 9) = b*d / 2.0;
-			data.B(7, 10) = -1.0 * a*d / 2.0;
+				//node 2
+				data.B(6, 8) = c;
+				data.B(6, 9) = -1.0 * b*c / 2.0;
+				data.B(6, 10) = a*c / 2.0;
 
-			//node 3
-			data.B(6, 14) = -1.0 * b;
-			data.B(6, 15) = b*c / 2.0;
-			data.B(6, 16) = b*d / 2.0;
+				data.B(7, 8) = -1.0 * d;
+				data.B(7, 9) = b*d / 2.0;
+				data.B(7, 10) = -1.0 * a*d / 2.0;
 
-			data.B(7, 14) = a;
-			data.B(7, 15) = -1.0 * a*c / 2.0;
-			data.B(7, 16) = a*d / 2.0;
+				//node 3
+				data.B(6, 14) = -1.0 * b;
+				data.B(6, 15) = b*c / 2.0;
+				data.B(6, 16) = b*d / 2.0;
+
+				data.B(7, 14) = a;
+				data.B(7, 15) = -1.0 * a*c / 2.0;
+				data.B(7, 16) = a*d / 2.0;
+			}
+			else
+			{
+				// Basic CST displacement derived shear
+				// strain displacement matrix.
+				// Only for testing!
+
+				const Matrix & shapeFunctions = GetGeometry().ShapeFunctionsValues(mThisIntegrationMethod);
+
+				//node 1
+				data.B(6, 2) = y23;
+				data.B(6, 3) = shapeFunctions(0, 0);
+
+				data.B(7, 2) = x32;
+				data.B(7, 4) = shapeFunctions(0, 0);
+
+				//node 2
+				data.B(6, 8) = y31;
+				data.B(6, 9) = shapeFunctions(0, 1);
+
+				data.B(7, 8) = x13;
+				data.B(7, 10) = shapeFunctions(0, 1);
+
+				//node 3
+				data.B(6, 14) = y12;
+				data.B(6, 15) = shapeFunctions(0, 2);
+
+				data.B(7, 14) = x21;
+				data.B(7, 16) = shapeFunctions(0, 2);
+			}
+			
 
 		//Final multiplication
 			data.B /= (A2);

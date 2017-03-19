@@ -1440,6 +1440,8 @@ namespace Kratos
 			// This section replaces the ANDES membrane B mat
 			// with a basic unenhanced pure displacement-based
 			// B-matrix. Only for comparison purposes!
+			//
+			// ref: ToP-1516-tutorial1.pdf
 			B_mem.clear();
 			const GeometryType::IntegrationPointsArrayType & integrationPoints = geom.IntegrationPoints(GetIntegrationMethod());
 			double xi = integrationPoints[data.gpIndex].Coordinate(1);		//set to current parametric integration location
