@@ -380,7 +380,7 @@ namespace Kratos
 			dummySection->BeginStack();
 			dummySection->AddPly(props[THICKNESS], 0.0, 5, this->pGetProperties());
 			dummySection->EndStack();
-			dummySection->SetSectionBehavior(ShellCrossSection::Thick);
+			dummySection->SetSectionBehavior(ShellCrossSection::Thin);
 			dummySection->Check(props, geom, rCurrentProcessInfo);
 		}
 
@@ -667,7 +667,7 @@ namespace Kratos
 
 	// =====================================================================================
 	//
-	// Class ShellThickElement3D4N - Private methods
+	// Class ShellThinElement3D4N - Private methods
 	//
 	// =====================================================================================
 
@@ -1064,6 +1064,13 @@ namespace Kratos
 		double beta1 = 0.6;
 		double beta2 = 0.0;
 
+		//pwdebug
+		//data.alpha = 0.0;
+		//beta1 = 0;
+		//l_xi = l_24;
+		//l_eta = l_13;
+
+
 		//s_13 and s_24 unit vectors
 		Vector s_13 = Vector(data.r_cartesian[2] - data.r_cartesian[0]);
 		s_13 /= std::sqrt(inner_prod(s_13, s_13));
@@ -1102,8 +1109,8 @@ namespace Kratos
 		Q1(2, 2) = rho7*chi_24;
 		Q1(2, 3) = rho8*chi_24;
 
-		Q1(2, 5) = beta2 * c_24_xi / l_24;
-		Q1(2, 6) = -1.0 * beta2 * c_24_eta / l_24;
+		//Q1(2, 5) = beta2 * c_24_xi / l_24;	- beta2 = 0
+		//Q1(2, 6) = -1.0 * beta2 * c_24_eta / l_24;	- beta2 = 0
 
 
 		qind = 2 - 1;
@@ -1128,8 +1135,8 @@ namespace Kratos
 		Q2(2, 2) = rho6*chi_13;
 		Q2(2, 3) = rho7*chi_13;
 
-		Q2(2, 5) = -1.0* beta2 * c_13_xi / l_13;
-		Q2(2, 6) = beta2 * c_13_eta / l_13;
+		//Q2(2, 5) = -1.0* beta2 * c_13_xi / l_13;	 beta2 = 0
+		//Q2(2, 6) = beta2 * c_13_eta / l_13;	beta2=0
 
 
 		qind = 3 - 1;
@@ -1154,8 +1161,8 @@ namespace Kratos
 		Q3(2, 2) = rho5*chi_13;
 		Q3(2, 3) = rho6*chi_13;
 
-		Q3(2, 5) = -1.0*beta2 * c_13_xi / l_13;
-		Q3(2, 6) = beta2 * c_13_eta / l_13;
+		//Q3(2, 5) = -1.0*beta2 * c_13_xi / l_13;	beta2 = 0
+		//Q3(2, 6) = beta2 * c_13_eta / l_13;	beta2 = 0
 
 
 		qind = 4 - 1;
@@ -1180,8 +1187,8 @@ namespace Kratos
 		Q4(2, 2) = rho8*chi_13;
 		Q4(2, 3) = rho5*chi_13;
 
-		Q4(2, 5) = beta2 * c_13_xi / l_13;
-		Q4(2, 6) = -1.0*beta2 * c_13_eta / l_13;
+		//Q4(2, 5) = beta2 * c_13_xi / l_13;	beta2 = 0
+		//Q4(2, 6) = -1.0*beta2 * c_13_eta / l_13;	beta2 = 0
 
 		Matrix T_13_inv = Matrix(3, 3, 0.0);
 		T_13_inv(0, 0) = s_xi[0] * s_xi[0];
@@ -1193,7 +1200,14 @@ namespace Kratos
 		T_13_inv(2, 0) = s_24[0] * s_24[0];
 		T_13_inv(2, 1) = s_24[1] * s_24[1];
 		T_13_inv(2, 2) = s_24[0] * s_24[1];
-		Matrix T_24_inv = Matrix(T_13_inv);
+
+		Matrix T_24_inv = Matrix(3,3,0.0);
+		T_24_inv(0, 0) = s_xi[0] * s_xi[0];
+		T_24_inv(0, 1) = s_xi[1] * s_xi[1];
+		T_24_inv(0, 2) = s_xi[0] * s_xi[1];
+		T_24_inv(1, 0) = s_eta[0] * s_eta[0];
+		T_24_inv(1, 1) = s_eta[1] * s_eta[1];
+		T_24_inv(1, 2) = s_eta[0] * s_eta[1];
 		T_24_inv(2, 0) = s_13[0] * s_13[0];
 		T_24_inv(2, 1) = s_13[1] * s_13[1];
 		T_24_inv(2, 2) = s_13[0] * s_13[1];
@@ -1299,10 +1313,10 @@ namespace Kratos
 		data.DKQ_b[3] = 3.0 / 4.0 * x41 * y41 / l_41 / l_41;
 
 		//assemble c_k - eqn 3.86c : c[0] = c_5
-		data.DKQ_c[0] = (x12 * x12 / 4.0 - y12 * y12 / 2) / l_12 / l_12;
-		data.DKQ_c[1] = (x23 * x23 / 4.0 - y23 * y23 / 2) / l_23 / l_23;
-		data.DKQ_c[2] = (x34 * x34 / 4.0 - y34 * y34 / 2) / l_34 / l_34;
-		data.DKQ_c[3] = (x41 * x41 / 4.0 - y41 * y41 / 2) / l_41 / l_41;
+		data.DKQ_c[0] = (x12 * x12 / 4.0 - y12 * y12 / 2.0) / l_12 / l_12;
+		data.DKQ_c[1] = (x23 * x23 / 4.0 - y23 * y23 / 2.0) / l_23 / l_23;
+		data.DKQ_c[2] = (x34 * x34 / 4.0 - y34 * y34 / 2.0) / l_34 / l_34;
+		data.DKQ_c[3] = (x41 * x41 / 4.0 - y41 * y41 / 2.0) / l_41 / l_41;
 
 		//assemble d_k - eqn 3.86d : d[0] = d_5
 		data.DKQ_d[0] = -1.0 * y12 / l_12 / l_12;
@@ -1346,8 +1360,8 @@ namespace Kratos
 			Matrix DKQ_temp_inv = Matrix(2, 2, 0.0);
 			DKQ_temp_inv(0, 0) = DKQ_temp(1, 1);
 			DKQ_temp_inv(1, 1) = DKQ_temp(0, 0);
-			DKQ_temp_inv(0, 1) = -1 * DKQ_temp(0, 1);
-			DKQ_temp_inv(1, 0) = -1 * DKQ_temp(1, 0);
+			DKQ_temp_inv(0, 1) = -1.0 * DKQ_temp(0, 1);
+			DKQ_temp_inv(1, 0) = -1.0 *DKQ_temp(1, 0);
 			DKQ_temp_inv = DKQ_temp_inv / det;
 			data.DKQ_invJac[i] = Matrix(DKQ_temp_inv);
 		}
@@ -1818,13 +1832,6 @@ namespace Kratos
 		if (rValues.size() != size)
 			rValues.resize(size);
 
-		// Get some references.
-
-		PropertiesType & props = GetProperties();
-		GeometryType & geom = GetGeometry();
-		const Matrix & shapeFunctions = geom.ShapeFunctionsValues();
-		Vector iN(shapeFunctions.size2());
-
 		// Compute the local coordinate system.
 
 		ShellQ4_LocalCoordinateSystem localCoordinateSystem(
@@ -1833,39 +1840,7 @@ namespace Kratos
 		ShellQ4_LocalCoordinateSystem referenceCoordinateSystem(
 			mpCoordinateTransformation->CreateReferenceCoordinateSystem());
 
-		// Instantiate the Jacobian Operator.
-		// This will store:
-		// the jacobian matrix, its inverse, its determinant
-		// and the derivatives of the shape functions in the local
-		// coordinate system
-
-		JacobianOperator jacOp;
-
-		// Instantiate all strain-displacement matrices.
-
-		Matrix B(6, 24, 0.0);
-
-		// Instantiate all section tangent matrices.
-
-		Matrix D(6, 6, 0.0);
-
-		// Instantiate strain and stress-resultant vectors
-
-		Vector generalizedStrains(6);
-		Vector generalizedStresses(6);
-
-		// Get the current displacements in global coordinate system
-
-		Vector globalDisplacements(24);
-		GetValuesVector(globalDisplacements, 0);
-
-		// Get the current displacements in local coordinate system
-
-		Vector localDisplacements(
-			mpCoordinateTransformation->CalculateLocalDisplacements(localCoordinateSystem, globalDisplacements));
-
 		// Just to store the rotation matrix for visualization purposes
-		//Matrix R(8, 8);
 		Matrix R(6, 6);
 		Matrix aux33(3, 3);
 
@@ -1874,56 +1849,30 @@ namespace Kratos
 		CalculationData data(localCoordinateSystem, referenceCoordinateSystem, rCurrentProcessInfo);
 		data.CalculateLHS = false;
 		data.CalculateRHS = true;
-		InitializeCalculationData(data);
-
-		// Initialize parameters for the cross section calculation
-
-		ShellCrossSection::Parameters parameters(geom, props, rCurrentProcessInfo);
-		parameters.SetGeneralizedStrainVector(generalizedStrains);
-		parameters.SetGeneralizedStressVector(generalizedStresses);
-		parameters.SetConstitutiveMatrix(D);
-		Flags& options = parameters.GetOptions();
-		options.Set(ConstitutiveLaw::COMPUTE_STRESS, true);
-		options.Set(ConstitutiveLaw::COMPUTE_CONSTITUTIVE_TENSOR, false);
-
+		InitializeCalculationData(data);	//this covers: B,D, jacOp, stresses/strains, local + global disps
+		
 		// Gauss Loop
 
 		for (unsigned int i = 0; i < size; i++)
 		{
-
-			// get a reference of the current integration point and shape functions
-
-			const GeometryType::IntegrationPointType & ip = geom.IntegrationPoints()[i];
-
-			noalias(iN) = row(shapeFunctions, i);
-
-			// Compute Jacobian, Inverse of Jacobian, Determinant of Jacobian
-			// and Shape functions derivatives in the local coordinate system
-
-			jacOp.Calculate(referenceCoordinateSystem, geom.ShapeFunctionLocalGradient(i));
-
 			// Compute all strain-displacement matrices
 			data.gpIndex = i;
 			CalculateBMatrix(data);
-
+			
 			// Calculate strain vectors in local coordinate system
-
-			noalias(generalizedStrains) = prod(data.B, localDisplacements);
+			noalias(data.generalizedStrains) = prod(data.B, data.localDisplacements);
 
 			// Calculate the response of the Cross Section
-
 			ShellCrossSection::Pointer & section = mSections[i];
 			if (ijob > 2)
 			{
-				parameters.SetShapeFunctionsValues(iN);
-				parameters.SetShapeFunctionsDerivatives(jacOp.XYDerivatives());
-				section->CalculateSectionResponse(parameters, ConstitutiveLaw::StressMeasure_PK2);
+				CalculateSectionResponse(data);
+				DecimalCorrection(data.generalizedStresses);
 			}
 
 			// save the results
 
-			DecimalCorrection(generalizedStrains);
-			DecimalCorrection(generalizedStresses);
+			DecimalCorrection(data.generalizedStrains);
 
 			// now the results are in the element coordinate system
 			// if necessary, rotate the results in the section (local) coordinate system
@@ -1932,12 +1881,12 @@ namespace Kratos
 				if (ijob > 2)
 				{
 					section->GetRotationMatrixForGeneralizedStresses(-(section->GetOrientationAngle()), R);
-					generalizedStresses = prod(R, generalizedStresses);
+					data.generalizedStresses = prod(R, data.generalizedStresses);
 				}
 				else
 				{
 					section->GetRotationMatrixForGeneralizedStrains(-(section->GetOrientationAngle()), R);
-					generalizedStrains = prod(R, generalizedStrains);
+					data.generalizedStrains = prod(R, data.generalizedStrains);
 				}
 			}
 
@@ -1947,37 +1896,37 @@ namespace Kratos
 
 			if (ijob == 1) // strains
 			{
-				iValue(0, 0) = generalizedStrains(0);
-				iValue(1, 1) = generalizedStrains(1);
+				iValue(0, 0) = data.generalizedStrains(0);
+				iValue(1, 1) = data.generalizedStrains(1);
 				iValue(2, 2) = 0.0;
-				iValue(0, 1) = iValue(1, 0) = 0.5 * generalizedStrains(2);
+				iValue(0, 1) = iValue(1, 0) = 0.5 * data.generalizedStrains(2);
 				iValue(0, 2) = iValue(2, 0) = 0;
 				iValue(1, 2) = iValue(2, 1) = 0;
 			}
 			else if (ijob == 2) // curvatures
 			{
-				iValue(0, 0) = generalizedStrains(3);
-				iValue(1, 1) = generalizedStrains(4);
+				iValue(0, 0) = data.generalizedStrains(3);
+				iValue(1, 1) = data.generalizedStrains(4);
 				iValue(2, 2) = 0.0;
-				iValue(0, 1) = iValue(1, 0) = 0.5 * generalizedStrains(5);
+				iValue(0, 1) = iValue(1, 0) = 0.5 * data.generalizedStrains(5);
 				iValue(0, 2) = iValue(2, 0) = 0.0;
 				iValue(1, 2) = iValue(2, 1) = 0.0;
 			}
 			else if (ijob == 3) // forces
 			{
-				iValue(0, 0) = generalizedStresses(0);
-				iValue(1, 1) = generalizedStresses(1);
+				iValue(0, 0) = data.generalizedStresses(0);
+				iValue(1, 1) = data.generalizedStresses(1);
 				iValue(2, 2) = 0.0;
-				iValue(0, 1) = iValue(1, 0) = generalizedStresses(2);
+				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses(2);
 				iValue(0, 2) = iValue(2, 0) = 0;
 				iValue(1, 2) = iValue(2, 1) = 0;
 			}
 			else if (ijob == 4) // moments
 			{
-				iValue(0, 0) = generalizedStresses(3);
-				iValue(1, 1) = generalizedStresses(4);
+				iValue(0, 0) = data.generalizedStresses(3);
+				iValue(1, 1) = data.generalizedStresses(4);
 				iValue(2, 2) = 0.0;
-				iValue(0, 1) = iValue(1, 0) = generalizedStresses(5);
+				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses(5);
 				iValue(0, 2) = iValue(2, 0) = 0.0;
 				iValue(1, 2) = iValue(2, 1) = 0.0;
 			}
