@@ -26,7 +26,7 @@
 // preprocessors for the integration
 // method used by this element.
 
-#define OPT_1_POINT_INTEGRATION
+//#define OPT_1_POINT_INTEGRATION
 
 #ifdef OPT_1_POINT_INTEGRATION
 #define OPT_INTEGRATION_METHOD Kratos::GeometryData::GI_GAUSS_1
@@ -495,9 +495,9 @@ namespace Kratos
 
 		// Calculate avarage mass per unit area
 		double av_mass_per_unit_area = 0.0;
-		for (size_t i = 0; i < 1; i++)	//this might be just 1
+		for (size_t i = 0; i < OPT_NUM_GP; i++)	//this might be just 1
 			av_mass_per_unit_area += mSections[i]->CalculateMassPerUnitArea();
-		av_mass_per_unit_area /= double(1);
+		av_mass_per_unit_area /= double(OPT_NUM_GP);
 
 		// loop on nodes
 		for (size_t i = 0; i < 3; i++)

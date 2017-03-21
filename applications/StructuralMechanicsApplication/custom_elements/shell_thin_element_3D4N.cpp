@@ -963,12 +963,12 @@ namespace Kratos
 		Vector s_eta = Vector(data.r_cartesian[2] + data.r_cartesian[3]);
 		s_eta /= std::sqrt(inner_prod(s_eta, s_eta));
 
-		//eqn 5.2.21
+		//eqn 5.2.21 - modified as per Felippa supernatural quad paper eqn 63, 65
 		array_1d<double, 4> v_h;
-		double A_0 = data.LCS0.Area();	//as per Felippa supernatural quad paper eqn 63
+		double A_0 = data.LCS0.Area();		//element area
 		double A_1 = 0.5*(x34*y12 - x12*y34);
 		double A_2 = 0.5*(x23*y14 - x14*y23);
-		v_h[0] = (A_0 + A_1 + A_2) / 2.0 / A_0;	//as per Felippa supernatural quad paper eqn 65
+		v_h[0] = (A_0 + A_1 + A_2) / 2.0 / A_0;	
 		v_h[1] = (-1.0*A_0 + A_1 - A_2) / 2.0 / A_0;
 		v_h[2] = (A_0 - A_1 - A_2) / 2.0 / A_0;
 		v_h[3] = (-1.0*A_0 - A_1 + A_2) / 2.0 / A_0;
