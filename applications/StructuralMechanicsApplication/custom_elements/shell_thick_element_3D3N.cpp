@@ -666,16 +666,10 @@ namespace Kratos
 	
 	void ShellThickElement3D3N::CalculateSectionResponse(CalculationData& data)
 	{
-#ifdef OPT_USES_INTERIOR_GAUSS_POINTS
-		const Matrix & shapeFunctions = GetGeometry().ShapeFunctionsValues(mThisIntegrationMethod);
-		for (int nodeid = 0; nodeid < OPT_NUM_NODES; nodeid++)
-			data.N(nodeid) = shapeFunctions(0, nodeid);
-#else
 		const array_1d<double, 3>& loc = data.gpLocations[0];
 		data.N(0) = 1.0 - loc[1] - loc[2];
 		data.N(1) = loc[1];
 		data.N(2) = loc[2];
-#endif // !OPT_USES_INTERIOR_GAUSS_POINTS
 
 		ShellCrossSection::Pointer& section = mSections[0];
 		data.SectionParameters.SetShapeFunctionsValues(data.N);
@@ -939,10 +933,6 @@ namespace Kratos
 		options.Set(ConstitutiveLaw::COMPUTE_STRESS, data.CalculateRHS);
 		options.Set(ConstitutiveLaw::COMPUTE_CONSTITUTIVE_TENSOR, data.CalculateLHS);
 
-		CalculateSectionResponse(data);
-
-
-
 		//--------------------------------------
 		// calculate the displacement vector
 		// in global and local coordinate systems
@@ -1038,6 +1028,7 @@ namespace Kratos
 		data.CalculateLHS = LHSrequired;
 		data.CalculateRHS = RHSrequired;
 		InitializeCalculationData(data);
+		CalculateSectionResponse(data);
 
 		// Calulate element stiffness
 		Matrix BTD = Matrix(18, 8, 0.0);
@@ -1202,11 +1193,7 @@ namespace Kratos
 		data.CalculateLHS = true;
 		data.CalculateRHS = true;
 		InitializeCalculationData(data);
-
-		Flags& options = data.SectionParameters.GetOptions();
-		options.Set(ConstitutiveLaw::COMPUTE_STRESS, data.CalculateRHS);
-		options.Set(ConstitutiveLaw::COMPUTE_CONSTITUTIVE_TENSOR, data.CalculateLHS);
-
+		CalculateSectionResponse(data);
 		// Gauss Loop.
 
 		for (size_t i = 0; i < OPT_NUM_GP; i++)
@@ -1217,16 +1204,17 @@ namespace Kratos
 
 			// compute strains
 			noalias(data.generalizedStrains) = prod(data.B, data.localDisplacements);		
-			//std::cout << data.generalizedStrains[1] << std::endl;
 
 			//compute stresses
-			//CalculateSectionResponse(data);
-			//std::cout << data.generalizedStrains[1] << std::endl;
-			noalias(data.generalizedStresses) = prod(data.D, data.generalizedStrains);
+			if (ijob >2)
+			{
+				noalias(data.generalizedStresses) = prod(data.D, data.generalizedStrains);
+				DecimalCorrection(data.generalizedStresses);
+			}
+			
 
 			// adjust output
 			DecimalCorrection(data.generalizedStrains);
-			DecimalCorrection(data.generalizedStresses);
 
 			// store the results, but first rotate them back to the section coordinate system.
 			// we want to visualize the results in that system not in the element one!
