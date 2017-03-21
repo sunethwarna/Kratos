@@ -26,7 +26,7 @@
 // preprocessors for the integration
 // method used by this element.
 
-//#define OPT_1_POINT_INTEGRATION
+#define OPT_1_POINT_INTEGRATION
 
 #ifdef OPT_1_POINT_INTEGRATION
 #define OPT_INTEGRATION_METHOD Kratos::GeometryData::GI_GAUSS_1
@@ -1194,44 +1194,50 @@ namespace Kratos
 		data.CalculateRHS = true;
 		InitializeCalculationData(data);
 		CalculateSectionResponse(data);
+
+
+		// set the current integration point index
+		data.gpIndex = 0;
+		ShellCrossSection::Pointer& section = mSections[0];
+
+		// compute strains
+		noalias(data.generalizedStrains) = prod(data.B, data.localDisplacements);
+
+		//compute stresses
+		if (ijob >2)
+		{
+			noalias(data.generalizedStresses) = prod(data.D, data.generalizedStrains);
+			DecimalCorrection(data.generalizedStresses);
+		}
+
+
+		// adjust output
+		DecimalCorrection(data.generalizedStrains);
+		//std::cout << data.generalizedStrains << std::endl;
+
+		// store the results, but first rotate them back to the section coordinate system.
+		// we want to visualize the results in that system not in the element one!
+		if (section->GetOrientationAngle() != 0.0 && !bGlobal)
+		{
+			if (ijob > 2)
+			{
+
+				section->GetRotationMatrixForGeneralizedStresses(-(section->GetOrientationAngle()), R);
+				data.generalizedStresses = prod(R, data.generalizedStresses);
+			}
+			else
+			{
+				section->GetRotationMatrixForGeneralizedStrains(-(section->GetOrientationAngle()), R);
+				data.generalizedStrains = prod(R, data.generalizedStrains);
+			}
+		}
+
+
 		// Gauss Loop.
 
 		for (size_t i = 0; i < OPT_NUM_GP; i++)
 		{
-			// set the current integration point index
-			data.gpIndex = i;
-			ShellCrossSection::Pointer& section = mSections[i];
-
-			// compute strains
-			noalias(data.generalizedStrains) = prod(data.B, data.localDisplacements);		
-
-			//compute stresses
-			if (ijob >2)
-			{
-				noalias(data.generalizedStresses) = prod(data.D, data.generalizedStrains);
-				DecimalCorrection(data.generalizedStresses);
-			}
 			
-
-			// adjust output
-			DecimalCorrection(data.generalizedStrains);
-
-			// store the results, but first rotate them back to the section coordinate system.
-			// we want to visualize the results in that system not in the element one!
-			if (section->GetOrientationAngle() != 0.0 && !bGlobal)
-			{
-				if (ijob > 2)
-				{
-					
-					section->GetRotationMatrixForGeneralizedStresses(-(section->GetOrientationAngle()), R);
-					data.generalizedStresses = prod(R, data.generalizedStresses);
-				}
-				else
-				{
-					section->GetRotationMatrixForGeneralizedStrains(-(section->GetOrientationAngle()), R);
-					data.generalizedStrains = prod(R, data.generalizedStrains);
-				}
-			}
 
 			// save results
 			Matrix & iValue = rValues[i];
@@ -1285,6 +1291,7 @@ namespace Kratos
 		}
 
 		OPT_INTERPOLATE_RESULTS_TO_STANDARD_GAUSS_POINTS(rValues);
+		//Utilities::InterpToStandardGaussPoints(rValues);
 
 		return true;
 	}
