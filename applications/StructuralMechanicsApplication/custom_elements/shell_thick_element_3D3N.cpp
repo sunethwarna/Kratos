@@ -1199,9 +1199,13 @@ namespace Kratos
 		// Initialize common calculation variables
 
 		CalculationData data(mpCoordinateTransformation, rCurrentProcessInfo);
-		data.CalculateLHS = false;
+		data.CalculateLHS = true;
 		data.CalculateRHS = true;
 		InitializeCalculationData(data);
+
+		Flags& options = data.SectionParameters.GetOptions();
+		options.Set(ConstitutiveLaw::COMPUTE_STRESS, data.CalculateRHS);
+		options.Set(ConstitutiveLaw::COMPUTE_CONSTITUTIVE_TENSOR, data.CalculateLHS);
 
 		// Gauss Loop.
 
@@ -1212,10 +1216,17 @@ namespace Kratos
 			ShellCrossSection::Pointer& section = mSections[i];
 
 			// compute strains
-			noalias(data.generalizedStrains) = prod(data.B, data.localDisplacements);			
+			noalias(data.generalizedStrains) = prod(data.B, data.localDisplacements);		
+			//std::cout << data.generalizedStrains[1] << std::endl;
+
+			//compute stresses
+			//CalculateSectionResponse(data);
+			//std::cout << data.generalizedStrains[1] << std::endl;
+			noalias(data.generalizedStresses) = prod(data.D, data.generalizedStrains);
 
 			// adjust output
 			DecimalCorrection(data.generalizedStrains);
+			DecimalCorrection(data.generalizedStresses);
 
 			// store the results, but first rotate them back to the section coordinate system.
 			// we want to visualize the results in that system not in the element one!
@@ -1223,9 +1234,7 @@ namespace Kratos
 			{
 				if (ijob > 2)
 				{
-					//compute stresses
-					noalias(data.generalizedStresses) = prod(data.D, data.generalizedStrains);
-					DecimalCorrection(data.generalizedStresses);
+					
 					section->GetRotationMatrixForGeneralizedStresses(-(section->GetOrientationAngle()), R);
 					data.generalizedStresses = prod(R, data.generalizedStresses);
 				}
