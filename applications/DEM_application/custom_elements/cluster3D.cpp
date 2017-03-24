@@ -119,7 +119,7 @@ namespace Kratos {
         
         const double scaling_factor = cl / reference_size;
         
-        for(int i=0; i<(int)number_of_spheres; i++){
+        for (int i = 0; i < (int)number_of_spheres; i++) {
             mListOfRadii[i] = scaling_factor * reference_list_of_radii[i];
             mListOfCoordinates[i][0] = scaling_factor * reference_list_of_coordinates[i][0];
             mListOfCoordinates[i][1] = scaling_factor * reference_list_of_coordinates[i][1];
@@ -174,10 +174,12 @@ namespace Kratos {
           
         std::string ElementNameString;
         bool breakable = false;
-        if(GetProperties()[BREAKABLE_CLUSTER]) breakable = true;
+        if (GetProperties()[BREAKABLE_CLUSTER]) breakable = true;
         
-        if(continuum_strategy) ElementNameString= "SphericContinuumParticle3D";
+        if (continuum_strategy) ElementNameString= "SphericContinuumParticle3D";
         else ElementNameString= "SphericParticle3D";
+        
+        if (!continuum_strategy && breakable) KRATOS_THROW_ERROR(std::runtime_error,"Breakable cluster elements are being used inside a non-deformable strategy. The program will now.","")
 
         //We now create a spheric particle and keep it as a reference to an Element
         const Element& r_reference_element = KratosComponents<Element>::Get(ElementNameString);
@@ -234,7 +236,7 @@ namespace Kratos {
         KRATOS_CATCH("")
     }
     
-    void Cluster3D::CreateContinuumConstitutiveLaws(){        
+    void Cluster3D::CreateContinuumConstitutiveLaws() {        
         for (unsigned int i=0; i<mListOfCoordinates.size(); i++) {  
             SphericContinuumParticle* p_continuum_spheric_particle = dynamic_cast<SphericContinuumParticle*> (mListOfSphericParticles[i]);            
             p_continuum_spheric_particle->CreateContinuumConstitutiveLaws();

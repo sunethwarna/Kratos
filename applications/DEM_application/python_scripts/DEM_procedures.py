@@ -893,10 +893,12 @@ class DEMFEMProcedures(object):
         spheres_model_part = all_model_parts.spheres_model_part
         DEM_inlet_model_part = all_model_parts.DEM_inlet_model_part
         rigid_face_model_part = all_model_parts.rigid_face_model_part
-        
         self.mesh_motion.MoveAllMeshes(rigid_face_model_part, time, dt)
         self.mesh_motion.MoveAllMeshes(spheres_model_part, time, dt)
         self.mesh_motion.MoveAllMeshes(DEM_inlet_model_part, time, dt)
+        self.mesh_motion.MoveAllMeshesUsingATable(rigid_face_model_part, time, dt)
+        self.mesh_motion.MoveAllMeshesUsingATable(spheres_model_part, time, dt)
+        self.mesh_motion.MoveAllMeshesUsingATable(DEM_inlet_model_part, time, dt)
 
     def UpdateTimeInModelParts(self, all_model_parts, time, dt, step):  
         

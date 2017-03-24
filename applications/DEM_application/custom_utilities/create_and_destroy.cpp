@@ -629,6 +629,8 @@ Kratos::SphericParticle* ParticleCreatorDestructor::SphereCreatorForBreakableClu
             mMaxNodeId++; //This must be done before CreateParticles because the creation of particles accesses mMaxNodeId to choose what Id is assigned to the new nodes/spheres
         }
         
+        if (!continuum_strategy && is_breakable) KRATOS_THROW_ERROR(std::runtime_error,"Breakable cluster elements are being used inside a non-deformable strategy. The program will now stop.","")
+        
         ParticleCreatorDestructor* creator_destructor_ptr = this;
         p_cluster->CreateParticles(creator_destructor_ptr, r_spheres_modelpart, p_fast_properties, continuum_strategy);                        
         
@@ -644,8 +646,7 @@ Kratos::SphericParticle* ParticleCreatorDestructor::SphereCreatorForBreakableClu
             {
             r_clusters_modelpart.Elements().push_back(p_new_cluster);  //We add the cluster element to the clusters modelpart               
             }
-        }
-        else { 
+        } else { 
             p_cluster->GetGeometry()[0].Set(TO_ERASE); //We do not add the cluster to the modelpart (will be erased at the end of this function) and we mark the central node for erasing (none are needed)
             p_cluster->SetContinuumGroupToBreakableClusterSpheres(r_Elem_Id);
             double search_tolerance = 0.02 * radius;

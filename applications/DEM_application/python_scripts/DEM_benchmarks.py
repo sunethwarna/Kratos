@@ -1,6 +1,6 @@
 from KratosMultiphysics import *
 from KratosMultiphysics.DEMApplication import *
-import main_script, plot_variables, time, os, sys
+import main_script, plot_variables, os, sys
 import DEM_benchmarks_class as DBC
 
 sys.path.insert(0,'')

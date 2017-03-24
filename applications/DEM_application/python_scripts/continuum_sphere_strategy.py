@@ -5,7 +5,6 @@ from KratosMultiphysics.DEMApplication import *
 import sphere_strategy as SolverStrategy
 BaseExplicitStrategy = SolverStrategy.ExplicitStrategy
 
-import math
 
 class ExplicitStrategy(BaseExplicitStrategy):
 
