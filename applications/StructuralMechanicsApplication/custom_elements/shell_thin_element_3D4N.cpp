@@ -222,8 +222,10 @@ namespace Kratos
 	{
 		KRATOS_TRY
 
-			const GeometryType & geom = GetGeometry();
-		const PropertiesType & props = GetProperties();
+		const GeometryType & geom = GetGeometry();
+		PropertiesType & props = GetProperties();	// removed const to alter material law within element
+
+		std::cout << "Printing Props!\n" << props << std::endl;
 
 		if (geom.PointsNumber() != OPT_NUM_NODES)
 			KRATOS_THROW_ERROR(std::logic_error, "ShellThinElement3D4N Element - Wrong number of nodes", geom.PointsNumber());
@@ -240,6 +242,73 @@ namespace Kratos
 			if (props.Has(SHELL_CROSS_SECTION))
 			{
 				theSection = props[SHELL_CROSS_SECTION];
+			}
+			else if (props.Has(SHELL_ORTHOTROPIC_LAYERS))
+			{
+				// make new instance of shell cross section
+				theSection = ShellCrossSection::Pointer(new ShellCrossSection());
+
+
+				// ascertain how many plies there are and begin stacking them
+				std::cout << (props)[SHELL_ORTHOTROPIC_LAYERS].size1() << std::endl;
+				int plies = (props)[SHELL_ORTHOTROPIC_LAYERS].size1();
+				theSection->BeginStack();
+
+
+				// setup orthtropic composite variables
+				double plyThickness, angle, E_fiber, Poisson_fiber, VolumeFraction_fiber, E_matrix, Poisson_matrix, VolumeFraction_matrix;
+
+
+				// add ply for each orthotropic layer defined
+				for (int currentPly = 0; currentPly < plies; currentPly++)
+				{
+					// create and submit an instance for each ply
+					PropertiesType plyProps;
+					plyProps.SetValue(THICKNESS, (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 0)); 
+					plyProps.SetValue(DENSITY, (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 1));
+
+					plyThickness = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 0);
+					angle = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 2);	// angle (degrees) between element XX and material xx, about element ZZ
+					E_fiber = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 3);
+					Poisson_fiber = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 4);
+					VolumeFraction_fiber = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 5);
+					E_matrix = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 6);
+					Poisson_matrix = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 7);
+					VolumeFraction_matrix = 1.0 - VolumeFraction_fiber;
+
+					if (VolumeFraction_matrix < 0)
+					{
+						KRATOS_THROW_ERROR(std::invalid_argument, "Check fiber volume fraction! (check if the application is correctly registered", "");
+					}
+
+					//std::cout << "Printing thickness = " << plyProps[THICKNESS] << std::endl;
+					//std::cout << "pinting this->pGetProperties() = " << this->pGetProperties() << std::endl;
+
+					
+
+					//test
+					props.SetValue(YOUNG_MODULUS, E_fiber/4.0);			// just practising assigning youngs modulus
+					LinearElasticPlaneStress2DLaw myLaw;				// testing creating a new law instance and assigning to current element
+					LinearElasticPlaneStrain2DLaw myLaw2;
+					this->SetValue(CONSTITUTIVE_LAW, myLaw.Clone());
+					this->SetValue(YOUNG_MODULUS, E_fiber/2.0);
+
+					std::cout << "Printing transferred CONSTITUTIVE_LAW1 = " << this->GetValue(CONSTITUTIVE_LAW) << std::endl;
+					std::cout << "Printing transferred CONSTITUTIVE_LAW1 again = " << this->GetValue(CONSTITUTIVE_LAW) << std::endl;
+					this->SetValue(CONSTITUTIVE_LAW, myLaw2.Clone());
+					std::cout << "Printing transferred CONSTITUTIVE_LAW2 = " << this->GetValue(CONSTITUTIVE_LAW) << std::endl;
+					std::cout << "Printing transferred CONSTITUTIVE_LAW2 again = " << this->GetValue(CONSTITUTIVE_LAW) << std::endl;
+
+					std::cout << "Printing transferred CONSTITUTIVE_LAW2 = " << this->GetValue(YOUNG_MODULUS) << std::endl;
+
+					
+					
+					Properties::Pointer theProps = Properties::Pointer(&plyProps);
+					//theSection->AddPly(plyProps[THICKNESS], 0.0, 5, theProps);
+					theSection->AddPly(plyThickness, 0.0, 5, this->pGetProperties());
+				}
+				
+				theSection->EndStack();
 			}
 			else
 			{
