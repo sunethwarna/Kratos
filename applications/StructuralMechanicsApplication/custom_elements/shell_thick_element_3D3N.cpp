@@ -195,7 +195,7 @@ namespace Kratos
 	{
 		KRATOS_TRY
 
-			const GeometryType & geom = GetGeometry();
+		const GeometryType & geom = GetGeometry();
 		const PropertiesType & props = GetProperties();
 
 		if (geom.PointsNumber() != OPT_NUM_NODES)
@@ -235,6 +235,20 @@ namespace Kratos
 		mpCoordinateTransformation->Initialize();
 
 		this->SetupOrientationAngles();
+
+		KRATOS_CATCH("")
+	}
+
+	void ShellThickElement3D3N::ResetConstitutiveLaw()
+	{
+		KRATOS_TRY
+
+		const GeometryType & geom = GetGeometry();
+		const Matrix & shapeFunctionsValues = geom.ShapeFunctionsValues(GetIntegrationMethod());
+
+		const Properties& props = GetProperties();
+		for (SizeType i = 0; i < mSections.size(); i++)
+			mSections[i]->ResetCrossSection(props, geom, row(shapeFunctionsValues, i));
 
 		KRATOS_CATCH("")
 	}
@@ -1193,7 +1207,7 @@ namespace Kratos
 		data.CalculateLHS = true;
 		data.CalculateRHS = true;
 		InitializeCalculationData(data);
-		CalculateSectionResponse(data);
+		
 
 
 		// set the current integration point index
@@ -1206,6 +1220,7 @@ namespace Kratos
 		//compute stresses
 		if (ijob >2)
 		{
+			CalculateSectionResponse(data);
 			noalias(data.generalizedStresses) = prod(data.D, data.generalizedStrains);
 			DecimalCorrection(data.generalizedStresses);
 		}

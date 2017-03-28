@@ -120,7 +120,7 @@ namespace Kratos
 
 		void Initialize();
 
-		//void ResetConstitutiveLaw();
+		void ResetConstitutiveLaw();
 
 		void EquationIdVector(EquationIdVectorType& rResult, ProcessInfo& rCurrentProcessInfo);
 
