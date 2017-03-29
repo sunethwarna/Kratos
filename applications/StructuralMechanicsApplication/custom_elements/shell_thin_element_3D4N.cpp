@@ -271,33 +271,36 @@ namespace Kratos
 					Poisson_matrix = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 7);
 					
 					VolumeFraction_matrix = 1.0 - VolumeFraction_fiber;
-					if (VolumeFraction_matrix < 0)
+					if (VolumeFraction_matrix < 0.0)
 					{
-						KRATOS_THROW_ERROR(std::invalid_argument, "Check fiber volume fraction! (check if the application is correctly registered", "");
+						KRATOS_THROW_ERROR(std::invalid_argument, "Check fiber volume fraction!", "");
 					}
 
-					//std::cout << "Printing thickness = " << plyProps[THICKNESS] << std::endl;
-					//std::cout << "pinting this->pGetProperties() = " << this->pGetProperties() << std::endl;
+					// calculate shear moduli
+					double G_fiber, G_matrix;
+					G_fiber = E_fiber / (2.0*(1.0 + Poisson_fiber));
+					G_matrix = E_matrix / (2.0*(1.0 + Poisson_matrix));
 
+					// Add in derived material values to the property of the current ply 
+					props.SetValue(YOUNG_MODULUS_X, (E_fiber*VolumeFraction_fiber + E_matrix*VolumeFraction_matrix));	//E1
+					props.SetValue(YOUNG_MODULUS_Y, (E_fiber*E_matrix/(E_fiber*VolumeFraction_matrix + E_matrix*VolumeFraction_fiber)));	//E2
+					props.SetValue(POISSON_RATIO_XY, (Poisson_fiber*VolumeFraction_fiber + Poisson_matrix*VolumeFraction_matrix));	//Nu_12
+					props.SetValue(SHEAR_MODULUS_XY, (G_fiber*G_matrix / (G_fiber*VolumeFraction_matrix + G_matrix*VolumeFraction_fiber)));	//G12
 					
-
-					//test
-					props.SetValue(YOUNG_MODULUS, E_fiber/4.0);			// just practising assigning youngs modulus
-					LinearElasticPlaneStress2DLaw myLaw;				// testing creating a new law instance and assigning to current element
-					LinearElasticPlaneStrain2DLaw myLaw2;
-					this->SetValue(CONSTITUTIVE_LAW, myLaw.Clone());
-					this->SetValue(YOUNG_MODULUS, E_fiber/2.0);
-
-					std::cout << "Printing transferred CONSTITUTIVE_LAW1 = " << this->GetValue(CONSTITUTIVE_LAW) << std::endl;
-					std::cout << "Printing transferred CONSTITUTIVE_LAW1 again = " << this->GetValue(CONSTITUTIVE_LAW) << std::endl;
-					this->SetValue(CONSTITUTIVE_LAW, myLaw2.Clone());
-					std::cout << "Printing transferred CONSTITUTIVE_LAW2 = " << this->GetValue(CONSTITUTIVE_LAW) << std::endl;
-					std::cout << "Printing transferred CONSTITUTIVE_LAW2 again = " << this->GetValue(CONSTITUTIVE_LAW) << std::endl;
-
-					std::cout << "Printing transferred CONSTITUTIVE_LAW2 = " << this->GetValue(YOUNG_MODULUS) << std::endl;
-
+					bool printLayers = true;
+					if (printLayers)
+					{
+						std::cout << "\n===============================================================" << std::endl;
+						std::cout << "                      LAYER " << currentPly << "                                " << std::endl;
+						std::cout << "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _" << std::endl;
+						std::cout << "Thickness = " << plyThickness << std::endl;
+						std::cout << "E_fiber = " << E_fiber << std::endl;
+						std::cout << "E_matrix = " << E_matrix << std::endl;
+						std::cout << "E1 = " << props.GetValue(YOUNG_MODULUS_X) << std::endl;
+						std::cout << "E2 = " << props.GetValue(YOUNG_MODULUS_Y) << std::endl;
+					}
 					
-					
+					theSection->AddPly(plyThickness, angleRz, 5, this->pGetProperties());
 				}
 				
 				theSection->EndStack();
@@ -313,6 +316,7 @@ namespace Kratos
 			mSections.clear();
 			for (int i = 0; i < OPT_NUM_GP; i++)
 			{
+				
 				ShellCrossSection::Pointer sectionClone = theSection->Clone();
 				sectionClone->SetSectionBehavior(ShellCrossSection::Thin);
 				sectionClone->InitializeCrossSection(props, geom, row(shapeFunctionsValues, i));
@@ -1673,6 +1677,10 @@ namespace Kratos
 
 		ShellCrossSection::Pointer& section = mSections[data.gpIndex];
 		data.SectionParameters.SetShapeFunctionsValues(iN);
+		data.D.clear();
+		//printMatrix(data.D, "Printing D before calculate section response");
+		section->CalculateSectionResponse(data.SectionParameters, ConstitutiveLaw::StressMeasure_PK2);	//constitutive tensor calculated here
+		//printMatrix(data.D, "Printing D after calculate section response");
 	}
 
 	void ShellThinElement3D4N::CalculateGaussPointContribution(CalculationData& data, MatrixType& LHS, VectorType& RHS)
