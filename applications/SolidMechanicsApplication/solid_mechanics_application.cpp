@@ -340,6 +340,7 @@ namespace Kratos
     Serializer::Register( "LinearElastic3DLaw", mLinearElastic3DLaw );
     Serializer::Register( "LinearElasticPlaneStrain2DLaw", mLinearElasticPlaneStrain2DLaw );
     Serializer::Register( "LinearElasticPlaneStress2DLaw", mLinearElasticPlaneStress2DLaw );
+	Serializer::Register("LinearElasticOrthotropic2DLaw", mLinearElasticOrthotropic2DLaw);
     Serializer::Register( "LinearElasticAxisym2DLaw", mLinearElasticAxisym2DLaw );
 
     //Hyperelastic Plastic J2 specilization laws 

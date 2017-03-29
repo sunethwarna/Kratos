@@ -118,8 +118,8 @@ std::string ShellCrossSection::GetInfo()const
             for(unsigned int i = 0; i < iPly.GetIntegrationPoints().size(); i++)
             {
                 const IntegrationPoint& iPoint = iPly.GetIntegrationPoints()[i];
-                ss << " - - [" << i << "] "
-                   << "[ H: " << iPoint.GetWeight() << "; POS: " << iPoint.GetLocation() << "; C-LAW: " << iPoint.GetConstitutiveLaw() << "]"
+				ss << " - - [" << i << "] "
+					<< "[ H: " << iPoint.GetWeight() << "; POS: " << iPoint.GetLocation() << "; C-LAW: " << iPoint.GetConstitutiveLaw() << "]"
                    << std::endl;
             }
             ss << "===============================================================" << std::endl;
@@ -363,7 +363,8 @@ void ShellCrossSection::CalculateSectionResponse(Parameters& rValues, const Cons
     // references
     Vector& generalizedStrainVector = rValues.GetGeneralizedStrainVector();
     Vector& generalizedStressVector = rValues.GetGeneralizedStressVector();
-    Matrix& constitutiveMatrix = rValues.GetConstitutiveMatrix();
+    Matrix& constitutiveMatrix = rValues.GetConstitutiveMatrix();	//6x6 here
+	//std::cout << constitutiveMatrix << std::endl;
 
     Vector& condensedStressVector   = variables.CondensedStressVector;
     Matrix& H  = variables.H;
@@ -450,8 +451,8 @@ void ShellCrossSection::CalculateSectionResponse(Parameters& rValues, const Cons
                 for(Ply::IntegrationPointCollection::iterator intp_it = iPly.GetIntegrationPoints().begin(); intp_it != iPly.GetIntegrationPoints().end(); ++intp_it)
                 {
                     IntegrationPoint& iPoint = *intp_it;
-                    UpdateIntegrationPointParameters(iPoint, materialValues, variables);
-                    CalculateIntegrationPointResponse(iPoint, materialValues, rValues, variables, rStressMeasure);
+                    UpdateIntegrationPointParameters(iPoint, materialValues, variables);								// this just establishes the setup - no values written here
+					CalculateIntegrationPointResponse(iPoint, materialValues, rValues, variables, rStressMeasure);		// this adds the values in
                 } // END LOOP: integrate the response of each integration point in this ply
             }
             else
@@ -852,9 +853,23 @@ void ShellCrossSection::UpdateIntegrationPointParameters(IntegrationPoint& rPoin
         // use 2D matrices and vectors
         rMaterialValues.SetStrainVector(rVariables.StrainVector_2D);
         rMaterialValues.SetStressVector(rVariables.StressVector_2D);
-        rMaterialValues.SetConstitutiveMatrix(rVariables.ConstitutiveMatrix_2D);
+
+		// Check if we are dealing with an orthotropic composite
+		const Properties& props = rMaterialValues.GetMaterialProperties();
+		if (props.Has(SHELL_ORTHOTROPIC_LAYERS))
+		{
+			rVariables.ConstitutiveMatrix_3D.resize(6, 6);
+			rMaterialValues.SetConstitutiveMatrix(rVariables.ConstitutiveMatrix_3D);
+		}
+		else
+		{
+			rMaterialValues.SetConstitutiveMatrix(rVariables.ConstitutiveMatrix_2D);
+		}
         rMaterialValues.SetDeterminantF(rVariables.DeterminantF);
         rMaterialValues.SetDeformationGradientF(rVariables.DeformationGradientF_2D);
+
+		//std::cout << "after here!!!!!!!!!!!!!!!!!!!!" << std::endl;
+		//std::cout << rMaterialValues.GetConstitutiveMatrix() << std::endl;
 
         if(mBehavior == Thick)
         {
@@ -980,9 +995,7 @@ void ShellCrossSection::CalculateIntegrationPointResponse(IntegrationPoint& rPoi
         rVariables.DeterminantF = MathUtils<double>::Det3(F);
     }
     rVariables.DeterminantF0 = 1.0;
-
     // calculate the material response
-
     rPoint.GetConstitutiveLaw()->CalculateMaterialResponse(rMaterialValues, rStressMeasure);
 
     // compute stress resultants and stress couples
@@ -1035,56 +1048,79 @@ void ShellCrossSection::CalculateIntegrationPointResponse(IntegrationPoint& rPoi
 
         if(material_strain_size == 3) // plane-stress case
         {
-            // membrane part
-            D(0,0) += h*C(0,0);
-            D(0,1) += h*C(0,1);
-            D(0,2) += h*C(0,2);
-            D(1,0) += h*C(1,0);
-            D(1,1) += h*C(1,1);
-            D(1,2) += h*C(1,2);
-            D(2,0) += h*C(2,0);
-            D(2,1) += h*C(2,1);
-            D(2,2) += h*C(2,2);
+			// Check if we are dealing with an orthotropic composite
+			const Properties& props = rMaterialValues.GetMaterialProperties();
+			if (props.Has(SHELL_ORTHOTROPIC_LAYERS))
+			{
+				// membrane part
+				D(0, 0) += h*C(0, 0);
+				D(0, 1) += h*C(0, 1);
+				D(0, 2) += h*C(0, 2);
+				D(1, 0) += h*C(0, 1);
+				D(1, 1) += h*C(1, 1);
+				D(1, 2) += h*C(1, 2);
+				D(2, 0) += h*C(0, 2);
+				D(2, 1) += h*C(1, 2);
+				D(2, 2) += h*C(2, 2);
 
-            // bending part
-            D(3,3) += h*z*z*C(0,0);
-            D(3,4) += h*z*z*C(0,1);
-            D(3,5) += h*z*z*C(0,2);
-            D(4,3) += h*z*z*C(1,0);
-            D(4,4) += h*z*z*C(1,1);
-            D(4,5) += h*z*z*C(1,2);
-            D(5,3) += h*z*z*C(2,0);
-            D(5,4) += h*z*z*C(2,1);
-            D(5,5) += h*z*z*C(2,2);
+				// bending part - artificial!!!!
+				D(3, 3) += 10.0;
+				D(4, 4) += 10.0;
+				D(5, 5) += 10.0;
+			}
+			else //normal isotropic material shell
+			{
+				// membrane part
+				D(0, 0) += h*C(0, 0);
+				D(0, 1) += h*C(0, 1);
+				D(0, 2) += h*C(0, 2);
+				D(1, 0) += h*C(1, 0);
+				D(1, 1) += h*C(1, 1);
+				D(1, 2) += h*C(1, 2);
+				D(2, 0) += h*C(2, 0);
+				D(2, 1) += h*C(2, 1);
+				D(2, 2) += h*C(2, 2);
 
-            // membrane-bending part
-            D(0,3) += h*z*C(0,0);
-            D(0,4) += h*z*C(0,1);
-            D(0,5) += h*z*C(0,2);
-            D(1,3) += h*z*C(1,0);
-            D(1,4) += h*z*C(1,1);
-            D(1,5) += h*z*C(1,2);
-            D(2,3) += h*z*C(2,0);
-            D(2,4) += h*z*C(2,1);
-            D(2,5) += h*z*C(2,2);
+				// bending part
+				D(3, 3) += h*z*z*C(0, 0);
+				D(3, 4) += h*z*z*C(0, 1);
+				D(3, 5) += h*z*z*C(0, 2);
+				D(4, 3) += h*z*z*C(1, 0);
+				D(4, 4) += h*z*z*C(1, 1);
+				D(4, 5) += h*z*z*C(1, 2);
+				D(5, 3) += h*z*z*C(2, 0);
+				D(5, 4) += h*z*z*C(2, 1);
+				D(5, 5) += h*z*z*C(2, 2);
 
-            // bending-membrane part
-            D(3,0) += h*z*C(0,0);
-            D(3,1) += h*z*C(0,1);
-            D(3,2) += h*z*C(0,2);
-            D(4,0) += h*z*C(1,0);
-            D(4,1) += h*z*C(1,1);
-            D(4,2) += h*z*C(1,2);
-            D(5,0) += h*z*C(2,0);
-            D(5,1) += h*z*C(2,1);
-            D(5,2) += h*z*C(2,2);
+				// membrane-bending part
+				D(0, 3) += h*z*C(0, 0);
+				D(0, 4) += h*z*C(0, 1);
+				D(0, 5) += h*z*C(0, 2);
+				D(1, 3) += h*z*C(1, 0);
+				D(1, 4) += h*z*C(1, 1);
+				D(1, 5) += h*z*C(1, 2);
+				D(2, 3) += h*z*C(2, 0);
+				D(2, 4) += h*z*C(2, 1);
+				D(2, 5) += h*z*C(2, 2);
 
-            if(mBehavior == Thick)
-            {
-                // here the transverse shear is treated elastically
-                D(6,6) += h * cs * ce * rVariables.GYZ;
-                D(7,7) += h * cs * ce * rVariables.GXZ;
-            }
+				// bending-membrane part
+				D(3, 0) += h*z*C(0, 0);
+				D(3, 1) += h*z*C(0, 1);
+				D(3, 2) += h*z*C(0, 2);
+				D(4, 0) += h*z*C(1, 0);
+				D(4, 1) += h*z*C(1, 1);
+				D(4, 2) += h*z*C(1, 2);
+				D(5, 0) += h*z*C(2, 0);
+				D(5, 1) += h*z*C(2, 1);
+				D(5, 2) += h*z*C(2, 2);
+
+				if (mBehavior == Thick)
+				{
+					// here the transverse shear is treated elastically
+					D(6, 6) += h * cs * ce * rVariables.GYZ;
+					D(7, 7) += h * cs * ce * rVariables.GXZ;
+				}
+			}
         }
         else // full 3D case
         {

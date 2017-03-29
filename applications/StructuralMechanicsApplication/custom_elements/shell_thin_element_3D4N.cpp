@@ -225,8 +225,6 @@ namespace Kratos
 		const GeometryType & geom = GetGeometry();
 		PropertiesType & props = GetProperties();	// removed const to alter material law within element
 
-		std::cout << "Printing Props!\n" << props << std::endl;
-
 		if (geom.PointsNumber() != OPT_NUM_NODES)
 			KRATOS_THROW_ERROR(std::logic_error, "ShellThinElement3D4N Element - Wrong number of nodes", geom.PointsNumber());
 
@@ -248,34 +246,31 @@ namespace Kratos
 				// make new instance of shell cross section
 				theSection = ShellCrossSection::Pointer(new ShellCrossSection());
 
-
 				// ascertain how many plies there are and begin stacking them
-				std::cout << (props)[SHELL_ORTHOTROPIC_LAYERS].size1() << std::endl;
 				int plies = (props)[SHELL_ORTHOTROPIC_LAYERS].size1();
 				theSection->BeginStack();
 
-
 				// setup orthtropic composite variables
-				double plyThickness, angle, E_fiber, Poisson_fiber, VolumeFraction_fiber, E_matrix, Poisson_matrix, VolumeFraction_matrix;
+				double plyThickness, plyDensity, angleRz, E_fiber, Poisson_fiber, VolumeFraction_fiber, E_matrix, Poisson_matrix, VolumeFraction_matrix;
 
+				// Assign orthotropic material law for entire element
+				LinearElasticOrthotropic2DLaw OrthoLaw;
+				props.SetValue(CONSTITUTIVE_LAW, OrthoLaw.Clone());
 
 				// add ply for each orthotropic layer defined
 				for (int currentPly = 0; currentPly < plies; currentPly++)
 				{
-					// create and submit an instance for each ply
-					PropertiesType plyProps;
-					plyProps.SetValue(THICKNESS, (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 0)); 
-					plyProps.SetValue(DENSITY, (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 1));
-
+					// parse properties for each ply
 					plyThickness = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 0);
-					angle = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 2);	// angle (degrees) between element XX and material xx, about element ZZ
+					plyDensity = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 1);
+					angleRz = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 2);	// angle (degrees) between element XX and material xx, about RZ
 					E_fiber = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 3);
 					Poisson_fiber = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 4);
 					VolumeFraction_fiber = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 5);
 					E_matrix = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 6);
 					Poisson_matrix = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 7);
+					
 					VolumeFraction_matrix = 1.0 - VolumeFraction_fiber;
-
 					if (VolumeFraction_matrix < 0)
 					{
 						KRATOS_THROW_ERROR(std::invalid_argument, "Check fiber volume fraction! (check if the application is correctly registered", "");
@@ -303,9 +298,6 @@ namespace Kratos
 
 					
 					
-					Properties::Pointer theProps = Properties::Pointer(&plyProps);
-					//theSection->AddPly(plyProps[THICKNESS], 0.0, 5, theProps);
-					theSection->AddPly(plyThickness, 0.0, 5, this->pGetProperties());
 				}
 				
 				theSection->EndStack();
@@ -1681,7 +1673,6 @@ namespace Kratos
 
 		ShellCrossSection::Pointer& section = mSections[data.gpIndex];
 		data.SectionParameters.SetShapeFunctionsValues(iN);
-		section->CalculateSectionResponse(data.SectionParameters, ConstitutiveLaw::StressMeasure_PK2);
 	}
 
 	void ShellThinElement3D4N::CalculateGaussPointContribution(CalculationData& data, MatrixType& LHS, VectorType& RHS)

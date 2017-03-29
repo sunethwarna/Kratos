@@ -64,6 +64,7 @@
 #include "custom_constitutive/linear_elastic_plane_strain_2D_law.hpp"
 #include "custom_constitutive/linear_elastic_plane_stress_2D_law.hpp"
 #include "custom_constitutive/linear_elastic_axisym_2D_law.hpp"
+#include "custom_constitutive/linear_elastic_orthotropic_2D_law.hpp"
 #include "custom_constitutive/linear_elastic_orthotropic_3D_law.hpp"
 
 #include "custom_constitutive/python_outfitted_constitutive_law.hpp"
@@ -147,6 +148,11 @@ void  AddCustomConstitutiveLawsToPython()
     ( "LinearElasticAxisym2DLaw",
       init<>() )
     ;
+
+	class_< LinearElasticOrthotropic2DLaw, bases< ConstitutiveLawBaseType >, boost::noncopyable >
+	("LinearElasticOrthotropic2DLaw",
+		init<>())
+	;
 
     class_< LinearElasticOrthotropic3DLaw, bases< ConstitutiveLawBaseType >, boost::noncopyable >
     ( "LinearElasticOrthotropic3DLaw",
