@@ -61,7 +61,8 @@
 #include "linear_solvers/linear_solver.h"
 #include "custom_utilities/ball_vertex_meshmoving.h"
 #include "custom_utilities/ball_vertex_meshmoving3D.h"
-#include "custom_utilities/move_mesh_utilities.h"
+
+#include "custom_utilities/ale_flags.h"
 
 
 namespace Kratos
@@ -91,11 +92,6 @@ void  AddCustomUtilitiesToPython()
     .def("ConstructSystem",&BallVertexMeshMoving3D< 3, SparseSpaceType, LinearSolverType >::ConstructSystem)
     .def("BuildAndSolveSystem",&BallVertexMeshMoving3D< 3, SparseSpaceType, LinearSolverType >::BuildAndSolveSystem)
     .def("ClearSystem",&BallVertexMeshMoving3D< 3, SparseSpaceType, LinearSolverType >::ClearSystem)
-    ;
-
-
-    class_< MoveMeshUtilities,  boost::noncopyable >	("MoveMeshUtilities", init<	>() )
-    .def("BDF_MoveMesh",&MoveMeshUtilities::BDF_MoveMesh)
     ;
 
 }

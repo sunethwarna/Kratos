@@ -72,10 +72,6 @@ namespace Kratos
 //
 
 KratosALEApplication::KratosALEApplication():
-    mLaplacianMeshMovingElement2D3N( 0, Element::GeometryType::Pointer( new Triangle2D3 <Node<3> >( Element::GeometryType::PointsArrayType( 3 ) ) ) ),
-    mLaplacianMeshMovingElement2D4N( 0, Element::GeometryType::Pointer( new Quadrilateral2D4 <Node<3> >( Element::GeometryType::PointsArrayType( 4 ) ) ) ),
-    mLaplacianMeshMovingElement3D4N( 0, Element::GeometryType::Pointer( new Tetrahedra3D4 <Node<3> >( Element::GeometryType::PointsArrayType( 4 ) ) ) ),
-    mLaplacianMeshMovingElement3D8N( 0, Element::GeometryType::Pointer( new Hexahedra3D8 <Node<3> >( Element::GeometryType::PointsArrayType( 8 ) ) ) ),
     mStructuralMeshMovingElement2D3N( 0, Element::GeometryType::Pointer( new Triangle2D3 <Node<3> >( Element::GeometryType::PointsArrayType( 3 ) ) ) ),
     mStructuralMeshMovingElement2D4N( 0, Element::GeometryType::Pointer( new Quadrilateral2D4 <Node<3> >( Element::GeometryType::PointsArrayType( 4 ) ) ) ),
     mStructuralMeshMovingElement3D4N( 0, Element::GeometryType::Pointer( new Tetrahedra3D4 <Node<3> >( Element::GeometryType::PointsArrayType( 4 ) ) ) ),
@@ -95,11 +91,11 @@ void KratosALEApplication::Register()
     std::cout << "       /_/ |_/____/___/  application  " << std::endl;
     std::cout << "Initializing KratosALEApplication...  " << std::endl;
 
+
+    // register local flags
+    
+
     // register elements
-    KRATOS_REGISTER_ELEMENT("LaplacianMeshMovingElement2D3N", mLaplacianMeshMovingElement2D3N);
-    KRATOS_REGISTER_ELEMENT("LaplacianMeshMovingElemtent3D4N", mLaplacianMeshMovingElement3D4N);
-    KRATOS_REGISTER_ELEMENT("LaplacianMeshMovingElement2D4N", mLaplacianMeshMovingElement2D4N);
-    KRATOS_REGISTER_ELEMENT("LaplacianMeshMovingElemtent3D8N", mLaplacianMeshMovingElement3D8N);
     KRATOS_REGISTER_ELEMENT("StructuralMeshMovingElement2D3N", mStructuralMeshMovingElement2D3N);
     KRATOS_REGISTER_ELEMENT("StructuralMeshMovingElement2D4N", mStructuralMeshMovingElement2D4N);
     KRATOS_REGISTER_ELEMENT("StructuralMeshMovingElement3D4N", mStructuralMeshMovingElement3D4N);
@@ -110,7 +106,7 @@ void KratosALEApplication::Register()
 
     // register variables
     //MESH_VELOCITY currently put to the core since used in other applications
-    //KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(MESH_VELOCITY;
+    //KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(MESH_VELOCITY);
     KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(MESH_DISPLACEMENT);
     KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(MESH_REACTION);
     KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(MESH_RHS);

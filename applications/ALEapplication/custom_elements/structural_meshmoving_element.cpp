@@ -175,7 +175,7 @@ StructuralMeshMovingElement::MatrixType StructuralMeshMovingElement::SetAndModif
 
     // Stiffening of elements using Jacobian determinants and exponent between
     // 0.0 and 2.0
-    const double J0 = 100; // Factor influences how far the displacement spreads
+    const double J0 = 10; // Factor influences how far the displacement spreads
                            // into the fluid mesh
     const double Xi = 1.5; // 1.5 Exponent influences stiffening of smaller
                            // elements; 0 = no stiffening
@@ -335,6 +335,8 @@ void StructuralMeshMovingElement::CalculateLocalSystem(MatrixType& rLeftHandSide
         MatrixType B = CalculateBMatrix(dimension, PointNumber);
 
         MatrixType ConstitutiveMatrix = SetAndModifyConstitutiveLaw(dimension, PointNumber);
+
+        //identity_matrix<double> ConstitutiveMatrix (3);
         // Compute LHS
         noalias(rLeftHandSideMatrix) +=
             prod(trans(B), IntegrationWeight * Matrix(prod(ConstitutiveMatrix, B)));

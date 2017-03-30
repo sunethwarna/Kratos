@@ -329,6 +329,7 @@ private:
   /**@name Private Operations*/
   /*@{ */
 
+  //Create a copy of the current model part replacing elements by ALE elements
   void GenerateMeshPart()
   {
     mpMeshModelPart = ModelPart::Pointer( new ModelPart("MeshPart",1) );
