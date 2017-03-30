@@ -60,8 +60,10 @@ namespace Kratos {
         mListOfCoordinates[0][0] = 0.0000 * cl; mListOfCoordinates[0][1] = 0.0; mListOfCoordinates[0][2] = 0.0;
         mListOfCoordinates[1][0] = 0.2325 * cl; mListOfCoordinates[1][1] = 0.0; mListOfCoordinates[1][2] = 0.0;
         mListOfCoordinates[2][0] = 0.4650 * cl; mListOfCoordinates[2][1] = 0.0; mListOfCoordinates[2][2] = 0.0;
-        mListOfCoordinates[3][0] = 0.6975 * cl; mListOfCoordinates[3][1] = 0.0; mListOfCoordinates[3][2] = 0.0; 
-        mListOfCoordinates[4][0] = 0.9300 * cl; mListOfCoordinates[4][1] = 0.0; mListOfCoordinates[4][2] = 0.0;  
+        //mListOfCoordinates[3][0] = 0.6975 * cl; mListOfCoordinates[3][1] = 0.0; mListOfCoordinates[3][2] = 0.0; 
+        //mListOfCoordinates[4][0] = 0.9300 * cl; mListOfCoordinates[4][1] = 0.0; mListOfCoordinates[4][2] = 0.0;  
+        mListOfCoordinates[3][0] = -0.2325 * cl; mListOfCoordinates[1][1] = 0.0; mListOfCoordinates[1][2] = 0.0;
+        mListOfCoordinates[4][0] = -0.4650 * cl; mListOfCoordinates[2][1] = 0.0; mListOfCoordinates[2][2] = 0.0;
         
         double particle_density = this->SlowGetDensity();
         double cluster_volume = 4.0 * KRATOS_M_PI_3 * 0.35 * 0.35 * 0.35 * cl * cl * cl + KRATOS_M_PI * 0.35 * 0.35 * 0.93 * cl * cl * cl;
@@ -79,6 +81,9 @@ namespace Kratos {
         GetGeometry()[0].FastGetSolutionStepValue(PARTICLE_MATERIAL) = this->SlowGetParticleMaterial();
 
         Quaternion<double>& Orientation = GetGeometry()[0].FastGetSolutionStepValue(ORIENTATION);
+        
+        if (Orientation.w() == 0.0 && Orientation.x() == 0.0 && Orientation.y() == 0.0 && Orientation.z() == 0.0) Orientation = Quaternion<double>(1.0, 0.0, 0.0, 0.0);
+        
         Orientation.normalize();
 
         array_1d<double, 3> angular_velocity = GetGeometry()[0].FastGetSolutionStepValue(ANGULAR_VELOCITY);

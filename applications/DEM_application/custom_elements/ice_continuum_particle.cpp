@@ -31,7 +31,7 @@ namespace Kratos {
         
         // Adding buoyancy and drag. Now a linear (with the velocity) drag law is implemented
         if (this->GetGeometry()[0].Coordinates()[2] < water_level) { // Water level is measured in Z axis
-            density_of_fluid = 1000.0; // If we are here, we are submerged into water
+            density_of_fluid = 1000.0; //1000.0; // If we are here, we are submerged into water
             if (this->IsSkin()) {
                 DEM_MULTIPLY_BY_SCALAR_3(velocity, 0.5 * Cd * velocity_module * density_of_fluid * 4.0 * radius * radius); // The correct area is still to be known
                 total_weight -= velocity; // Drag force             

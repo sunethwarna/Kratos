@@ -142,6 +142,7 @@ namespace Kratos {
         array_1d<double, 3> base_principal_moments_of_inertia = GetGeometry()[0].FastGetSolutionStepValue(PRINCIPAL_MOMENTS_OF_INERTIA);  
         
         Quaternion<double>& Orientation = GetGeometry()[0].FastGetSolutionStepValue(ORIENTATION);
+                        
         Orientation.normalize();
 
         array_1d<double, 3> angular_velocity = GetGeometry()[0].FastGetSolutionStepValue(ANGULAR_VELOCITY);
@@ -168,7 +169,7 @@ namespace Kratos {
         KRATOS_TRY 
         
         int cluster_id = (int)this->Id();
-        
+               
         unsigned int max_Id = 0;        
         unsigned int* p_max_Id = p_creator_destructor->pGetCurrentMaxNodeId();  //must have been found
           

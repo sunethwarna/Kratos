@@ -460,4 +460,3 @@ class ExplicitStrategy:
             
         scheme, error_status, summary_mssg = self.GetScheme(scheme_name)
         scheme.SetIntegrationSchemeInProperties(properties)
-        

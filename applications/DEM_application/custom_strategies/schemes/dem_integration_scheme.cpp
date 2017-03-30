@@ -4,6 +4,7 @@
 
 #include "custom_utilities/GeometryFunctions.h"
 #include "custom_elements/cluster3D.h"
+#include "custom_elements/rigid_body_element.h"
 #include "dem_integration_scheme.h"
 #include "DEM_application_variables.h"
 
@@ -115,8 +116,11 @@ namespace Kratos {
         else {
             cluster_element->UpdateLinearDisplacementAndVelocityOfSpheres();
         }
-    }    
-        
+    }
+    
+    void DEMIntegrationScheme::MoveRigidBodyElement(RigidBodyElement* rigid_body_element, Node<3> & i, const double delta_t,
+                                                    const bool rotation_option, const double force_reduction_factor, const int StepFlag) {}
+
     void DEMIntegrationScheme::UpdateTranslationalVariables(
                             int StepFlag,
                             Node < 3 > & i,

@@ -1,9 +1,4 @@
-//   
-//   Project Name:        Kratos       
-//   Last Modified by:    $Author: Salva $
-//   Date:                $Date: 2017-01-09 16:07:33 $
-//   Revision:            $Revision: 1.1.1.1 $
-//
+//   Created by:   Salva Latorre, latorre@cimne.upc.edu
 
 #if !defined(KRATOS_RIGID_BODY_ELEMENT_H_INCLUDED)
 #define KRATOS_RIGID_BODY_ELEMENT_H_INCLUDED
@@ -58,10 +53,11 @@ namespace Kratos {
         virtual void SetOrientation(const Quaternion<double> Orientation);
         virtual void UpdatePositionOfNodes();
         virtual void UpdateLinearDisplacementAndVelocityOfNodes();
-        virtual void GetRigidBodyElementForce(const array_1d<double,3>& gravity);
+        virtual void GetRigidBodyElementsForce(const array_1d<double,3>& gravity);
         virtual void CollectForcesAndTorquesFromNodes();
         virtual void ComputeAdditionalForces(const array_1d<double,3>& gravity);
         virtual void Calculate(const Variable<double>& rVariable, double& Output, const ProcessInfo& r_process_info);
+        virtual void SetInitialConditionsToNodes(const array_1d<double,3>& velocity);
         
         virtual void Move(const double delta_t, const bool rotation_option, const double force_reduction_factor, const int StepFlag);
         virtual DEMIntegrationScheme& GetIntegrationScheme() { return *mpIntegrationScheme; }
@@ -91,7 +87,8 @@ namespace Kratos {
  
     protected:
 
-        DEMIntegrationScheme* mpIntegrationScheme;        
+        DEMIntegrationScheme* mpIntegrationScheme;
+        std::vector<array_1d<double, 3> > mListOfCoordinates;
       
     private:
        

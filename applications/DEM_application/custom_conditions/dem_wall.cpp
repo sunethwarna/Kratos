@@ -77,7 +77,7 @@ void DEMWall::CalculateElasticForces(
 
 void DEMWall::GetDeltaDisplacement( array_1d<double, 3> & delta_displacement, int inode)
 {
-  delta_displacement = this->GetGeometry()[inode].FastGetSolutionStepValue(DELTA_DISPLACEMENT);
+    delta_displacement = this->GetGeometry()[inode].FastGetSolutionStepValue(DELTA_DISPLACEMENT);
 }
 
 void DEMWall::InitializeSolutionStep(ProcessInfo& r_process_info){
@@ -86,7 +86,7 @@ void DEMWall::InitializeSolutionStep(ProcessInfo& r_process_info){
 
 void DEMWall::CalculateNormal(array_1d<double, 3>& rnormal){
     
-   KRATOS_THROW_ERROR(std::runtime_error, "This function (DEMWall::CalculateNormal) shouldn't be accessed, use derived class instead", "");
+    KRATOS_THROW_ERROR(std::runtime_error, "This function (DEMWall::CalculateNormal) shouldn't be accessed, use derived class instead", "");
 }
   
  void DEMWall::AddExplicitContribution(const VectorType& rRHS,
