@@ -930,7 +930,7 @@ void ShellCrossSection::ParseOrthotropicPropertyMatrix(Properties& props, Elemen
 			break;
 
 		default:
-			std::cout << "FALLING INTO DEFAULT LOOP" << std::endl;
+			KRATOS_THROW_ERROR(std::logic_error, "The Orthotropic Layers have been defined  incorrectly!", "")
 		}
 
 		this->AddPly(plyThickness, angleRz, 5, myElement->pGetProperties());

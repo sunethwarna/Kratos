@@ -363,6 +363,10 @@ namespace Kratos
 
 			section->Check(props, geom, rCurrentProcessInfo);
 		}
+		else if (props.Has(SHELL_ORTHOTROPIC_LAYERS))
+		{
+			// perform orthotropic check later in shell_cross_section
+		}
 		else // ... allow the automatic creation of a homogeneous section from a material and a thickness
 		{
 			if (!props.Has(CONSTITUTIVE_LAW))
