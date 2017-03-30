@@ -159,7 +159,13 @@ namespace Kratos
 		///@name Protected Operations
 		///@{
 		///@}
-
+		/**
+		* Calculates the GreenLagrange strains
+		* @param rRightCauchyGreen
+		* @param rStrainVector
+		*/
+		void CalculateGreenLagrangeStrain(const Matrix & rRightCauchyGreen,
+			Vector& rStrainVector);
 
 		/**
 		* Calculates the stresses for given strain state

@@ -795,6 +795,152 @@ int ShellCrossSection::Check(const Properties& rMaterialProperties,
     KRATOS_CATCH("")
 }
 
+
+bool ShellCrossSection::CheckIsOrthotropic(Properties& rProps)
+{
+	if (rProps.Has(SHELL_ORTHOTROPIC_LAYERS))
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+void ShellCrossSection::ParseOrthotropicPropertyMatrix(Properties& props, Element* myElement)
+{
+	bool printLayers = false; // for debugging
+
+	// ascertain how many plies there are and begin stacking them
+	int plies = (props)[SHELL_ORTHOTROPIC_LAYERS].size1();
+	this->BeginStack();
+
+	// figure out the format of material properties based on it's width
+	int myFormat = (props)[SHELL_ORTHOTROPIC_LAYERS].size2();
+
+	double plyThickness, angleRz, elementThickness;
+	elementThickness = 0.0;
+
+	// add ply for each orthotropic layer defined
+	for (int currentPly = 0; currentPly < plies; currentPly++)
+	{
+		switch (myFormat)
+		{
+		case 9:
+			// Composite mechanical properties material definition
+			//
+			// Arranged as: thickness, RZangle, density, E1, E2, Poisson_12, G12, G13, G23
+
+			// Assign the property of the current ply 
+			plyThickness = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 0);
+			angleRz = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 1);
+			props.SetValue(DENSITY,
+				(props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 2));	//DENSITY
+			props.SetValue(YOUNG_MODULUS_X,
+				(props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 3));	//E1
+			props.SetValue(YOUNG_MODULUS_Y,
+				(props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 4));	//E2
+			props.SetValue(POISSON_RATIO_XY,
+				(props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 5));	//Nu_12
+			props.SetValue(SHEAR_MODULUS_XY,
+				(props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 6));	//G12
+			props.SetValue(SHEAR_MODULUS_XZ,
+				(props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 7));	//G13
+			props.SetValue(SHEAR_MODULUS_YZ,
+				(props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 8));	//G23
+
+			if (printLayers)
+			{
+				std::cout << "\n===============================================================" << std::endl;
+				std::cout << "Composite mechanical properties material definition: LAYER " << currentPly << std::endl;
+				std::cout << "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _" << std::endl;
+				std::cout << "Thickness = " << plyThickness << std::endl;
+				std::cout << "E1 = " << props.GetValue(YOUNG_MODULUS_X) << std::endl;
+				std::cout << "E2 = " << props.GetValue(YOUNG_MODULUS_Y) << std::endl;
+				std::cout << "G12 = " << props.GetValue(SHEAR_MODULUS_XY) << std::endl;
+			}
+
+			
+
+			break;
+
+		case 10:
+			// Matrix and fiber material definition
+			//
+			// Arranged as: layer_thickness, RZangle, density_fiber, E_fiber, Poisson_fiber, vol_fiber, 
+			//				density_matrix, E_matrix, Poisson_matrix, vol_matrix
+			
+			// setup orthtropic composite variables
+			double density_fiber, E_fiber, Poisson_fiber, VolumeFraction_fiber,
+				density_matrix, E_matrix, Poisson_matrix, VolumeFraction_matrix;
+
+			// parse properties for each ply
+			plyThickness = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 0);
+			angleRz = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 1);	// angle (degrees) between element XX and material xx, about RZ
+			density_fiber = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 2);
+			E_fiber = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 3);
+			Poisson_fiber = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 4);
+			VolumeFraction_fiber = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 5);
+			density_matrix = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 6);
+			E_matrix = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 7);
+			Poisson_matrix = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 8);
+			VolumeFraction_matrix = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 9);
+
+			if (VolumeFraction_matrix + VolumeFraction_fiber != 1.0)
+			{
+				KRATOS_THROW_ERROR(std::invalid_argument, "Check volume fractions!", "");
+			}
+
+			// calculate shear moduli
+			double G_fiber, G_matrix;
+			G_fiber = E_fiber / (2.0*(1.0 + Poisson_fiber));
+			G_matrix = E_matrix / (2.0*(1.0 + Poisson_matrix));
+
+			// Add in derived material values to the property of the current ply 
+			props.SetValue(YOUNG_MODULUS_X,
+				(E_fiber*VolumeFraction_fiber + E_matrix*VolumeFraction_matrix));						//E1
+			props.SetValue(YOUNG_MODULUS_Y,
+				(E_fiber*E_matrix / (E_fiber*VolumeFraction_matrix + E_matrix*VolumeFraction_fiber)));	//E2
+			props.SetValue(POISSON_RATIO_XY,
+				(Poisson_fiber*VolumeFraction_fiber + Poisson_matrix*VolumeFraction_matrix));			//Nu_12
+			props.SetValue(SHEAR_MODULUS_XY,
+				(G_fiber*G_matrix / (G_fiber*VolumeFraction_matrix + G_matrix*VolumeFraction_fiber)));	//G12
+			props.SetValue(DENSITY,
+				(density_fiber*VolumeFraction_fiber + density_matrix*VolumeFraction_matrix));			//DENSITY
+
+			// TEMPORARY!!!!
+			props.SetValue(SHEAR_MODULUS_XZ, props.GetValue(SHEAR_MODULUS_XY));							//G13
+			props.SetValue(SHEAR_MODULUS_YZ, 0.2*props[YOUNG_MODULUS_Y]);								//G23
+
+			
+			if (printLayers)
+			{
+				std::cout << "\n===============================================================" << std::endl;
+				std::cout << "Matrix and fiber material definition: LAYER " << currentPly << std::endl;
+				std::cout << "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _" << std::endl;
+				std::cout << "Thickness = " << plyThickness << std::endl;
+				std::cout << "E_fiber = " << E_fiber << std::endl;
+				std::cout << "E_matrix = " << E_matrix << std::endl;
+				std::cout << "E1 = " << props.GetValue(YOUNG_MODULUS_X) << std::endl;
+				std::cout << "E2 = " << props.GetValue(YOUNG_MODULUS_Y) << std::endl;
+				std::cout << "G12 = " << props.GetValue(SHEAR_MODULUS_XY) << std::endl;
+			}
+
+			break;
+
+		default:
+			std::cout << "FALLING INTO DEFAULT LOOP" << std::endl;
+		}
+
+		this->AddPly(plyThickness, angleRz, 5, myElement->pGetProperties());
+		elementThickness += plyThickness;
+	}
+	
+	this->EndStack();
+	props.SetValue(THICKNESS, elementThickness);
+}
+
 void ShellCrossSection::InitializeParameters(Parameters& rValues, ConstitutiveLaw::Parameters& rMaterialValues, GeneralVariables& rVariables)
 {
     // share common data between section and materials
@@ -853,18 +999,7 @@ void ShellCrossSection::UpdateIntegrationPointParameters(IntegrationPoint& rPoin
         // use 2D matrices and vectors
         rMaterialValues.SetStrainVector(rVariables.StrainVector_2D);
         rMaterialValues.SetStressVector(rVariables.StressVector_2D);
-
-		// Check if we are dealing with an orthotropic composite
-		const Properties& props = rMaterialValues.GetMaterialProperties();
-		if (props.Has(SHELL_ORTHOTROPIC_LAYERS))
-		{
-			rVariables.ConstitutiveMatrix_3D.resize(6, 6);
-			rMaterialValues.SetConstitutiveMatrix(rVariables.ConstitutiveMatrix_3D);
-		}
-		else
-		{
-			rMaterialValues.SetConstitutiveMatrix(rVariables.ConstitutiveMatrix_2D);
-		}
+		rMaterialValues.SetConstitutiveMatrix(rVariables.ConstitutiveMatrix_2D);
         rMaterialValues.SetDeterminantF(rVariables.DeterminantF);
         rMaterialValues.SetDeformationGradientF(rVariables.DeformationGradientF_2D);
 
@@ -1048,78 +1183,55 @@ void ShellCrossSection::CalculateIntegrationPointResponse(IntegrationPoint& rPoi
 
         if(material_strain_size == 3) // plane-stress case
         {
-			// Check if we are dealing with an orthotropic composite
-			const Properties& props = rMaterialValues.GetMaterialProperties();
-			if (props.Has(SHELL_ORTHOTROPIC_LAYERS))
+			// membrane part
+			D(0, 0) += h*C(0, 0);
+			D(0, 1) += h*C(0, 1);
+			D(0, 2) += h*C(0, 2);
+			D(1, 0) += h*C(1, 0);
+			D(1, 1) += h*C(1, 1);
+			D(1, 2) += h*C(1, 2);
+			D(2, 0) += h*C(2, 0);
+			D(2, 1) += h*C(2, 1);
+			D(2, 2) += h*C(2, 2);
+
+			// bending part
+			D(3, 3) += h*z*z*C(0, 0);
+			D(3, 4) += h*z*z*C(0, 1);
+			D(3, 5) += h*z*z*C(0, 2);
+			D(4, 3) += h*z*z*C(1, 0);
+			D(4, 4) += h*z*z*C(1, 1);
+			D(4, 5) += h*z*z*C(1, 2);
+			D(5, 3) += h*z*z*C(2, 0);
+			D(5, 4) += h*z*z*C(2, 1);
+			D(5, 5) += h*z*z*C(2, 2);
+
+			// membrane-bending part
+			D(0, 3) += h*z*C(0, 0);
+			D(0, 4) += h*z*C(0, 1);
+			D(0, 5) += h*z*C(0, 2);
+			D(1, 3) += h*z*C(1, 0);
+			D(1, 4) += h*z*C(1, 1);
+			D(1, 5) += h*z*C(1, 2);
+			D(2, 3) += h*z*C(2, 0);
+			D(2, 4) += h*z*C(2, 1);
+			D(2, 5) += h*z*C(2, 2);
+
+			// bending-membrane part
+			D(3, 0) += h*z*C(0, 0);
+			D(3, 1) += h*z*C(0, 1);
+			D(3, 2) += h*z*C(0, 2);
+			D(4, 0) += h*z*C(1, 0);
+			D(4, 1) += h*z*C(1, 1);
+			D(4, 2) += h*z*C(1, 2);
+			D(5, 0) += h*z*C(2, 0);
+			D(5, 1) += h*z*C(2, 1);
+			D(5, 2) += h*z*C(2, 2);
+
+			if (mBehavior == Thick)
 			{
-				// membrane part
-				D(0, 0) += h*C(0, 0);
-				D(0, 1) += h*C(0, 1);
-				D(0, 2) += h*C(0, 2);
-				D(1, 0) += h*C(0, 1);
-				D(1, 1) += h*C(1, 1);
-				D(1, 2) += h*C(1, 2);
-				D(2, 0) += h*C(0, 2);
-				D(2, 1) += h*C(1, 2);
-				D(2, 2) += h*C(2, 2);
-
-				// bending part - artificial!!!!
-				D(3, 3) += 10.0;
-				D(4, 4) += 10.0;
-				D(5, 5) += 10.0;
-			}
-			else //normal isotropic material shell
-			{
-				// membrane part
-				D(0, 0) += h*C(0, 0);
-				D(0, 1) += h*C(0, 1);
-				D(0, 2) += h*C(0, 2);
-				D(1, 0) += h*C(1, 0);
-				D(1, 1) += h*C(1, 1);
-				D(1, 2) += h*C(1, 2);
-				D(2, 0) += h*C(2, 0);
-				D(2, 1) += h*C(2, 1);
-				D(2, 2) += h*C(2, 2);
-
-				// bending part
-				D(3, 3) += h*z*z*C(0, 0);
-				D(3, 4) += h*z*z*C(0, 1);
-				D(3, 5) += h*z*z*C(0, 2);
-				D(4, 3) += h*z*z*C(1, 0);
-				D(4, 4) += h*z*z*C(1, 1);
-				D(4, 5) += h*z*z*C(1, 2);
-				D(5, 3) += h*z*z*C(2, 0);
-				D(5, 4) += h*z*z*C(2, 1);
-				D(5, 5) += h*z*z*C(2, 2);
-
-				// membrane-bending part
-				D(0, 3) += h*z*C(0, 0);
-				D(0, 4) += h*z*C(0, 1);
-				D(0, 5) += h*z*C(0, 2);
-				D(1, 3) += h*z*C(1, 0);
-				D(1, 4) += h*z*C(1, 1);
-				D(1, 5) += h*z*C(1, 2);
-				D(2, 3) += h*z*C(2, 0);
-				D(2, 4) += h*z*C(2, 1);
-				D(2, 5) += h*z*C(2, 2);
-
-				// bending-membrane part
-				D(3, 0) += h*z*C(0, 0);
-				D(3, 1) += h*z*C(0, 1);
-				D(3, 2) += h*z*C(0, 2);
-				D(4, 0) += h*z*C(1, 0);
-				D(4, 1) += h*z*C(1, 1);
-				D(4, 2) += h*z*C(1, 2);
-				D(5, 0) += h*z*C(2, 0);
-				D(5, 1) += h*z*C(2, 1);
-				D(5, 2) += h*z*C(2, 2);
-
-				if (mBehavior == Thick)
-				{
-					// here the transverse shear is treated elastically
-					D(6, 6) += h * cs * ce * rVariables.GYZ;
-					D(7, 7) += h * cs * ce * rVariables.GXZ;
-				}
+				// here the transverse shear is treated elastically
+				D(6, 6) += h * cs * ce * rVariables.GYZ;
+				D(7, 7) += h * cs * ce * rVariables.GXZ;
 			}
         }
         else // full 3D case

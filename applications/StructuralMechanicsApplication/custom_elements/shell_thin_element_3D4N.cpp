@@ -237,73 +237,23 @@ namespace Kratos
 			const Matrix & shapeFunctionsValues = geom.ShapeFunctionsValues(GetIntegrationMethod());
 
 			ShellCrossSection::Pointer theSection;
+
 			if (props.Has(SHELL_CROSS_SECTION))
 			{
 				theSection = props[SHELL_CROSS_SECTION];
 			}
-			else if (props.Has(SHELL_ORTHOTROPIC_LAYERS))
+			else if (theSection->CheckIsOrthotropic(props))
 			{
 				// make new instance of shell cross section
 				theSection = ShellCrossSection::Pointer(new ShellCrossSection());
-
-				// ascertain how many plies there are and begin stacking them
-				int plies = (props)[SHELL_ORTHOTROPIC_LAYERS].size1();
-				theSection->BeginStack();
-
-				// setup orthtropic composite variables
-				double plyThickness, plyDensity, angleRz, E_fiber, Poisson_fiber, VolumeFraction_fiber, E_matrix, Poisson_matrix, VolumeFraction_matrix;
 
 				// Assign orthotropic material law for entire element
 				LinearElasticOrthotropic2DLaw OrthoLaw;
 				props.SetValue(CONSTITUTIVE_LAW, OrthoLaw.Clone());
 
-				// add ply for each orthotropic layer defined
-				for (int currentPly = 0; currentPly < plies; currentPly++)
-				{
-					// parse properties for each ply
-					plyThickness = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 0);
-					plyDensity = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 1);
-					angleRz = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 2);	// angle (degrees) between element XX and material xx, about RZ
-					E_fiber = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 3);
-					Poisson_fiber = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 4);
-					VolumeFraction_fiber = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 5);
-					E_matrix = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 6);
-					Poisson_matrix = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 7);
-					
-					VolumeFraction_matrix = 1.0 - VolumeFraction_fiber;
-					if (VolumeFraction_matrix < 0.0)
-					{
-						KRATOS_THROW_ERROR(std::invalid_argument, "Check fiber volume fraction!", "");
-					}
-
-					// calculate shear moduli
-					double G_fiber, G_matrix;
-					G_fiber = E_fiber / (2.0*(1.0 + Poisson_fiber));
-					G_matrix = E_matrix / (2.0*(1.0 + Poisson_matrix));
-
-					// Add in derived material values to the property of the current ply 
-					props.SetValue(YOUNG_MODULUS_X, (E_fiber*VolumeFraction_fiber + E_matrix*VolumeFraction_matrix));	//E1
-					props.SetValue(YOUNG_MODULUS_Y, (E_fiber*E_matrix/(E_fiber*VolumeFraction_matrix + E_matrix*VolumeFraction_fiber)));	//E2
-					props.SetValue(POISSON_RATIO_XY, (Poisson_fiber*VolumeFraction_fiber + Poisson_matrix*VolumeFraction_matrix));	//Nu_12
-					props.SetValue(SHEAR_MODULUS_XY, (G_fiber*G_matrix / (G_fiber*VolumeFraction_matrix + G_matrix*VolumeFraction_fiber)));	//G12
-					
-					bool printLayers = true;
-					if (printLayers)
-					{
-						std::cout << "\n===============================================================" << std::endl;
-						std::cout << "                      LAYER " << currentPly << "                                " << std::endl;
-						std::cout << "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _" << std::endl;
-						std::cout << "Thickness = " << plyThickness << std::endl;
-						std::cout << "E_fiber = " << E_fiber << std::endl;
-						std::cout << "E_matrix = " << E_matrix << std::endl;
-						std::cout << "E1 = " << props.GetValue(YOUNG_MODULUS_X) << std::endl;
-						std::cout << "E2 = " << props.GetValue(YOUNG_MODULUS_Y) << std::endl;
-					}
-					
-					theSection->AddPly(plyThickness, angleRz, 5, this->pGetProperties());
-				}
-				
-				theSection->EndStack();
+				// Parse material properties for each layer
+				Element* thisElement = this;
+				theSection->ParseOrthotropicPropertyMatrix(props, thisElement);
 			}
 			else
 			{
@@ -1678,9 +1628,7 @@ namespace Kratos
 		ShellCrossSection::Pointer& section = mSections[data.gpIndex];
 		data.SectionParameters.SetShapeFunctionsValues(iN);
 		data.D.clear();
-		//printMatrix(data.D, "Printing D before calculate section response");
 		section->CalculateSectionResponse(data.SectionParameters, ConstitutiveLaw::StressMeasure_PK2);	//constitutive tensor calculated here
-		//printMatrix(data.D, "Printing D after calculate section response");
 	}
 
 	void ShellThinElement3D4N::CalculateGaussPointContribution(CalculationData& data, MatrixType& LHS, VectorType& RHS)

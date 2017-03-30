@@ -1222,6 +1222,16 @@ public:
         return mDrillingPenalty;
     }
 
+	/**
+	* Checks if the shell is an orthotropic material
+	* @return the true/false
+	*/
+	bool CheckIsOrthotropic(Properties& rProps);
+
+	/**
+	* Parses the shell orthotropic material data from properties
+	*/
+	void ParseOrthotropicPropertyMatrix(Properties& rProps, Element* myElement);
     ///@}
 
 private:
