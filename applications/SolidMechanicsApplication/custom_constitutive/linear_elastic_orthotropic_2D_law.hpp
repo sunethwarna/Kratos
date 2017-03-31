@@ -17,7 +17,8 @@
 // External includes
 
 // Project includes
-#include "custom_constitutive/hyperelastic_3D_law.hpp"
+//#include "custom_constitutive/hyperelastic_3D_law.hpp"
+#include "includes/constitutive_law.h"
 
 namespace Kratos
 {
@@ -30,7 +31,8 @@ namespace Kratos
 	* for small and large displacements elasticity.
 	*/
 
-	class KRATOS_API(SOLID_MECHANICS_APPLICATION) LinearElasticOrthotropic2DLaw : public HyperElastic3DLaw
+	//class KRATOS_API(SOLID_MECHANICS_APPLICATION) LinearElasticOrthotropic2DLaw : public HyperElastic3DLaw
+	class KRATOS_API(SOLID_MECHANICS_APPLICATION) LinearElasticOrthotropic2DLaw : public ConstitutiveLaw
 	{
 	public:
 		/**
@@ -65,13 +67,11 @@ namespace Kratos
 		*/
 		LinearElasticOrthotropic2DLaw(const LinearElasticOrthotropic2DLaw& rOther);
 
-
 		/**
 		* Assignment operator.
 		*/
 
 		//LinearElasticOrthotropic2DLaw& operator=(const LinearElasticOrthotropic2DLaw& rOther);
-
 
 		/**
 		* Destructor.
@@ -100,7 +100,6 @@ namespace Kratos
 		* @param rFeatures
 		*/
 		void GetLawFeatures(Features& rFeatures); //update this
-
 
 		/**
 		* Computes the material response:
@@ -177,7 +176,6 @@ namespace Kratos
 			const Matrix &rConstitutiveMatrix,
 			Vector& rStressVector);
 
-
 		/**
 		* calculates the linear elastic constitutive matrix in terms of Young's modulus and
 		* Poisson ratio
@@ -185,7 +183,6 @@ namespace Kratos
 		* @param NU the Poisson ratio
 		* @return the linear elastic constitutive matrix
 		*/
-
 
 		virtual void CalculateLinearElasticMatrix(Matrix& rConstitutiveMatrix,
 			const Properties& rMaterialProperties);
@@ -198,22 +195,16 @@ namespace Kratos
 		*/
 		bool CheckParameters(Parameters& rValues);
 
-
 	private:
-
 
 		///@name Static Member Variables
 		///@{
 		///@}
 		///@name Member Variables
 		///@{
-
-
 		///@}
 		///@name Private Operators
 		///@{
-
-
 		///@}
 		///@name Private Operations
 		///@{
@@ -231,15 +222,13 @@ namespace Kratos
 
 		virtual void save(Serializer& rSerializer) const
 		{
-			KRATOS_SERIALIZE_SAVE_BASE_CLASS(rSerializer, HyperElastic3DLaw)
+			KRATOS_SERIALIZE_SAVE_BASE_CLASS(rSerializer, ConstitutiveLaw)
 		}
 
 		virtual void load(Serializer& rSerializer)
 		{
-			KRATOS_SERIALIZE_LOAD_BASE_CLASS(rSerializer, HyperElastic3DLaw)
+			KRATOS_SERIALIZE_LOAD_BASE_CLASS(rSerializer, ConstitutiveLaw)
 		}
-
-
 	}; // Class LinearElasticOrthotropic2DLaw
 }  // namespace Kratos.
-#endif // KRATOS_LINEAR_ELASTIC_ORTHOTROPIC_2D_LAW_H_INCLUDED  defined 
+#endif // KRATOS_LINEAR_ELASTIC_ORTHOTROPIC_2D_LAW_H_INCLUDED  defined

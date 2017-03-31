@@ -9,7 +9,6 @@
 //  Main authors:    Peter Wilson
 //
 
-
 // System includes
 #include <iostream>
 
@@ -24,34 +23,35 @@
 
 namespace Kratos
 {
-
-	//******************************CONSTRUCTOR*******************************************
-	//************************************************************************************
+	//******************************CONSTRUCTOR*********************************
+	//**************************************************************************
 
 	LinearElasticOrthotropic2DLaw::LinearElasticOrthotropic2DLaw()
-		: HyperElastic3DLaw()
+		: ConstitutiveLaw()
 	{
 	}
 
-	//******************************COPY CONSTRUCTOR**************************************
-	//************************************************************************************
+	//******************************COPY CONSTRUCTOR****************************
+	//**************************************************************************
 
-	LinearElasticOrthotropic2DLaw::LinearElasticOrthotropic2DLaw(const LinearElasticOrthotropic2DLaw& rOther)
-		: HyperElastic3DLaw(rOther)
+	LinearElasticOrthotropic2DLaw::LinearElasticOrthotropic2DLaw
+		(const LinearElasticOrthotropic2DLaw& rOther)
+		: ConstitutiveLaw(rOther)
 	{
 	}
 
-	//********************************CLONE***********************************************
-	//************************************************************************************
+	//********************************CLONE*************************************
+	//**************************************************************************
 
 	ConstitutiveLaw::Pointer LinearElasticOrthotropic2DLaw::Clone() const
 	{
-		LinearElasticOrthotropic2DLaw::Pointer p_clone(new LinearElasticOrthotropic2DLaw(*this));
+		LinearElasticOrthotropic2DLaw::Pointer p_clone
+			(new LinearElasticOrthotropic2DLaw(*this));
 		return p_clone;
 	}
 
-	//*******************************DESTRUCTOR*******************************************
-	//************************************************************************************
+	//*******************************DESTRUCTOR*********************************
+	//**************************************************************************
 
 	LinearElasticOrthotropic2DLaw::~LinearElasticOrthotropic2DLaw()
 	{
@@ -65,10 +65,8 @@ namespace Kratos
 	//************************************************************************************
 	//************************************************************************************
 
-
 	//*****************************MATERIAL RESPONSES*************************************
 	//************************************************************************************
-
 
 	void  LinearElasticOrthotropic2DLaw::CalculateMaterialResponsePK2(Parameters& rValues)
 	{
@@ -86,13 +84,12 @@ namespace Kratos
 
 		Vector& StrainVector = rValues.GetStrainVector();
 		Vector& StressVector = rValues.GetStressVector();
-		
+
 		//-----------------------------//
 
 		if (Options.Is(ConstitutiveLaw::COMPUTE_STRAIN))
 		{
-			
-			//only needed 
+			//only needed
 			const Matrix& DeformationGradientF = rValues.GetDeformationGradientF();
 
 			//4.-Right Cauchy Green
@@ -108,32 +105,26 @@ namespace Kratos
 
 		if (Options.Is(ConstitutiveLaw::COMPUTE_STRESS))
 		{
-			if (Options.Is(ConstitutiveLaw::COMPUTE_CONSTITUTIVE_TENSOR)) 
+			if (Options.Is(ConstitutiveLaw::COMPUTE_CONSTITUTIVE_TENSOR))
 			{
 				Matrix& ConstitutiveMatrix = rValues.GetConstitutiveMatrix();
 				this->CalculateLinearElasticMatrix(ConstitutiveMatrix, MaterialProperties);
 				this->CalculateStress(StrainVector, ConstitutiveMatrix, StressVector);
 			}
 			else {
-
 				Matrix ConstitutiveMatrix(StrainVector.size(), StrainVector.size());
 				noalias(ConstitutiveMatrix) = ZeroMatrix(StrainVector.size(), StrainVector.size());
 
 				this->CalculateLinearElasticMatrix(ConstitutiveMatrix, MaterialProperties);
 				this->CalculateStress(StrainVector, ConstitutiveMatrix, StressVector);
 			}
-
 		}
 		else if (Options.IsNot(ConstitutiveLaw::COMPUTE_STRESS) && Options.Is(ConstitutiveLaw::COMPUTE_CONSTITUTIVE_TENSOR))
 		{
-
 			Matrix& ConstitutiveMatrix = rValues.GetConstitutiveMatrix();
 			this->CalculateLinearElasticMatrix(ConstitutiveMatrix, MaterialProperties);
-
 		}
-
 	}
-
 
 	//***********************COMPUTE TOTAL STRAIN*****************************************
 	//************************************************************************************
@@ -146,146 +137,38 @@ namespace Kratos
 		rStrainVector[0] = 0.5 * (rRightCauchyGreen(0, 0) - 1.00);
 		rStrainVector[1] = 0.5 * (rRightCauchyGreen(1, 1) - 1.00);
 		rStrainVector[2] = rRightCauchyGreen(0, 1);
-
 	}
-
-	/*
-	//***********************COMPUTE TOTAL STRAIN*****************************************
-	//************************************************************************************
-
-	void LinearElasticOrthotropic2DLaw::CalculateAlmansiStrain(const Matrix & rLeftCauchyGreen,
-		Vector& rStrainVector)
-	{
-		// TAKEN FROM LinearElasticPlasticPlaneStrain2DLaw
-		// e= 0.5*(1-invbT*invb)
-		Matrix InverseLeftCauchyGreen(rLeftCauchyGreen.size1(), rLeftCauchyGreen.size2());
-		double det_b = 0;
-		MathUtils<double>::InvertMatrix(rLeftCauchyGreen, InverseLeftCauchyGreen, det_b);
-
-		rStrainVector.clear();
-		rStrainVector[0] = 0.5 * (1.0 - InverseLeftCauchyGreen(0, 0));
-		rStrainVector[1] = 0.5 * (1.0 - InverseLeftCauchyGreen(1, 1));
-		rStrainVector[2] = -InverseLeftCauchyGreen(0, 1);
-
-
-	}
-
-	//************************************************************************************
-	//************************************************************************************
-	*/
-	/*
-	void LinearElasticOrthotropic2DLaw::CalculateMaterialResponseKirchhoff(Parameters& rValues)
-	{
-
-		//-----------------------------//
-
-		//a.-Check if the constitutive parameters are passed correctly to the law calculation
-		CheckParameters(rValues);
-
-		//b.- Get Values to compute the constitutive law:
-		Flags &Options = rValues.GetOptions();
-
-		const Properties& MaterialProperties = rValues.GetMaterialProperties();
-		const Matrix&   DeformationGradientF = rValues.GetDeformationGradientF();
-
-
-		Vector& StrainVector = rValues.GetStrainVector();
-		Vector& StressVector = rValues.GetStressVector();
-
-		//-----------------------------//
-
-		if (Options.Is(ConstitutiveLaw::COMPUTE_STRAIN))
-		{
-
-			//2.-Push-Forward Left Cauchy-Green tensor b to the new configuration
-			Matrix LeftCauchyGreenMatrix = prod(DeformationGradientF, trans(DeformationGradientF));
-
-			//3.-Almansi Strain:
-
-			// e= 0.5*(1-invFT*invF)
-			this->CalculateAlmansiStrain(LeftCauchyGreenMatrix, StrainVector);
-
-		}
-
-		//7.-Calculate total Kirchhoff stress
-
-		if (Options.Is(ConstitutiveLaw::COMPUTE_STRESS)) {
-
-			if (Options.Is(ConstitutiveLaw::COMPUTE_CONSTITUTIVE_TENSOR)) {
-
-				Matrix& ConstitutiveMatrix = rValues.GetConstitutiveMatrix();
-
-				this->CalculateLinearElasticMatrix(ConstitutiveMatrix, MaterialProperties);
-
-				this->CalculateStress(StrainVector, ConstitutiveMatrix, StressVector);
-
-			}
-			else {
-
-				Matrix ConstitutiveMatrix(StrainVector.size(), StrainVector.size());
-				noalias(ConstitutiveMatrix) = ZeroMatrix(StrainVector.size(), StrainVector.size());
-
-				this->CalculateLinearElasticMatrix(ConstitutiveMatrix, MaterialProperties);
-
-				this->CalculateStress(StrainVector, ConstitutiveMatrix, StressVector);
-
-			}
-
-		}
-		else if (Options.IsNot(ConstitutiveLaw::COMPUTE_STRESS) && Options.Is(ConstitutiveLaw::COMPUTE_CONSTITUTIVE_TENSOR))
-		{
-
-			Matrix& ConstitutiveMatrix = rValues.GetConstitutiveMatrix();
-			this->CalculateLinearElasticMatrix(ConstitutiveMatrix, MaterialProperties);
-
-		}
-
-		//std::cout<<" Strain "<<StrainVector<<std::endl;
-		//std::cout<<" Stress "<<StressVector<<std::endl;
-		//std::cout<<" Constitutive "<<ConstitutiveMatrix<<std::endl;
-
-	}
-	*/
-
 
 	//***********************COMPUTE TOTAL STRESS PK2*************************************
 	//************************************************************************************
-
 
 	void LinearElasticOrthotropic2DLaw::CalculateStress(const Vector & rStrainVector,
 		const Matrix & rConstitutiveMatrix,
 		Vector& rStressVector)
 	{
-
 		//1.-2nd Piola Kirchhoff StressVector increment
 		if (rStressVector.size() != rStrainVector.size())
 			rStressVector.resize(rStrainVector.size(), false);
 
 		noalias(rStressVector) = prod(rConstitutiveMatrix, rStrainVector);
-
-
 	}
-
-
 
 	//***********************COMPUTE ALGORITHMIC CONSTITUTIVE MATRIX**********************
 	//************************************************************************************
 
-
 	void LinearElasticOrthotropic2DLaw::CalculateLinearElasticMatrix(Matrix& rConstitutiveMatrix,
 		const Properties& rMaterialProperties)
 	{
-		
 		double E1 = rMaterialProperties[YOUNG_MODULUS_X];
 		double E2 = rMaterialProperties[YOUNG_MODULUS_Y];
 
 		double G12 = rMaterialProperties[SHEAR_MODULUS_XY];
-		
+
 		double G13 = G12;	// fixup
 		double G23 = G12;	// fixup
 
 		double v12 = rMaterialProperties[POISSON_RATIO_XY];
-		double v21 = v12*E2/E1;
+		double v21 = v12*E2 / E1;
 
 		double Q11 = E1 / (1.0 - v12*v21);
 		double Q12 = v12*E2 / (1.0 - v12*v21);
@@ -317,7 +200,6 @@ namespace Kratos
 		rConstitutiveMatrix(2, 2) = (Q11 + Q22 - 2.0*Q12 - 2.0*Q66)*s2*c2 + Q66*(s4 + c4);		//Q66_hat
 	}
 
-
 	//*************************CONSTITUTIVE LAW GENERAL FEATURES *************************
 	//************************************************************************************
 
@@ -337,7 +219,6 @@ namespace Kratos
 
 		//Set the spacedimension
 		rFeatures.mSpaceDimension = WorkingSpaceDimension();
-
 	}
 
 	//******************CHECK CONSISTENCY IN THE CONSTITUTIVE LAW*************************
@@ -348,29 +229,22 @@ namespace Kratos
 		return rValues.CheckAllParameters();
 	}
 
-
-
 	int LinearElasticOrthotropic2DLaw::Check(const Properties& rMaterialProperties,
 		const GeometryType& rElementGeometry,
 		const ProcessInfo& rCurrentProcessInfo)
 	{
-
 		if (YOUNG_MODULUS_X.Key() == 0 || !rMaterialProperties.Has(YOUNG_MODULUS_X))
 			KRATOS_THROW_ERROR(std::invalid_argument, "YOUNG_MODULUS_X has Key zero or invalid value ", "")
 
 			if (YOUNG_MODULUS_Y.Key() == 0 || !rMaterialProperties.Has(YOUNG_MODULUS_Y))
 				KRATOS_THROW_ERROR(std::invalid_argument, "YOUNG_MODULUS_Y has Key zero or invalid value ", "")
 
-					if (POISSON_RATIO_XY.Key() == 0 || !rMaterialProperties.Has(POISSON_RATIO_XY))
-						KRATOS_THROW_ERROR(std::invalid_argument, "POISSON_RATIO_XY has Key zero invalid value ", "")
+				if (POISSON_RATIO_XY.Key() == 0 || !rMaterialProperties.Has(POISSON_RATIO_XY))
+					KRATOS_THROW_ERROR(std::invalid_argument, "POISSON_RATIO_XY has Key zero invalid value ", "")
 
-								if (DENSITY.Key() == 0 || !rMaterialProperties.Has(DENSITY))
-									KRATOS_THROW_ERROR(std::invalid_argument, "DENSITY has Key zero or invalid value ", "")
+					if (DENSITY.Key() == 0 || !rMaterialProperties.Has(DENSITY))
+						KRATOS_THROW_ERROR(std::invalid_argument, "DENSITY has Key zero or invalid value ", "")
 
-
-									return 0;
-
+						return 0;
 	}
-
-
 } // Namespace Kratos

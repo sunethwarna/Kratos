@@ -56,7 +56,6 @@
 
 namespace Kratos
 {
-
 	namespace Utilities
 	{
 		inline void InterpToStandardGaussPoints(double& v1, double& v2, double& v3)
@@ -118,7 +117,6 @@ namespace Kratos
 				for (size_t j = 0; j < ncols; j++)
 					InterpToStandardGaussPoints(v[0](i, j), v[1](i, j), v[2](i, j));
 		}
-
 	}
 
 	// =====================================================================================
@@ -195,7 +193,7 @@ namespace Kratos
 	{
 		KRATOS_TRY
 
-		const GeometryType & geom = GetGeometry();
+			const GeometryType & geom = GetGeometry();
 		PropertiesType & props = GetProperties();
 
 		if (geom.PointsNumber() != OPT_NUM_NODES)
@@ -256,7 +254,7 @@ namespace Kratos
 	{
 		KRATOS_TRY
 
-		const GeometryType & geom = GetGeometry();
+			const GeometryType & geom = GetGeometry();
 		const Matrix & shapeFunctionsValues = geom.ShapeFunctionsValues(GetIntegrationMethod());
 
 		const Properties& props = GetProperties();
@@ -334,7 +332,7 @@ namespace Kratos
 			KRATOS_THROW_ERROR(std::invalid_argument, "CONSTITUTIVE_LAW has Key zero! (check if the application is correctly registered", "");
 
 		// verify that the dofs exist
-		for (unsigned int i = 0; i<geom.size(); i++)
+		for (unsigned int i = 0; i < geom.size(); i++)
 		{
 			if (geom[i].SolutionStepsDataHas(DISPLACEMENT) == false)
 				KRATOS_THROW_ERROR(std::invalid_argument, "missing variable DISPLACEMENT on node ", geom[i].Id());
@@ -554,7 +552,6 @@ namespace Kratos
 		noalias(rDampingMatrix) = ZeroMatrix(OPT_NUM_DOFS, OPT_NUM_DOFS);
 	}
 
-
 	void ShellThickElement3D3N::CalculateLocalSystem(MatrixType& rLeftHandSideMatrix,
 		VectorType& rRightHandSideVector,
 		ProcessInfo& rCurrentProcessInfo)
@@ -620,13 +617,11 @@ namespace Kratos
 			if (crossSections.size() != OPT_NUM_GP)
 				KRATOS_THROW_ERROR(std::logic_error, "The number of cross section is wrong", crossSections.size());
 		mSections.clear();
-		for (SizeType i = 0; i <crossSections.size(); i++)
+		for (SizeType i = 0; i < crossSections.size(); i++)
 			mSections.push_back(crossSections[i]);
 		this->SetupOrientationAngles();
 		KRATOS_CATCH("")
 	}
-
-
 
 	// =====================================================================================
 	//
@@ -680,7 +675,7 @@ namespace Kratos
 		Vector3Type& b = dirX;
 		double a_dot_b = a(0)*b(0) + a(1)*b(1) + a(2)*b(2);
 		if (a_dot_b < -1.0) a_dot_b = -1.0;
-		if (a_dot_b >  1.0) a_dot_b = 1.0;
+		if (a_dot_b > 1.0) a_dot_b = 1.0;
 		double angle = std::acos(a_dot_b);
 
 		// if they are not counter-clock-wise, let's change the sign of the angle
@@ -694,7 +689,7 @@ namespace Kratos
 		for (CrossSectionContainerType::iterator it = mSections.begin(); it != mSections.end(); ++it)
 			(*it)->SetOrientationAngle(angle);
 	}
-	
+
 	void ShellThickElement3D3N::CalculateSectionResponse(CalculationData& data)
 	{
 		const array_1d<double, 3>& loc = data.gpLocations[0];
@@ -705,7 +700,7 @@ namespace Kratos
 		ShellCrossSection::Pointer& section = mSections[0];
 		data.SectionParameters.SetShapeFunctionsValues(data.N);
 		section->CalculateSectionResponse(data.SectionParameters, ConstitutiveLaw::StressMeasure_PK2);
-		
+
 		if (data.basicTriCST == false)
 		{
 			//add in shear stabilization
@@ -818,9 +813,6 @@ namespace Kratos
 
 		data.N.resize(3, false);
 
-		
-
-	
 		// --------------------------------------------------------------------------
 		// Total Formulation - as per Efficient Co-Rotational 3-Node Shell Element paper (2016)
 		// --------------------------------------------------------------------------
@@ -830,109 +822,108 @@ namespace Kratos
 
 		//Membrane components
 			//node 1
-			data.B(0, 0) = y23;
-			data.B(1, 1) = x32;
-			data.B(2, 0) = x32;
-			data.B(2, 1) = y23;
+		data.B(0, 0) = y23;
+		data.B(1, 1) = x32;
+		data.B(2, 0) = x32;
+		data.B(2, 1) = y23;
 
-			//node 2
-			data.B(0, 6) = y31;
-			data.B(1, 7) = x13;
-			data.B(2, 6) = x13;
-			data.B(2, 7) = y31;
+		//node 2
+		data.B(0, 6) = y31;
+		data.B(1, 7) = x13;
+		data.B(2, 6) = x13;
+		data.B(2, 7) = y31;
 
-			//node 3
-			data.B(0, 12) = y12;
-			data.B(1, 13) = x21;
-			data.B(2, 12) = x21;
-			data.B(2, 13) = y12;
+		//node 3
+		data.B(0, 12) = y12;
+		data.B(1, 13) = x21;
+		data.B(2, 12) = x21;
+		data.B(2, 13) = y12;
 
 		//Bending components
 			//node 1
-			data.B(3, 4) = y23;
-			data.B(4, 3) = -1.0 * x32;
-			data.B(5, 3) = -1.0 * y23;
-			data.B(5, 4) = x32;
+		data.B(3, 4) = y23;
+		data.B(4, 3) = -1.0 * x32;
+		data.B(5, 3) = -1.0 * y23;
+		data.B(5, 4) = x32;
 
-			//node 2
-			data.B(3, 10) = y31;
-			data.B(4, 9) = -1.0 * x13;
-			data.B(5, 9) = -1.0 * y31;
-			data.B(5, 10) = x13;
+		//node 2
+		data.B(3, 10) = y31;
+		data.B(4, 9) = -1.0 * x13;
+		data.B(5, 9) = -1.0 * y31;
+		data.B(5, 10) = x13;
 
-			//node 3
-			data.B(3, 16) = y12;
-			data.B(4, 15) = -1.0 * x21;
-			data.B(5, 15) = -1.0 * y12;
-			data.B(5, 16) = x21;
+		//node 3
+		data.B(3, 16) = y12;
+		data.B(4, 15) = -1.0 * x21;
+		data.B(5, 15) = -1.0 * y12;
+		data.B(5, 16) = x21;
 
 		//Shear components
-			if (data.basicTriCST == false)
-			{
-				// Use DSG method
+		if (data.basicTriCST == false)
+		{
+			// Use DSG method
 
-				const double a = x21;
-				const double b = y21;
-				const double c = y31;
-				const double d = x31;
-				//node 1
-				data.B(6, 2) = b - c;
-				data.B(6, 4) = A;
+			const double a = x21;
+			const double b = y21;
+			const double c = y31;
+			const double d = x31;
+			//node 1
+			data.B(6, 2) = b - c;
+			data.B(6, 4) = A;
 
-				data.B(7, 2) = d - a;
-				data.B(7, 3) = -1.0 * A;
+			data.B(7, 2) = d - a;
+			data.B(7, 3) = -1.0 * A;
 
-				//node 2
-				data.B(6, 8) = c;
-				data.B(6, 9) = -1.0 * b*c / 2.0;
-				data.B(6, 10) = a*c / 2.0;
+			//node 2
+			data.B(6, 8) = c;
+			data.B(6, 9) = -1.0 * b*c / 2.0;
+			data.B(6, 10) = a*c / 2.0;
 
-				data.B(7, 8) = -1.0 * d;
-				data.B(7, 9) = b*d / 2.0;
-				data.B(7, 10) = -1.0 * a*d / 2.0;
+			data.B(7, 8) = -1.0 * d;
+			data.B(7, 9) = b*d / 2.0;
+			data.B(7, 10) = -1.0 * a*d / 2.0;
 
-				//node 3
-				data.B(6, 14) = -1.0 * b;
-				data.B(6, 15) = b*c / 2.0;
-				data.B(6, 16) = b*d / 2.0;
+			//node 3
+			data.B(6, 14) = -1.0 * b;
+			data.B(6, 15) = b*c / 2.0;
+			data.B(6, 16) = b*d / 2.0;
 
-				data.B(7, 14) = a;
-				data.B(7, 15) = -1.0 * a*c / 2.0;
-				data.B(7, 16) = a*d / 2.0;
-			}
-			else
-			{
-				// Basic CST displacement derived shear
-				// strain displacement matrix.
-				// Only for testing!
+			data.B(7, 14) = a;
+			data.B(7, 15) = -1.0 * a*c / 2.0;
+			data.B(7, 16) = a*d / 2.0;
+		}
+		else
+		{
+			// Basic CST displacement derived shear
+			// strain displacement matrix.
+			// Only for testing!
 
-				const Matrix & shapeFunctions = GetGeometry().ShapeFunctionsValues(mThisIntegrationMethod);
+			const Matrix & shapeFunctions = GetGeometry().ShapeFunctionsValues(mThisIntegrationMethod);
 
-				//node 1
-				data.B(6, 2) = y23;
-				data.B(6, 3) = shapeFunctions(0, 0);
+			//node 1
+			data.B(6, 2) = y23;
+			data.B(6, 3) = shapeFunctions(0, 0);
 
-				data.B(7, 2) = x32;
-				data.B(7, 4) = shapeFunctions(0, 0);
+			data.B(7, 2) = x32;
+			data.B(7, 4) = shapeFunctions(0, 0);
 
-				//node 2
-				data.B(6, 8) = y31;
-				data.B(6, 9) = shapeFunctions(0, 1);
+			//node 2
+			data.B(6, 8) = y31;
+			data.B(6, 9) = shapeFunctions(0, 1);
 
-				data.B(7, 8) = x13;
-				data.B(7, 10) = shapeFunctions(0, 1);
+			data.B(7, 8) = x13;
+			data.B(7, 10) = shapeFunctions(0, 1);
 
-				//node 3
-				data.B(6, 14) = y12;
-				data.B(6, 15) = shapeFunctions(0, 2);
+			//node 3
+			data.B(6, 14) = y12;
+			data.B(6, 15) = shapeFunctions(0, 2);
 
-				data.B(7, 14) = x21;
-				data.B(7, 16) = shapeFunctions(0, 2);
-			}
-			
+			data.B(7, 14) = x21;
+			data.B(7, 16) = shapeFunctions(0, 2);
+		}
 
 		//Final multiplication
-			data.B /= (A2);
+		data.B /= (A2);
 
 		//determine longest side length (eqn 22) - for shear correction
 		Vector P12 = Vector(data.LCS0.P1() - data.LCS0.P2());
@@ -944,11 +935,10 @@ namespace Kratos
 		edge_length = std::sqrt(inner_prod(P23, P23));
 		if (edge_length > data.h_e) { data.h_e = edge_length; }
 
-
 		//--------------------------------------
 		// Calculate material matrices
-		// 
-		
+		//
+
 		//allocate and setup
 		data.D.resize(8, 8, false);
 		data.generalizedStrains.resize(8, false);
@@ -1002,7 +992,6 @@ namespace Kratos
 		{
 			// get mass per unit area
 			double mass_per_unit_area = mSections[igauss]->CalculateMassPerUnitArea();
-			
 
 			// interpolate nodal volume accelerations to this gauss point
 			// and obtain the body force vector
@@ -1012,11 +1001,9 @@ namespace Kratos
 				if (geom[inode].SolutionStepsDataHas(VOLUME_ACCELERATION)) //temporary, will be checked once at the beginning only
 				{
 					bf += N(igauss, inode) * geom[inode].FastGetSolutionStepValue(VOLUME_ACCELERATION);
-					
 				}
 			}
 			bf *= (mass_per_unit_area * data.dA);
-			
 
 			// add it to the RHS vector
 			for (unsigned int inode = 0; inode < 3; inode++)
@@ -1026,9 +1013,7 @@ namespace Kratos
 				rRightHandSideVector[index + 0] += iN * bf[0];
 				rRightHandSideVector[index + 1] += iN * bf[1];
 				rRightHandSideVector[index + 2] += iN * bf[2];
-				
 			}
-			
 		}
 	}
 
@@ -1039,8 +1024,8 @@ namespace Kratos
 		const bool RHSrequired)
 	{
 		KRATOS_TRY
-		// Resize the Left Hand Side if necessary,
-		// and initialize it to Zero
+			// Resize the Left Hand Side if necessary,
+			// and initialize it to Zero
 
 			if ((rLeftHandSideMatrix.size1() != OPT_NUM_DOFS) || (rLeftHandSideMatrix.size2() != OPT_NUM_DOFS))
 				rLeftHandSideMatrix.resize(OPT_NUM_DOFS, OPT_NUM_DOFS, false);
@@ -1164,7 +1149,7 @@ namespace Kratos
 		const ProcessInfo& rCurrentProcessInfo)
 	{
 		// Check the required output
-		
+
 		int ijob = 0;
 		bool bGlobal = false;
 		if (rVariable == SHELL_STRAIN)
@@ -1224,8 +1209,6 @@ namespace Kratos
 		data.CalculateLHS = true;
 		data.CalculateRHS = true;
 		InitializeCalculationData(data);
-		
-
 
 		// set the current integration point index
 		data.gpIndex = 0;
@@ -1235,13 +1218,12 @@ namespace Kratos
 		noalias(data.generalizedStrains) = prod(data.B, data.localDisplacements);
 
 		//compute stresses
-		if (ijob >2)
+		if (ijob > 2)
 		{
 			CalculateSectionResponse(data);
 			noalias(data.generalizedStresses) = prod(data.D, data.generalizedStrains);
 			DecimalCorrection(data.generalizedStresses);
 		}
-
 
 		// adjust output
 		DecimalCorrection(data.generalizedStrains);
@@ -1253,7 +1235,6 @@ namespace Kratos
 		{
 			if (ijob > 2)
 			{
-
 				section->GetRotationMatrixForGeneralizedStresses(-(section->GetOrientationAngle()), R);
 				data.generalizedStresses = prod(R, data.generalizedStresses);
 			}
@@ -1264,13 +1245,10 @@ namespace Kratos
 			}
 		}
 
-
 		// Gauss Loop.
 
 		for (size_t i = 0; i < OPT_NUM_GP; i++)
 		{
-			
-
 			// save results
 			Matrix & iValue = rValues[i];
 			if (iValue.size1() != 3 || iValue.size2() != 3)
@@ -1331,10 +1309,10 @@ namespace Kratos
 	void ShellThickElement3D3N::printMatrix(Matrix& matrixIn, std::string stringIn)
 	{
 		std::cout << "\n" << stringIn << std::endl;
-		for (unsigned i = 0; i<matrixIn.size1(); ++i)
+		for (unsigned i = 0; i < matrixIn.size1(); ++i)
 		{
 			std::cout << "| ";
-			for (unsigned j = 0; j<matrixIn.size2(); ++j)
+			for (unsigned j = 0; j < matrixIn.size2(); ++j)
 			{
 				std::cout << std::fixed << std::setprecision(1) << std::setw(8) << matrixIn(i, j) << " | ";
 			}
@@ -1366,5 +1344,4 @@ namespace Kratos
 		rSerializer.load("IntM", temp);
 		mThisIntegrationMethod = (IntegrationMethod)temp;
 	}
-
 }
