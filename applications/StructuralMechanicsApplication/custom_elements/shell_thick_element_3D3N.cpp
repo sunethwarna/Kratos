@@ -58,7 +58,8 @@ namespace Kratos
 {
 	namespace Utilities
 	{
-		inline void InterpToStandardGaussPoints(double& v1, double& v2, double& v3)
+		inline void InterpToStandardGaussPoints(double& v1, double& v2,
+			double& v3)
 		{
 			double vg1 = v1;
 			double vg2 = v2;
@@ -80,14 +81,16 @@ namespace Kratos
 			InterpToStandardGaussPoints(v[0], v[1], v[2]);
 		}
 
-		inline void InterpToStandardGaussPoints(std::vector< array_1d<double, 3> >& v)
+		inline void InterpToStandardGaussPoints(std::vector< array_1d<double,
+			3> >& v)
 		{
 			if (v.size() != 3) return;
 			for (size_t i = 0; i < 3; i++)
 				InterpToStandardGaussPoints(v[0][i], v[1][i], v[2][i]);
 		}
 
-		inline void InterpToStandardGaussPoints(std::vector< array_1d<double, 6> >& v)
+		inline void InterpToStandardGaussPoints(std::vector< array_1d<double,
+			6> >& v)
 		{
 			if (v.size() != 3) return;
 			for (size_t i = 0; i < 6; i++)
@@ -115,18 +118,20 @@ namespace Kratos
 					return;
 			for (size_t i = 0; i < nrows; i++)
 				for (size_t j = 0; j < ncols; j++)
-					InterpToStandardGaussPoints(v[0](i, j), v[1](i, j), v[2](i, j));
+					InterpToStandardGaussPoints
+					(v[0](i, j), v[1](i, j), v[2](i, j));
 		}
 	}
 
-	// =====================================================================================
+	// =========================================================================
 	//
 	// CalculationData
 	//
-	// =====================================================================================
+	// =========================================================================
 
-	ShellThickElement3D3N::CalculationData::CalculationData(const CoordinateTransformationBasePointerType& pCoordinateTransformation,
-		const ProcessInfo& rCurrentProcessInfo)
+	ShellThickElement3D3N::CalculationData::CalculationData
+		(const CoordinateTransformationBasePointerType& pCoordinateTransformation,
+			const ProcessInfo& rCurrentProcessInfo)
 		: LCS0(pCoordinateTransformation->CreateReferenceCoordinateSystem())
 		, LCS(pCoordinateTransformation->CreateLocalCoordinateSystem())
 		, CurrentProcessInfo(rCurrentProcessInfo)
@@ -134,11 +139,11 @@ namespace Kratos
 	{
 	}
 
-	// =====================================================================================
+	// =========================================================================
 	//
 	// Class ShellThickElement3D3N
 	//
-	// =====================================================================================
+	// =========================================================================
 
 	ShellThickElement3D3N::ShellThickElement3D3N(IndexType NewId,
 		GeometryType::Pointer pGeometry,
@@ -177,14 +182,17 @@ namespace Kratos
 	{
 	}
 
-	Element::Pointer ShellThickElement3D3N::Create(IndexType NewId, NodesArrayType const& ThisNodes, PropertiesType::Pointer pProperties) const
+	Element::Pointer ShellThickElement3D3N::Create(IndexType NewId,
+		NodesArrayType const& ThisNodes,
+		PropertiesType::Pointer pProperties) const
 	{
 		GeometryType::Pointer newGeom(GetGeometry().Create(ThisNodes));
-		return boost::make_shared< ShellThickElement3D3N >(NewId, newGeom, pProperties, mpCoordinateTransformation->Create(newGeom));
-		//     return Element::Pointer( new ShellThickElement3D3N(NewId, newGeom, pProperties, mpCoordinateTransformation->Create(newGeom)) );
+		return boost::make_shared< ShellThickElement3D3N >(NewId, newGeom,
+			pProperties, mpCoordinateTransformation->Create(newGeom));
 	}
 
-	ShellThickElement3D3N::IntegrationMethod ShellThickElement3D3N::GetIntegrationMethod() const
+	ShellThickElement3D3N::IntegrationMethod
+		ShellThickElement3D3N::GetIntegrationMethod() const
 	{
 		return mThisIntegrationMethod;
 	}
@@ -197,15 +205,22 @@ namespace Kratos
 		PropertiesType & props = GetProperties();
 
 		if (geom.PointsNumber() != OPT_NUM_NODES)
-			KRATOS_THROW_ERROR(std::logic_error, "ShellThickElement3D3N Element - Wrong number of nodes", geom.PointsNumber());
+			KRATOS_THROW_ERROR(std::logic_error,
+				"ShellThickElement3D3N Element - Wrong number of nodes",
+				geom.PointsNumber());
 
-		const GeometryType::IntegrationPointsArrayType & integrationPoints = geom.IntegrationPoints(GetIntegrationMethod());
+		const GeometryType::IntegrationPointsArrayType & integrationPoints =
+			geom.IntegrationPoints(GetIntegrationMethod());
+
 		if (integrationPoints.size() != OPT_NUM_GP)
-			KRATOS_THROW_ERROR(std::logic_error, "ShellThickElement3D3N Element - Wrong integration scheme", integrationPoints.size());
+			KRATOS_THROW_ERROR(std::logic_error,
+				"ShellThickElement3D3N Element - Wrong integration scheme",
+				integrationPoints.size());
 
 		if (mSections.size() != OPT_NUM_GP)
 		{
-			const Matrix & shapeFunctionsValues = geom.ShapeFunctionsValues(GetIntegrationMethod());
+			const Matrix & shapeFunctionsValues =
+				geom.ShapeFunctionsValues(GetIntegrationMethod());
 
 			ShellCrossSection::Pointer theSection;
 			if (props.Has(SHELL_CROSS_SECTION))
@@ -229,7 +244,8 @@ namespace Kratos
 			{
 				theSection = ShellCrossSection::Pointer(new ShellCrossSection());
 				theSection->BeginStack();
-				theSection->AddPly(props[THICKNESS], 0.0, 5, this->pGetProperties());
+				theSection->
+					AddPly(props[THICKNESS], 0.0, 5, this->pGetProperties());
 				theSection->EndStack();
 			}
 
@@ -238,7 +254,8 @@ namespace Kratos
 			{
 				ShellCrossSection::Pointer sectionClone = theSection->Clone();
 				sectionClone->SetSectionBehavior(ShellCrossSection::Thick);
-				sectionClone->InitializeCrossSection(props, geom, row(shapeFunctionsValues, i));
+				sectionClone->InitializeCrossSection(props, geom,
+					row(shapeFunctionsValues, i));
 				mSections.push_back(sectionClone);
 			}
 		}
@@ -255,16 +272,19 @@ namespace Kratos
 		KRATOS_TRY
 
 			const GeometryType & geom = GetGeometry();
-		const Matrix & shapeFunctionsValues = geom.ShapeFunctionsValues(GetIntegrationMethod());
+		const Matrix & shapeFunctionsValues =
+			geom.ShapeFunctionsValues(GetIntegrationMethod());
 
 		const Properties& props = GetProperties();
 		for (SizeType i = 0; i < mSections.size(); i++)
-			mSections[i]->ResetCrossSection(props, geom, row(shapeFunctionsValues, i));
+			mSections[i]->ResetCrossSection(props, geom,
+				row(shapeFunctionsValues, i));
 
 		KRATOS_CATCH("")
 	}
 
-	void ShellThickElement3D3N::EquationIdVector(EquationIdVectorType& rResult, ProcessInfo& rCurrentProcessInfo)
+	void ShellThickElement3D3N::EquationIdVector(EquationIdVectorType& rResult,
+		ProcessInfo& rCurrentProcessInfo)
 	{
 		if (rResult.size() != OPT_NUM_DOFS)
 			rResult.resize(OPT_NUM_DOFS, false);
@@ -286,7 +306,8 @@ namespace Kratos
 		}
 	}
 
-	void ShellThickElement3D3N::GetDofList(DofsVectorType& ElementalDofList, ProcessInfo& CurrentProcessInfo)
+	void ShellThickElement3D3N::GetDofList(DofsVectorType& ElementalDofList,
+		ProcessInfo& CurrentProcessInfo)
 	{
 		ElementalDofList.resize(0);
 		ElementalDofList.reserve(OPT_NUM_DOFS);
@@ -315,49 +336,83 @@ namespace Kratos
 
 		// verify that the variables are correctly initialized
 		if (DISPLACEMENT.Key() == 0)
-			KRATOS_THROW_ERROR(std::invalid_argument, "DISPLACEMENT has Key zero! (check if the application is correctly registered", "");
+			KRATOS_THROW_ERROR(std::invalid_argument,
+				"DISPLACEMENT has Key zero! (check if the application is correctly registered", "");
+
 		if (ROTATION.Key() == 0)
-			KRATOS_THROW_ERROR(std::invalid_argument, "ROTATION has Key zero! (check if the application is correctly registered", "");
+			KRATOS_THROW_ERROR(std::invalid_argument,
+				"ROTATION has Key zero! (check if the application is correctly registered", "");
+
 		if (VELOCITY.Key() == 0)
-			KRATOS_THROW_ERROR(std::invalid_argument, "VELOCITY has Key zero! (check if the application is correctly registered", "");
+			KRATOS_THROW_ERROR(std::invalid_argument,
+				"VELOCITY has Key zero! (check if the application is correctly registered", "");
+
 		if (ACCELERATION.Key() == 0)
-			KRATOS_THROW_ERROR(std::invalid_argument, "ACCELERATION has Key zero! (check if the application is correctly registered", "");
+			KRATOS_THROW_ERROR(std::invalid_argument,
+				"ACCELERATION has Key zero! (check if the application is correctly registered", "");
+
 		if (DENSITY.Key() == 0)
-			KRATOS_THROW_ERROR(std::invalid_argument, "DENSITY has Key zero! (check if the application is correctly registered", "");
+			KRATOS_THROW_ERROR(std::invalid_argument,
+				"DENSITY has Key zero! (check if the application is correctly registered", "");
+
 		if (SHELL_CROSS_SECTION.Key() == 0)
-			KRATOS_THROW_ERROR(std::invalid_argument, "SHELL_CROSS_SECTION has Key zero! (check if the application is correctly registered", "");
+			KRATOS_THROW_ERROR(std::invalid_argument,
+				"SHELL_CROSS_SECTION has Key zero! (check if the application is correctly registered", "");
+
 		if (THICKNESS.Key() == 0)
-			KRATOS_THROW_ERROR(std::invalid_argument, "THICKNESS has Key zero! (check if the application is correctly registered", "");
+			KRATOS_THROW_ERROR(std::invalid_argument,
+				"THICKNESS has Key zero! (check if the application is correctly registered", "");
+
 		if (CONSTITUTIVE_LAW.Key() == 0)
-			KRATOS_THROW_ERROR(std::invalid_argument, "CONSTITUTIVE_LAW has Key zero! (check if the application is correctly registered", "");
+			KRATOS_THROW_ERROR(std::invalid_argument,
+				"CONSTITUTIVE_LAW has Key zero! (check if the application is correctly registered", "");
 
 		// verify that the dofs exist
 		for (unsigned int i = 0; i < geom.size(); i++)
 		{
 			if (geom[i].SolutionStepsDataHas(DISPLACEMENT) == false)
-				KRATOS_THROW_ERROR(std::invalid_argument, "missing variable DISPLACEMENT on node ", geom[i].Id());
-			if (geom[i].HasDofFor(DISPLACEMENT_X) == false || geom[i].HasDofFor(DISPLACEMENT_Y) == false || geom[i].HasDofFor(DISPLACEMENT_Z) == false)
-				KRATOS_THROW_ERROR(std::invalid_argument, "missing one of the dofs for the variable DISPLACEMENT on node ", GetGeometry()[i].Id());
+				KRATOS_THROW_ERROR(std::invalid_argument,
+					"missing variable DISPLACEMENT on node ", geom[i].Id());
+
+			if (geom[i].HasDofFor(DISPLACEMENT_X) == false ||
+				geom[i].HasDofFor(DISPLACEMENT_Y) == false ||
+				geom[i].HasDofFor(DISPLACEMENT_Z) == false)
+				KRATOS_THROW_ERROR(std::invalid_argument,
+					"missing one of the dofs for the variable DISPLACEMENT on node ",
+					GetGeometry()[i].Id());
+
 			if (geom[i].SolutionStepsDataHas(ROTATION) == false)
-				KRATOS_THROW_ERROR(std::invalid_argument, "missing variable ROTATION on node ", geom[i].Id());
-			if (geom[i].HasDofFor(ROTATION_X) == false || geom[i].HasDofFor(ROTATION_Y) == false || geom[i].HasDofFor(ROTATION_Z) == false)
-				KRATOS_THROW_ERROR(std::invalid_argument, "missing one of the dofs for the variable ROTATION on node ", geom[i].Id());
+				KRATOS_THROW_ERROR(std::invalid_argument,
+					"missing variable ROTATION on node ", geom[i].Id());
+
+			if (geom[i].HasDofFor(ROTATION_X) == false ||
+				geom[i].HasDofFor(ROTATION_Y) == false ||
+				geom[i].HasDofFor(ROTATION_Z) == false)
+				KRATOS_THROW_ERROR(std::invalid_argument,
+					"missing one of the dofs for the variable ROTATION on node ",
+					geom[i].Id());
 
 			if (geom[i].GetBufferSize() < 2)
-				KRATOS_THROW_ERROR(std::logic_error, "This Element needs at least a buffer size = 2", "");
+				KRATOS_THROW_ERROR(std::logic_error,
+					"This Element needs at least a buffer size = 2", "");
 		}
 
 		// check properties
 		if (this->pGetProperties() == NULL)
-			KRATOS_THROW_ERROR(std::logic_error, "Properties not provided for element ", this->Id());
+			KRATOS_THROW_ERROR(std::logic_error,
+				"Properties not provided for element ", this->Id());
 
 		const PropertiesType & props = this->GetProperties();
 
-		if (props.Has(SHELL_CROSS_SECTION)) // if the user specified a cross section ...
+		if (props.Has(SHELL_CROSS_SECTION))
 		{
-			const ShellCrossSection::Pointer & section = props[SHELL_CROSS_SECTION];
+			// if the user specified a cross section ...
+
+			const ShellCrossSection::Pointer & section =
+				props[SHELL_CROSS_SECTION];
 			if (section == NULL)
-				KRATOS_THROW_ERROR(std::logic_error, "SHELL_CROSS_SECTION not provided for element ", this->Id());
+				KRATOS_THROW_ERROR(std::logic_error,
+					"SHELL_CROSS_SECTION not provided for element ", this->Id());
 
 			section->Check(props, geom, rCurrentProcessInfo);
 		}
@@ -365,22 +420,33 @@ namespace Kratos
 		{
 			// perform orthotropic check later in shell_cross_section
 		}
-		else // ... allow the automatic creation of a homogeneous section from a material and a thickness
+		else
 		{
+			// ... allow the automatic creation of a homogeneous section from a
+			// material and a thickness
+
 			if (!props.Has(CONSTITUTIVE_LAW))
-				KRATOS_THROW_ERROR(std::logic_error, "CONSTITUTIVE_LAW not provided for element ", this->Id());
+				KRATOS_THROW_ERROR(std::logic_error,
+					"CONSTITUTIVE_LAW not provided for element ", this->Id());
+
 			const ConstitutiveLaw::Pointer& claw = props[CONSTITUTIVE_LAW];
 			if (claw == NULL)
-				KRATOS_THROW_ERROR(std::logic_error, "CONSTITUTIVE_LAW not provided for element ", this->Id());
+				KRATOS_THROW_ERROR(std::logic_error,
+					"CONSTITUTIVE_LAW not provided for element ", this->Id());
 
 			if (!props.Has(THICKNESS))
-				KRATOS_THROW_ERROR(std::logic_error, "THICKNESS not provided for element ", this->Id());
-			if (props[THICKNESS] <= 0.0)
-				KRATOS_THROW_ERROR(std::logic_error, "wrong THICKNESS value provided for element ", this->Id());
+				KRATOS_THROW_ERROR(std::logic_error,
+					"THICKNESS not provided for element ", this->Id());
 
-			ShellCrossSection::Pointer dummySection = ShellCrossSection::Pointer(new ShellCrossSection());
+			if (props[THICKNESS] <= 0.0)
+				KRATOS_THROW_ERROR(std::logic_error,
+					"wrong THICKNESS value provided for element ", this->Id());
+
+			ShellCrossSection::Pointer dummySection =
+				ShellCrossSection::Pointer(new ShellCrossSection());
 			dummySection->BeginStack();
-			dummySection->AddPly(props[THICKNESS], 0.0, 5, this->pGetProperties());
+			dummySection->AddPly(props[THICKNESS], 0.0, 5,
+				this->pGetProperties());
 			dummySection->EndStack();
 			dummySection->SetSectionBehavior(ShellCrossSection::Thick);
 			dummySection->Check(props, geom, rCurrentProcessInfo);
@@ -405,8 +471,10 @@ namespace Kratos
 		for (SizeType i = 0; i < geom.size(); i++)
 		{
 			const NodeType & iNode = geom[i];
-			const array_1d<double, 3>& disp = iNode.FastGetSolutionStepValue(DISPLACEMENT, Step);
-			const array_1d<double, 3>& rot = iNode.FastGetSolutionStepValue(ROTATION, Step);
+			const array_1d<double, 3>& disp =
+				iNode.FastGetSolutionStepValue(DISPLACEMENT, Step);
+			const array_1d<double, 3>& rot =
+				iNode.FastGetSolutionStepValue(ROTATION, Step);
 
 			int index = i * 6;
 			values[index] = disp[0];
@@ -419,7 +487,8 @@ namespace Kratos
 		}
 	}
 
-	void ShellThickElement3D3N::GetFirstDerivativesVector(Vector& values, int Step)
+	void ShellThickElement3D3N::GetFirstDerivativesVector(Vector& values,
+		int Step)
 	{
 		if (values.size() != OPT_NUM_DOFS)
 			values.resize(OPT_NUM_DOFS, false);
@@ -429,7 +498,8 @@ namespace Kratos
 		for (SizeType i = 0; i < geom.size(); i++)
 		{
 			const NodeType & iNode = geom[i];
-			const array_1d<double, 3>& vel = iNode.FastGetSolutionStepValue(VELOCITY, Step);
+			const array_1d<double, 3>& vel =
+				iNode.FastGetSolutionStepValue(VELOCITY, Step);
 
 			int index = i * 6;
 			values[index] = vel[0];
@@ -441,7 +511,8 @@ namespace Kratos
 		}
 	}
 
-	void ShellThickElement3D3N::GetSecondDerivativesVector(Vector& values, int Step)
+	void ShellThickElement3D3N::GetSecondDerivativesVector(Vector& values,
+		int Step)
 	{
 		if (values.size() != OPT_NUM_DOFS)
 			values.resize(OPT_NUM_DOFS, false);
@@ -451,7 +522,8 @@ namespace Kratos
 		for (SizeType i = 0; i < geom.size(); i++)
 		{
 			const NodeType & iNode = geom[i];
-			const array_1d<double, 3>& acc = iNode.FastGetSolutionStepValue(ACCELERATION, Step);
+			const array_1d<double, 3>& acc =
+				iNode.FastGetSolutionStepValue(ACCELERATION, Step);
 
 			int index = i * 6;
 			values[index] = acc[0];
@@ -463,14 +535,18 @@ namespace Kratos
 		}
 	}
 
-	void ShellThickElement3D3N::InitializeNonLinearIteration(ProcessInfo& CurrentProcessInfo)
+	void ShellThickElement3D3N::InitializeNonLinearIteration
+		(ProcessInfo& CurrentProcessInfo)
 	{
-		mpCoordinateTransformation->InitializeNonLinearIteration(CurrentProcessInfo);
+		mpCoordinateTransformation->
+			InitializeNonLinearIteration(CurrentProcessInfo);
 
 		const GeometryType & geom = this->GetGeometry();
-		const Matrix & shapeFunctionsValues = geom.ShapeFunctionsValues(GetIntegrationMethod());
+		const Matrix & shapeFunctionsValues =
+			geom.ShapeFunctionsValues(GetIntegrationMethod());
 		for (SizeType i = 0; i < mSections.size(); i++)
-			mSections[i]->InitializeNonLinearIteration(GetProperties(), geom, row(shapeFunctionsValues, i), CurrentProcessInfo);
+			mSections[i]->InitializeNonLinearIteration(GetProperties(), geom,
+				row(shapeFunctionsValues, i), CurrentProcessInfo);
 	}
 
 	void ShellThickElement3D3N::FinalizeNonLinearIteration(ProcessInfo& CurrentProcessInfo)
