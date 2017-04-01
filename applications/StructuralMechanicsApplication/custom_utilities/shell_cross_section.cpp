@@ -363,8 +363,7 @@ void ShellCrossSection::CalculateSectionResponse(Parameters& rValues, const Cons
 	// references
 	Vector& generalizedStrainVector = rValues.GetGeneralizedStrainVector();
 	Vector& generalizedStressVector = rValues.GetGeneralizedStressVector();
-	Matrix& constitutiveMatrix = rValues.GetConstitutiveMatrix();	//6x6 here
-	//std::cout << constitutiveMatrix << std::endl;
+	Matrix& constitutiveMatrix = rValues.GetConstitutiveMatrix();	
 
 	Vector& condensedStressVector   = variables.CondensedStressVector;
 	Matrix& H  = variables.H;

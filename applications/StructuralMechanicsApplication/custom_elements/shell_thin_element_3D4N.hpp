@@ -12,7 +12,6 @@
 #if !defined(SHELL_THIN_ELEMENT_3D4N_H_INCLUDED )
 #define  SHELL_THIN_ELEMENT_3D4N_H_INCLUDED
 
-
 // System includes
 
 // External includes
@@ -26,8 +25,6 @@
 
 namespace Kratos
 {
-
-
 	///@name Kratos Globals
 	///@{
 	///@}
@@ -50,7 +47,6 @@ namespace Kratos
 
 	///@name Kratos Classes
 	///@{
-
 	/** \brief ShellThinElement3D4N
 	*
 	* This element represents a 4-node Shell element
@@ -67,7 +63,6 @@ namespace Kratos
 
 		///@name Type Definitions
 		///@{
-
 		KRATOS_CLASS_POINTER_DEFINITION(ShellThinElement3D4N);
 
 		typedef std::vector< ShellCrossSection::Pointer > CrossSectionContainerType;
@@ -91,7 +86,6 @@ namespace Kratos
 		* and the derivatives of the shape functions in the local
 		* cartesian coordinate system.
 		*/
-
 
 		class JacobianOperator
 		{
@@ -124,12 +118,10 @@ namespace Kratos
 		private:
 
 			Matrix mJac;     //!< Jacobian matrix
-			Matrix mInv;    //!< Inverse of the Jacobian matrix 
+			Matrix mInv;    //!< Inverse of the Jacobian matrix
 			Matrix mXYDeriv; //*!< Shape function derivatives in cartesian coordinates
-			double mDet;     //*!< Determinant of the Jacobian matrix 
+			double mDet;     //*!< Determinant of the Jacobian matrix
 		};
-
-
 
 		// TODO: Add Calculation Data
 
@@ -137,7 +129,6 @@ namespace Kratos
 
 		///@name Life Cycle
 		///@{
-
 		ShellThinElement3D4N(IndexType NewId,
 			GeometryType::Pointer pGeometry,
 			bool NLGeom = false);
@@ -158,7 +149,6 @@ namespace Kratos
 
 		///@name Operations
 		///@{
-
 		// Basic
 
 		Element::Pointer Create(IndexType NewId, NodesArrayType const& ThisNodes, PropertiesType::Pointer pProperties) const;
@@ -177,23 +167,34 @@ namespace Kratos
 
 		void CleanMemory();
 
-		void GetValuesVector(Vector& values, int Step = 0); // needed for dyn
+		void GetValuesVector(Vector& values, int Step = 0);
+		// needed for dyn
 
-		void GetFirstDerivativesVector(Vector& values, int Step = 0); //needed for dyn
+		void GetFirstDerivativesVector(Vector& values, int Step = 0);
+		//needed for dyn
 
-		void GetSecondDerivativesVector(Vector& values, int Step = 0); //needed for dyn
+		void GetSecondDerivativesVector(Vector& values, int Step = 0);
+		//needed for dyn
 
-		void InitializeNonLinearIteration(ProcessInfo& CurrentProcessInfo);	//needed for corotational
+		void InitializeNonLinearIteration(ProcessInfo& CurrentProcessInfo);
+		//needed for corotational
 
-		void FinalizeNonLinearIteration(ProcessInfo& CurrentProcessInfo);	//needed for corotational
+		void FinalizeNonLinearIteration(ProcessInfo& CurrentProcessInfo);
+		//needed for corotational
 
-		void InitializeSolutionStep(ProcessInfo& CurrentProcessInfo);		//needed for corotational
+		void InitializeSolutionStep(ProcessInfo& CurrentProcessInfo);
+		//needed for corotational
 
-		void FinalizeSolutionStep(ProcessInfo& CurrentProcessInfo);			//needed for corotational
+		void FinalizeSolutionStep(ProcessInfo& CurrentProcessInfo);
+		//needed for corotational
 
-		void CalculateMassMatrix(MatrixType& rMassMatrix, ProcessInfo& rCurrentProcessInfo);	// needed for dyn
+		void CalculateMassMatrix(MatrixType& rMassMatrix,
+			ProcessInfo& rCurrentProcessInfo);
+		// needed for dyn
 
-		void CalculateDampingMatrix(MatrixType& rDampingMatrix, ProcessInfo& rCurrentProcessInfo);	// needed for dyn
+		void CalculateDampingMatrix(MatrixType& rDampingMatrix,
+			ProcessInfo& rCurrentProcessInfo);
+		// needed for dyn
 
 		void CalculateLocalSystem(MatrixType& rLeftHandSideMatrix,
 			VectorType& rRightHandSideVector,
@@ -203,30 +204,33 @@ namespace Kratos
 			ProcessInfo& rCurrentProcessInfo);
 
 		// Results calculation on integration points
-		void GetValueOnIntegrationPoints(const Variable<double>& rVariable, std::vector<double>& rValues, const ProcessInfo& rCurrentProcessInfo);
+		void GetValueOnIntegrationPoints(const Variable<double>& rVariable,
+			std::vector<double>& rValues, const ProcessInfo& rCurrentProcessInfo);
 
-		void GetValueOnIntegrationPoints(const Variable<Vector>& rVariable, std::vector<Vector>& rValues, const ProcessInfo& rCurrentProcessInfo);
+		void GetValueOnIntegrationPoints(const Variable<Vector>& rVariable,
+			std::vector<Vector>& rValues, const ProcessInfo& rCurrentProcessInfo);
 
-		void GetValueOnIntegrationPoints(const Variable<Matrix>& rVariable, std::vector<Matrix>& rValues, const ProcessInfo& rCurrentProcessInfo);
+		void GetValueOnIntegrationPoints(const Variable<Matrix>& rVariable,
+			std::vector<Matrix>& rValues, const ProcessInfo& rCurrentProcessInfo);
 
-		void GetValueOnIntegrationPoints(const Variable<array_1d<double, 3> >& rVariable, std::vector<array_1d<double, 3> >& rValues, const ProcessInfo& rCurrentProcessInfo);
+		void GetValueOnIntegrationPoints(const Variable<array_1d<double,
+			3> >& rVariable, std::vector<array_1d<double, 3> >& rValues,
+			const ProcessInfo& rCurrentProcessInfo);
 
-		void GetValueOnIntegrationPoints(const Variable<array_1d<double, 6> >& rVariable, std::vector<array_1d<double, 6> >& rValues, const ProcessInfo& rCurrentProcessInfo);
+		void GetValueOnIntegrationPoints(const Variable<array_1d<double,
+			6> >& rVariable, std::vector<array_1d<double, 6> >& rValues,
+			const ProcessInfo& rCurrentProcessInfo);
 
 		///@}
 
 		///@name Public specialized Access - Temporary
 		///@{
-
-		//void SetCrossSectionsOnIntegrationPoints(std::vector< ShellCrossSection::Pointer >& crossSections);
-
 		///@}
 
 	protected:
 
 		///@name Protected Lyfe Cycle
 		///@{
-
 		/**
 		* Protected empty constructor
 		*/
@@ -240,10 +244,8 @@ namespace Kratos
 
 		///@name Private Classes
 		///@{
-
 		class CalculationData
 		{
-
 		public:
 
 			// ---------------------------------------
@@ -307,6 +309,7 @@ namespace Kratos
 			MatrixType T_24 = Matrix(3, 3, 0.0);
 
 			double hMean;
+			double element_thickness;
 			double TotalArea;
 			double TotalVolume;
 			double alpha = 1.5;
@@ -319,7 +322,7 @@ namespace Kratos
 
 			bool CalculateRHS; /*!< flag for the calculation of the right-hand-side vector */
 			bool CalculateLHS; /*!< flag for the calculation of the left-hand-side vector */
-			const bool basicQuad = false;	/*!< flag for using basic membrane formulation - should be false! */
+			const bool basicQuad = true;	/*!< flag for using basic membrane formulation - should be false! */
 
 			// ---------------------------------------
 			// calculation-variable data
@@ -360,14 +363,12 @@ namespace Kratos
 			CalculationData(const ShellQ4_LocalCoordinateSystem& localcoordsys,
 				const ShellQ4_LocalCoordinateSystem& refcoordsys,
 				const ProcessInfo& rCurrentProcessInfo);
-
 		};
 
 		///@}
 
 		///@name Private Operations
 		///@{
-
 		void DecimalCorrection(Vector& a);
 
 		void SetupOrientationAngles();
@@ -387,14 +388,14 @@ namespace Kratos
 			ProcessInfo& rCurrentProcessInfo,
 			const bool LHSrequired,
 			const bool RHSrequired);
-		
+
 		bool TryGetValueOnIntegrationPoints_MaterialOrientation(const Variable<array_1d<double, 3> >& rVariable,
-		std::vector<array_1d<double, 3> >& rValues,
-		const ProcessInfo& rCurrentProcessInfo);
+			std::vector<array_1d<double, 3> >& rValues,
+			const ProcessInfo& rCurrentProcessInfo);
 
 		bool TryGetValueOnIntegrationPoints_GeneralizedStrainsOrStresses(const Variable<Matrix>& rVariable,
-		std::vector<Matrix>& rValues,
-		const ProcessInfo& rCurrentProcessInfo);
+			std::vector<Matrix>& rValues,
+			const ProcessInfo& rCurrentProcessInfo);
 
 		void printMatrix(Matrix& matrixIn, std::string stringIn);
 
@@ -412,7 +413,6 @@ namespace Kratos
 
 		///@name Member Variables
 		///@{
-
 		CoordinateTransformationBasePointerType mpCoordinateTransformation; /*!< The Coordinate Transformation */
 
 		CrossSectionContainerType mSections; /*!< Container for cross section associated to each integration point */
@@ -423,7 +423,6 @@ namespace Kratos
 
 												  ///@name Serialization
 												  ///@{
-
 		friend class Serializer;
 
 		virtual void save(Serializer& rSerializer) const;
@@ -443,8 +442,6 @@ namespace Kratos
 		///@name Un accessible methods
 		///@{
 		///@}
-
 	};
-
 }
 #endif // SHELL_THIN_ELEMENT_3D4N_H_INCLUDED

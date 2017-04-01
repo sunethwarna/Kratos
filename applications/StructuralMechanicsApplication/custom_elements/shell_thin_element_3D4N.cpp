@@ -415,7 +415,7 @@ namespace Kratos
 					geom[i].Id());
 
 			if (geom[i].GetBufferSize() < 2)
-				KRATOS_THROW_ERROR(std::logic_error, 
+				KRATOS_THROW_ERROR(std::logic_error,
 					"This Element needs at least a buffer size = 2", "");
 		}
 
@@ -736,26 +736,115 @@ namespace Kratos
 			std::vector<double>& rValues,
 			const ProcessInfo& rCurrentProcessInfo)
 	{
-		SizeType size = GetGeometry().size();
-		if (rValues.size() != size)
-			rValues.resize(size);
-
-		std::vector<double> temp(size);
-
-		for (SizeType i = 0; i < size; i++)
-			mSections[i]->GetValue(rVariable, temp[i]);
-
-		const Matrix & shapeFunctions = GetGeometry().ShapeFunctionsValues();
-		Vector N(size);
-
-		for (SizeType i = 0; i < size; i++)
+		if (rVariable == VON_MISES_STRESS)
 		{
-			noalias(N) = row(shapeFunctions, i);
-			double& ival = rValues[i];
-			ival = 0.0;
-			for (SizeType j = 0; j < size; j++)
+			// resize output
+			size_t size = 4;
+			if (rValues.size() != size)
+				rValues.resize(size);
+
+			// Compute the local coordinate system.
+			ShellQ4_LocalCoordinateSystem localCoordinateSystem(
+				mpCoordinateTransformation->CreateLocalCoordinateSystem());
+
+			ShellQ4_LocalCoordinateSystem referenceCoordinateSystem(
+				mpCoordinateTransformation->CreateReferenceCoordinateSystem());
+
+			// Initialize common calculation variables
+			CalculationData data(localCoordinateSystem, 
+				referenceCoordinateSystem,rCurrentProcessInfo);
+			data.CalculateLHS = false;
+			data.CalculateRHS = true;
+			InitializeCalculationData(data);
+
+			double von_mises_top, von_mises_bottom, thickness;
+
+			// loop over gauss points
+			for (unsigned int gauss_point = 0; gauss_point < 4; ++gauss_point)
 			{
-				ival += N(j) * temp[j];
+				// Compute all strain-displacement matrices
+				data.gpIndex = gauss_point;
+				CalculateBMatrix(data);
+
+				// Calculate strain vectors in local coordinate system
+				noalias(data.generalizedStrains) =
+					prod(data.B, data.localDisplacements);
+
+				// Calculate the response of the Cross Section
+				ShellCrossSection::Pointer & section = mSections[gauss_point];
+				CalculateSectionResponse(data);
+				thickness = section->GetThickness();
+				
+
+				// account for orientation
+				if (section->GetOrientationAngle() != 0.0)
+				{
+					Matrix R(6, 6);
+					section->GetRotationMatrixForGeneralizedStresses
+						(-(section->GetOrientationAngle()), R);
+					data.generalizedStresses = prod(R, data.generalizedStresses);
+				}
+				
+
+				// recover stresses
+				for (unsigned int index = 0; index < 3; ++index)
+				{
+					// forces -> stresses
+					data.generalizedStresses[index] /= thickness;
+
+					// moments -> stresses
+					data.generalizedStresses[3 + index] *=
+						6.00 / (thickness*thickness);
+				}
+
+				// calc von mises stresses at top and bottom surfaces for 
+				// thin shell. Need to consider mid surface for thick shells!
+				double sxx, syy, sxy;
+
+				sxx = data.generalizedStresses[0] + data.generalizedStresses[3];
+				syy = data.generalizedStresses[1] + data.generalizedStresses[4];
+				sxy = data.generalizedStresses[2] + data.generalizedStresses[5];
+				von_mises_top = sxx*sxx - sxx*syy + syy*syy + 3.0*sxy*sxy;
+				
+
+				sxx = data.generalizedStresses[0] - data.generalizedStresses[3];
+				syy = data.generalizedStresses[1] - data.generalizedStresses[4];
+				sxy = data.generalizedStresses[2] - data.generalizedStresses[5];
+				von_mises_bottom = sxx*sxx - sxx*syy + syy*syy + 3.0*sxy*sxy;
+
+				if (von_mises_top < 0.0 || von_mises_bottom < 0.0)
+				{
+					std::cout << "Negative von mises calculated!!!?!?!" << std::endl;
+				}
+
+				// take the greatest value and output
+				rValues[gauss_point] = 
+					std::sqrt(std::max(von_mises_top, von_mises_bottom));
+			}
+		}
+		else
+		{
+			SizeType size = GetGeometry().size();
+			if (rValues.size() != size)
+				rValues.resize(size);
+
+			std::vector<double> temp(size);
+
+			for (SizeType i = 0; i < size; i++)
+				mSections[i]->GetValue(rVariable, temp[i]);
+
+			const Matrix & shapeFunctions = GetGeometry().ShapeFunctionsValues();
+			Vector N(size);
+
+			for (SizeType i = 0; i < size; i++)
+			{
+				noalias(N) = row(shapeFunctions, i);
+				double& ival = rValues[i];
+				ival = 0.0;
+				for (SizeType j = 0; j < size; j++)
+				{
+					ival += N(j) * temp[j];
+				}
 			}
 		}
 	}
@@ -849,7 +938,7 @@ namespace Kratos
 		if (a_dot_b > 1.0) a_dot_b = 1.0;
 		double angle = std::acos(a_dot_b);
 
-		// if they are not counter-clock-wise, 
+		// if they are not counter-clock-wise,
 		// let's change the sign of the angle
 		if (angle != 0.0)
 		{
@@ -921,7 +1010,7 @@ namespace Kratos
 
 			// Compute Jacobian, Inverse of Jacobian, Determinant of Jacobian
 			// and Shape functions derivatives in the local coordinate system
-			data.jacOp.Calculate(data.LCS0, 
+			data.jacOp.Calculate(data.LCS0,
 				geom.ShapeFunctionLocalGradient(gp));
 
 			// compute the 'area' of the current integration point
@@ -938,11 +1027,14 @@ namespace Kratos
 		// implementation of a variable thickness
 
 		const double A = data.LCS0.Area();
-		//printDouble("Area = ", A);
-		double h = 0.0;
+		data.element_thickness = 0.0;
 		for (unsigned int i = 0; i < mSections.size(); i++)
-			h += mSections[i]->GetThickness();
-		h /= (double)mSections.size();
+		{
+			data.element_thickness += mSections[i]->GetThickness();
+		}
+		data.element_thickness /= (double)mSections.size();
+
+		//h /= (double)mSections.size();
 		//data.hMean = h;
 		//data.TotalArea = A;
 		//data.TotalVolume = A * h;
@@ -1090,7 +1182,7 @@ namespace Kratos
 		Vector s_eta = Vector(data.r_cartesian[2] + data.r_cartesian[3]);
 		s_eta /= std::sqrt(inner_prod(s_eta, s_eta));
 
-		//eqn 5.2.21 - modified as per Felippa supernatural quad paper 
+		//eqn 5.2.21 - modified as per Felippa supernatural quad paper
 		//eqns 63, 65
 		array_1d<double, 4> v_h;
 		double A_0 = data.LCS0.Area();		//element area
@@ -1437,13 +1529,13 @@ namespace Kratos
 		data.DKQ_d[3] = -1.0 * y41 / l_41 / l_41;
 
 		//assemble e_k - eqn 3.86e : e[0] = e_5
-		data.DKQ_e[0] = (-1.0 * x12 * x12 / 2.0 + y12 * y12 / 4.0) / l_12 / 
+		data.DKQ_e[0] = (-1.0 * x12 * x12 / 2.0 + y12 * y12 / 4.0) / l_12 /
 			l_12;
-		data.DKQ_e[1] = (-1.0 * x23 * x23 / 2.0 + y23 * y23 / 4.0) / l_23 / 
+		data.DKQ_e[1] = (-1.0 * x23 * x23 / 2.0 + y23 * y23 / 4.0) / l_23 /
 			l_23;
-		data.DKQ_e[2] = (-1.0 * x34 * x34 / 2.0 + y34 * y34 / 4.0) / l_34 / 
+		data.DKQ_e[2] = (-1.0 * x34 * x34 / 2.0 + y34 * y34 / 4.0) / l_34 /
 			l_34;
-		data.DKQ_e[3] = (-1.0 * x41 * x41 / 2.0 + y41 * y41 / 4.0) / l_41 / 
+		data.DKQ_e[3] = (-1.0 * x41 * x41 / 2.0 + y41 * y41 / 4.0) / l_41 /
 			l_41;
 
 		//prepare DKT assembly indices - for eqn 3.92 a->f
@@ -2034,6 +2126,8 @@ namespace Kratos
 			// Calculate strain vectors in local coordinate system
 			noalias(data.generalizedStrains) =
 				prod(data.B, data.localDisplacements);
+
+			//data.generalizedStrains[4] = 0.1;// composite testing
 
 			// Calculate the response of the Cross Section
 			ShellCrossSection::Pointer & section = mSections[i];

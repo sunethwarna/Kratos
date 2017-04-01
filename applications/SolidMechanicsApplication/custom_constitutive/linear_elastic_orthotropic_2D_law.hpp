@@ -101,6 +101,40 @@ namespace Kratos
 		*/
 		void GetLawFeatures(Features& rFeatures); //update this
 
+		bool Has(const Variable<double>& rThisVariable);
+		bool Has(const Variable<Vector>& rThisVariable);
+		bool Has(const Variable<Matrix>& rThisVariable);
+
+		double& GetValue(const Variable<double>& rThisVariable, double& rValue);
+		Vector& GetValue(const Variable<Vector>& rThisVariable, Vector& rValue);
+		Matrix& GetValue(const Variable<Matrix>& rThisVariable, Matrix& rValue);
+
+		void SetValue(const Variable<double>& rVariable,
+			const double& rValue,
+			const ProcessInfo& rCurrentProcessInfo);
+		void SetValue(const Variable<Vector>& rThisVariable,
+			const Vector& rValue,
+			const ProcessInfo& rCurrentProcessInfo);
+		void SetValue(const Variable<Matrix>& rThisVariable,
+			const Matrix& rValue,
+			const ProcessInfo& rCurrentProcessInfo);
+		/**
+		* Material parameters are inizialized
+		*/
+		void InitializeMaterial(const Properties& rMaterialProperties,
+			const GeometryType& rElementGeometry,
+			const Vector& rShapeFunctionsValues);
+
+		void InitializeSolutionStep(const Properties& rMaterialProperties,
+			const GeometryType& rElementGeometry, //this is just to give the array of nodes
+			const Vector& rShapeFunctionsValues,
+			const ProcessInfo& rCurrentProcessInfo);
+
+		void FinalizeSolutionStep(const Properties& rMaterialProperties,
+			const GeometryType& rElementGeometry, //this is just to give the array of nodes
+			const Vector& rShapeFunctionsValues,
+			const ProcessInfo& rCurrentProcessInfo);
+
 		/**
 		* Computes the material response:
 		* PK2 stresses and algorithmic ConstitutiveMatrix
@@ -151,6 +185,11 @@ namespace Kratos
 		///@}
 		///@name Protected member Variables
 		///@{
+		Matrix mInverseDeformationGradientF0;
+
+		double mDeterminantF0;
+
+		double mStrainEnergy;
 		///@}
 		///@name Protected Operators
 		///@{
@@ -223,12 +262,20 @@ namespace Kratos
 		virtual void save(Serializer& rSerializer) const
 		{
 			KRATOS_SERIALIZE_SAVE_BASE_CLASS(rSerializer, ConstitutiveLaw)
+				rSerializer.save("mInverseDeformationGradientF0", mInverseDeformationGradientF0);
+			rSerializer.save("mDeterminantF0", mDeterminantF0);
+			rSerializer.save("mStrainEnergy", mStrainEnergy);
 		}
 
 		virtual void load(Serializer& rSerializer)
 		{
 			KRATOS_SERIALIZE_LOAD_BASE_CLASS(rSerializer, ConstitutiveLaw)
+				rSerializer.load("mInverseDeformationGradientF0", mInverseDeformationGradientF0);
+			rSerializer.load("mDeterminantF0", mDeterminantF0);
+			rSerializer.load("mStrainEnergy", mStrainEnergy);
 		}
+
+		///@}
 	}; // Class LinearElasticOrthotropic2DLaw
 }  // namespace Kratos.
 #endif // KRATOS_LINEAR_ELASTIC_ORTHOTROPIC_2D_LAW_H_INCLUDED  defined
