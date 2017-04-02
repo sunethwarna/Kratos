@@ -1362,6 +1362,29 @@ namespace Kratos
 		{
 			ijob = 5;
 		}
+		else if (rVariable == SHELL_STRESS_TOP_SURFACE_GLOBAL)
+		{
+			ijob = 5;
+			bGlobal = true;
+		}
+		else if (rVariable == SHELL_STRESS_MIDDLE_SURFACE)
+		{
+			ijob = 6;
+		}
+		else if (rVariable == SHELL_STRESS_MIDDLE_SURFACE_GLOBAL)
+		{
+			ijob = 6;
+			bGlobal = true;
+		}
+		else if (rVariable == SHELL_STRESS_BOTTOM_SURFACE)
+		{
+			ijob = 7;
+		}
+		else if (rVariable == SHELL_STRESS_BOTTOM_SURFACE_GLOBAL)
+		{
+			ijob = 7;
+			bGlobal = true;
+		}
 
 		// quick return
 
@@ -1474,10 +1497,32 @@ namespace Kratos
 			}
 			else if (ijob == 5) // SHELL_STRESS_TOP_SURFACE
 			{
-				iValue(0, 0) = data.generalizedStresses(0) + data.generalizedStresses(3);
-				iValue(1, 1) = data.generalizedStresses(1) + data.generalizedStresses(4);
+				iValue(0, 0) = data.generalizedStresses(0) + 
+								data.generalizedStresses(3);
+				iValue(1, 1) = data.generalizedStresses(1) + 
+								data.generalizedStresses(4);
 				iValue(2, 2) = 0.0;
-				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses[2] + data.generalizedStresses[5];
+				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses[2] +													data.generalizedStresses[5];
+				iValue(0, 2) = iValue(2, 0) = 0.0;
+				iValue(1, 2) = iValue(2, 1) = 0.0;
+			}
+			else if (ijob == 6) // SHELL_STRESS_MIDDLE_SURFACE
+			{
+				iValue(0, 0) = data.generalizedStresses(0);
+				iValue(1, 1) = data.generalizedStresses(1);
+				iValue(2, 2) = 0.0;
+				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses[2];
+				iValue(0, 2) = iValue(2, 0) = data.generalizedStresses[6];
+				iValue(1, 2) = iValue(2, 1) = data.generalizedStresses[7];
+			}
+			else if (ijob == 7) // SHELL_STRESS_BOTTOM_SURFACE
+			{
+				iValue(0, 0) = data.generalizedStresses(0) - 
+								data.generalizedStresses(3);
+				iValue(1, 1) = data.generalizedStresses(1) - 
+								data.generalizedStresses(4);
+				iValue(2, 2) = 0.0;
+				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses[2] -													data.generalizedStresses[5];
 				iValue(0, 2) = iValue(2, 0) = 0.0;
 				iValue(1, 2) = iValue(2, 1) = 0.0;
 			}
