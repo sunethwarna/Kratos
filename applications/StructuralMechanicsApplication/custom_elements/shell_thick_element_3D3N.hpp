@@ -274,6 +274,9 @@ namespace Kratos
 
 		///@name Private Operations
 		///@{
+		void CalculateStressesFromForceResultants
+			(VectorType& rstresses, 
+				const double& rthickness);
 
 		void DecimalCorrection(Vector& a);
 

@@ -738,6 +738,9 @@ namespace Kratos
 	{
 		if (rVariable == VON_MISES_STRESS)
 		{
+			// Von Mises stress is calculated at the top and bottom
+			// surface, with the maximum value returned to the output
+
 			// resize output
 			size_t size = 4;
 			if (rValues.size() != size)
@@ -798,7 +801,7 @@ namespace Kratos
 				}
 
 				// calc von mises stresses at top and bottom surfaces for 
-				// thin shell. Need to consider mid surface for thick shells!
+				// thin shell
 				double sxx, syy, sxy;
 
 				sxx = data.generalizedStresses[0] + data.generalizedStresses[3];
@@ -811,11 +814,6 @@ namespace Kratos
 				syy = data.generalizedStresses[1] - data.generalizedStresses[4];
 				sxy = data.generalizedStresses[2] - data.generalizedStresses[5];
 				von_mises_bottom = sxx*sxx - sxx*syy + syy*syy + 3.0*sxy*sxy;
-
-				if (von_mises_top < 0.0 || von_mises_bottom < 0.0)
-				{
-					std::cout << "Negative von mises calculated!!!?!?!" << std::endl;
-				}
 
 				// take the greatest value and output
 				rValues[gauss_point] = 
