@@ -226,8 +226,21 @@ namespace Kratos
 
 			bool CalculateRHS; /*!< flag for the calculation of the right-hand-side vector */
 			bool CalculateLHS; /*!< flag for the calculation of the left-hand-side vector */
-			const bool basicTriCST = false;	/*!< flag to use basic CST displacement-based formulation */
-											// Should be false!
+
+			// ---------------------------------------
+			// Testing flags
+			// ---------------------------------------
+			// These should both be FALSE unless you are testing, or 
+			// investigating the effects of element enhancements!
+
+			const bool basicTriCST = false;	/*!< flag to use basic CST 
+											displacement-based formulation. This 
+											should be false unless you are 
+											testing! */
+
+			const bool ignore_shear_stabilization = false; /*!< flag to 
+											stabilize the transverse shear part of the material						matrix. This should be false unless 
+											you are testing! */
 
 			// ---------------------------------------
 			// calculation-variable data

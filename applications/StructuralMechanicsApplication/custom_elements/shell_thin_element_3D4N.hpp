@@ -322,7 +322,10 @@ namespace Kratos
 
 			bool CalculateRHS; /*!< flag for the calculation of the right-hand-side vector */
 			bool CalculateLHS; /*!< flag for the calculation of the left-hand-side vector */
-			const bool basicQuad = true;	/*!< flag for using basic membrane formulation - should be false! */
+
+			const bool basicQuad = true;	/*!< flag for using basic membrane 
+											formulation - should be false unless
+											you are testing */
 
 			// ---------------------------------------
 			// calculation-variable data
@@ -369,6 +372,10 @@ namespace Kratos
 
 		///@name Private Operations
 		///@{
+		void CalculateStressesFromForceResultants
+			(VectorType& rstresses,
+				const double& rthickness);
+
 		void DecimalCorrection(Vector& a);
 
 		void SetupOrientationAngles();
@@ -379,9 +386,11 @@ namespace Kratos
 
 		void CalculateSectionResponse(CalculationData& data);
 
-		void CalculateGaussPointContribution(CalculationData& data, MatrixType& LHS, VectorType& RHS);
+		void CalculateGaussPointContribution(CalculationData& data, 
+			MatrixType& LHS, VectorType& RHS);
 
-		void AddBodyForces(CalculationData& data, VectorType& rRightHandSideVector); //not required for dyn
+		void AddBodyForces(CalculationData& data, 
+			VectorType& rRightHandSideVector); //not required for dyn
 
 		void CalculateAll(MatrixType& rLeftHandSideMatrix,
 			VectorType& rRightHandSideVector,

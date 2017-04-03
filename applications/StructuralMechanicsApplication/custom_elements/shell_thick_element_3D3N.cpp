@@ -656,17 +656,17 @@ namespace Kratos
 		if (rValues.size() != OPT_NUM_GP)
 			rValues.resize(OPT_NUM_GP);
 
-		if (rVariable == VON_MISES_STRESS)
+		if (rVariable == VON_MISES_STRESS ||
+			rVariable == VON_MISES_STRESS_TOP_SURFACE ||
+			rVariable == VON_MISES_STRESS_MIDDLE_SURFACE ||
+			rVariable == VON_MISES_STRESS_BOTTOM_SURFACE)
 		{
-			// Von Mises stress is calculated at the top, mid, and bottom
-			// surface, with the maximum value returned to the output
-
 			// Initialize common calculation variables
 			CalculationData data(mpCoordinateTransformation, rCurrentProcessInfo);
 			data.CalculateLHS = true;
 			data.CalculateRHS = true;
 			InitializeCalculationData(data);
-			double von_mises_top, von_mises_mid, von_mises_bottom, thickness;
+			double von_mises_top, von_mises_mid, von_mises_bottom;
 
 			// loop over gauss points
 			for (unsigned int gauss_point = 0; gauss_point < OPT_NUM_GP; ++gauss_point)
@@ -681,6 +681,14 @@ namespace Kratos
 				// Calculate the response of the Cross Section
 				ShellCrossSection::Pointer & section = mSections[gauss_point];
 				CalculateSectionResponse(data);
+				data.generalizedStresses = prod(data.D, data.generalizedStrains);
+				// (perform the calculation manually (outside material law) to 
+				// ensure stabilization is used on the transverse shear part 
+				// of the material matrix
+
+				// recover stresses
+				CalculateStressesFromForceResultants(data.generalizedStresses,
+					section->GetThickness());
 
 				// account for orientation
 				if (section->GetOrientationAngle() != 0.0)
@@ -691,15 +699,11 @@ namespace Kratos
 					data.generalizedStresses = prod(R, data.generalizedStresses);
 				}
 
-				// recover stresses
-				CalculateStressesFromForceResultants(data.generalizedStresses,
-					section->GetThickness());
-				
 				// calc von mises stresses at top, mid and bottom surfaces for
 				// thick shell
 				double sxx, syy, sxy, sxz, syz;
 
-				// top surface: membrane and bending contributions
+				// top surface: membrane and +bending contributions
 				//				(no transverse shear)
 				sxx = data.generalizedStresses[0] + data.generalizedStresses[3];
 				syy = data.generalizedStresses[1] + data.generalizedStresses[4];
@@ -716,16 +720,33 @@ namespace Kratos
 				von_mises_mid = sxx*sxx - sxx*syy + syy*syy +
 					3.0*(sxy*sxy + sxz*sxz + syz*syz);
 
-				// bottom surface:	membrane and bending contributions
+				// bottom surface:	membrane and -bending contributions
 				//					(no transverse shear)
 				sxx = data.generalizedStresses[0] - data.generalizedStresses[3];
 				syy = data.generalizedStresses[1] - data.generalizedStresses[4];
 				sxy = data.generalizedStresses[2] - data.generalizedStresses[5];
 				von_mises_bottom = sxx*sxx - sxx*syy + syy*syy + 3.0*sxy*sxy;
 
-				// take the greatest value and output
-				rValues[gauss_point] =
-					std::sqrt(std::max(von_mises_top, std::max(von_mises_mid, von_mises_bottom)));
+				// Output requested quantity
+				if (rVariable == VON_MISES_STRESS_TOP_SURFACE)
+				{
+					rValues[gauss_point] = sqrt(von_mises_top);
+				}
+				else if (rVariable == VON_MISES_STRESS_MIDDLE_SURFACE)
+				{
+					rValues[gauss_point] = sqrt(von_mises_mid);
+				}
+				else if (rVariable == VON_MISES_STRESS_BOTTOM_SURFACE)
+				{
+					rValues[gauss_point] = sqrt(von_mises_bottom);
+				}
+				else if (rVariable == VON_MISES_STRESS)
+				{
+					// take the greatest value and output
+					rValues[gauss_point] =
+						sqrt(std::max(von_mises_top,
+							std::max(von_mises_mid, von_mises_bottom)));
+				}
 			}
 		}
 		else
@@ -784,6 +805,8 @@ namespace Kratos
 	void ShellThickElement3D3N::CalculateStressesFromForceResultants
 		(VectorType& rstresses, const double& rthickness)
 	{
+		// Refer http://www.colorado.edu/engineering/CAS/courses.d/AFEM.d/AFEM.Ch20.d/AFEM.Ch20.pdf
+
 		// recover stresses
 		for (unsigned int index = 0; index < 3; ++index)
 		{
@@ -871,11 +894,12 @@ namespace Kratos
 		data.SectionParameters.SetShapeFunctionsValues(data.N);
 		section->CalculateSectionResponse(data.SectionParameters, ConstitutiveLaw::StressMeasure_PK2);
 
-		if (data.basicTriCST == false)
+		if (data.basicTriCST == false && 
+			data.ignore_shear_stabilization == false)
 		{
 			//add in shear stabilization
-			double h2 = data.hMean*data.hMean;
-			double shearStabilisation = (h2) / (h2 + data.alpha*data.h_e*data.h_e);
+			double shearStabilisation = (data.hMean*data.hMean)
+				/ (data.hMean*data.hMean + data.alpha*data.h_e*data.h_e);
 			data.D(6, 6) *= shearStabilisation;
 			data.D(6, 7) *= shearStabilisation;
 			data.D(7, 6) *= shearStabilisation;
@@ -1121,8 +1145,12 @@ namespace Kratos
 		data.SectionParameters.SetConstitutiveMatrix(data.D);
 		data.SectionParameters.SetShapeFunctionsDerivatives(data.dNxy);
 		Flags& options = data.SectionParameters.GetOptions();
-		options.Set(ConstitutiveLaw::COMPUTE_STRESS, data.CalculateRHS);
-		options.Set(ConstitutiveLaw::COMPUTE_CONSTITUTIVE_TENSOR, data.CalculateLHS);
+		//options.Set(ConstitutiveLaw::COMPUTE_STRESS, data.CalculateRHS); //set
+		// to false so we use the shear stabilization added in
+		// 'CalculateSectionResponse()'
+		options.Set(ConstitutiveLaw::COMPUTE_STRESS, false); //set to false
+		options.Set(ConstitutiveLaw::COMPUTE_CONSTITUTIVE_TENSOR,
+			data.CalculateLHS);
 
 		//--------------------------------------
 		// calculate the displacement vector
@@ -1419,11 +1447,11 @@ namespace Kratos
 		{
 			CalculateSectionResponse(data);
 			noalias(data.generalizedStresses) = prod(data.D, data.generalizedStrains);
-			
+
 			if (ijob > 4)
 			{
 				// Compute stresses
-				CalculateStressesFromForceResultants(data.generalizedStresses, 
+				CalculateStressesFromForceResultants(data.generalizedStresses,
 					section->GetThickness());
 			}
 
@@ -1497,12 +1525,12 @@ namespace Kratos
 			}
 			else if (ijob == 5) // SHELL_STRESS_TOP_SURFACE
 			{
-				iValue(0, 0) = data.generalizedStresses(0) + 
-								data.generalizedStresses(3);
-				iValue(1, 1) = data.generalizedStresses(1) + 
-								data.generalizedStresses(4);
+				iValue(0, 0) = data.generalizedStresses(0) +
+					data.generalizedStresses(3);
+				iValue(1, 1) = data.generalizedStresses(1) +
+					data.generalizedStresses(4);
 				iValue(2, 2) = 0.0;
-				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses[2] +													data.generalizedStresses[5];
+				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses[2] + data.generalizedStresses[5];
 				iValue(0, 2) = iValue(2, 0) = 0.0;
 				iValue(1, 2) = iValue(2, 1) = 0.0;
 			}
@@ -1517,12 +1545,12 @@ namespace Kratos
 			}
 			else if (ijob == 7) // SHELL_STRESS_BOTTOM_SURFACE
 			{
-				iValue(0, 0) = data.generalizedStresses(0) - 
-								data.generalizedStresses(3);
-				iValue(1, 1) = data.generalizedStresses(1) - 
-								data.generalizedStresses(4);
+				iValue(0, 0) = data.generalizedStresses(0) -
+					data.generalizedStresses(3);
+				iValue(1, 1) = data.generalizedStresses(1) -
+					data.generalizedStresses(4);
 				iValue(2, 2) = 0.0;
-				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses[2] -													data.generalizedStresses[5];
+				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses[2] - data.generalizedStresses[5];
 				iValue(0, 2) = iValue(2, 0) = 0.0;
 				iValue(1, 2) = iValue(2, 1) = 0.0;
 			}

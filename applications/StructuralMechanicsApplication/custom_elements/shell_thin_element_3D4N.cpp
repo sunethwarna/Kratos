@@ -736,10 +736,11 @@ namespace Kratos
 			std::vector<double>& rValues,
 			const ProcessInfo& rCurrentProcessInfo)
 	{
-		if (rVariable == VON_MISES_STRESS)
+		if (rVariable == VON_MISES_STRESS ||
+			rVariable == VON_MISES_STRESS_TOP_SURFACE ||
+			rVariable == VON_MISES_STRESS_MIDDLE_SURFACE ||
+			rVariable == VON_MISES_STRESS_BOTTOM_SURFACE)
 		{
-			// Von Mises stress is calculated at the top and bottom
-			// surface, with the maximum value returned to the output
 
 			// resize output
 			size_t size = 4;
@@ -759,8 +760,7 @@ namespace Kratos
 			data.CalculateLHS = false;
 			data.CalculateRHS = true;
 			InitializeCalculationData(data);
-
-			double von_mises_top, von_mises_bottom, thickness;
+			double von_mises_top, von_mises_mid, von_mises_bottom;
 
 			// loop over gauss points
 			for (unsigned int gauss_point = 0; gauss_point < 4; ++gauss_point)
@@ -776,8 +776,10 @@ namespace Kratos
 				// Calculate the response of the Cross Section
 				ShellCrossSection::Pointer & section = mSections[gauss_point];
 				CalculateSectionResponse(data);
-				thickness = section->GetThickness();
 				
+				// recover stresses
+				CalculateStressesFromForceResultants(data.generalizedStresses,
+					section->GetThickness());
 
 				// account for orientation
 				if (section->GetOrientationAngle() != 0.0)
@@ -787,37 +789,53 @@ namespace Kratos
 						(-(section->GetOrientationAngle()), R);
 					data.generalizedStresses = prod(R, data.generalizedStresses);
 				}
-				
 
-				// recover stresses
-				for (unsigned int index = 0; index < 3; ++index)
-				{
-					// forces -> stresses
-					data.generalizedStresses[index] /= thickness;
-
-					// moments -> stresses
-					data.generalizedStresses[3 + index] *=
-						6.00 / (thickness*thickness);
-				}
-
-				// calc von mises stresses at top and bottom surfaces for 
+				// calc von mises stresses at top mid and bottom surfaces for 
 				// thin shell
 				double sxx, syy, sxy;
 
+				// top surface: membrane and +bending contributions
+				//				(no transverse shear)
 				sxx = data.generalizedStresses[0] + data.generalizedStresses[3];
 				syy = data.generalizedStresses[1] + data.generalizedStresses[4];
 				sxy = data.generalizedStresses[2] + data.generalizedStresses[5];
 				von_mises_top = sxx*sxx - sxx*syy + syy*syy + 3.0*sxy*sxy;
-				
 
+				// mid surface: membrane only contributions
+				//				(no bending or transverse shear)
+				sxx = data.generalizedStresses[0];
+				syy = data.generalizedStresses[1];
+				sxy = data.generalizedStresses[2];
+				von_mises_mid = sxx*sxx - sxx*syy + syy*syy +
+					3.0*(sxy*sxy);
+
+				// bottom surface:	membrane and -bending contributions
+				//					(no transverse shear)
 				sxx = data.generalizedStresses[0] - data.generalizedStresses[3];
 				syy = data.generalizedStresses[1] - data.generalizedStresses[4];
 				sxy = data.generalizedStresses[2] - data.generalizedStresses[5];
 				von_mises_bottom = sxx*sxx - sxx*syy + syy*syy + 3.0*sxy*sxy;
 
-				// take the greatest value and output
-				rValues[gauss_point] = 
-					std::sqrt(std::max(von_mises_top, von_mises_bottom));
+				// Output requested quantity
+				if (rVariable == VON_MISES_STRESS_TOP_SURFACE)
+				{
+					rValues[gauss_point] = sqrt(von_mises_top);
+				}
+				else if (rVariable == VON_MISES_STRESS_MIDDLE_SURFACE)
+				{
+					rValues[gauss_point] = sqrt(von_mises_mid);
+				}
+				else if (rVariable == VON_MISES_STRESS_BOTTOM_SURFACE)
+				{
+					rValues[gauss_point] = sqrt(von_mises_bottom);
+				}
+				else if (rVariable == VON_MISES_STRESS)
+				{
+					// take the greatest value and output
+					rValues[gauss_point] =
+						sqrt(std::max(von_mises_top,
+							std::max(von_mises_mid, von_mises_bottom)));
+				}
 			}
 		}
 		else
@@ -884,6 +902,23 @@ namespace Kratos
 	// Class ShellThinElement3D4N - Private methods
 	//
 	// =========================================================================
+
+	void ShellThinElement3D4N::CalculateStressesFromForceResultants
+		(VectorType& rstresses, const double& rthickness)
+	{
+		// Refer http://www.colorado.edu/engineering/CAS/courses.d/AFEM.d/AFEM.Ch20.d/AFEM.Ch20.pdf
+
+		// recover stresses
+		for (unsigned int index = 0; index < 3; ++index)
+		{
+			// membrane forces -> stresses (av. across whole thickness)
+			rstresses[index] /= rthickness;
+
+			// bending moments -> stresses (@ top and bottom surface)
+			rstresses[3 + index] *=
+				6.0 / (rthickness*rthickness);
+		}
+	}
 
 	void ShellThinElement3D4N::DecimalCorrection(Vector& a)
 	{
@@ -2081,6 +2116,33 @@ namespace Kratos
 			ijob = 4;
 			bGlobal = true;
 		}
+		else if (rVariable == SHELL_STRESS_TOP_SURFACE)
+		{
+			ijob = 5;
+		}
+		else if (rVariable == SHELL_STRESS_TOP_SURFACE_GLOBAL)
+		{
+			ijob = 5;
+			bGlobal = true;
+		}
+		else if (rVariable == SHELL_STRESS_MIDDLE_SURFACE)
+		{
+			ijob = 6;
+		}
+		else if (rVariable == SHELL_STRESS_MIDDLE_SURFACE_GLOBAL)
+		{
+			ijob = 6;
+			bGlobal = true;
+		}
+		else if (rVariable == SHELL_STRESS_BOTTOM_SURFACE)
+		{
+			ijob = 7;
+		}
+		else if (rVariable == SHELL_STRESS_BOTTOM_SURFACE_GLOBAL)
+		{
+			ijob = 7;
+			bGlobal = true;
+		}
 
 		// quick return
 
@@ -2132,6 +2194,14 @@ namespace Kratos
 			if (ijob > 2)
 			{
 				CalculateSectionResponse(data);
+
+				if (ijob > 4)
+				{
+					// Compute stresses
+					CalculateStressesFromForceResultants(data.generalizedStresses,
+						section->GetThickness());
+				}
+
 				DecimalCorrection(data.generalizedStresses);
 			}
 
@@ -2195,6 +2265,37 @@ namespace Kratos
 				iValue(1, 1) = data.generalizedStresses(4);
 				iValue(2, 2) = 0.0;
 				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses(5);
+				iValue(0, 2) = iValue(2, 0) = 0.0;
+				iValue(1, 2) = iValue(2, 1) = 0.0;
+			}
+			else if (ijob == 5) // SHELL_STRESS_TOP_SURFACE
+			{
+				iValue(0, 0) = data.generalizedStresses(0) +
+					data.generalizedStresses(3);
+				iValue(1, 1) = data.generalizedStresses(1) +
+					data.generalizedStresses(4);
+				iValue(2, 2) = 0.0;
+				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses[2] + data.generalizedStresses[5];
+				iValue(0, 2) = iValue(2, 0) = 0.0;
+				iValue(1, 2) = iValue(2, 1) = 0.0;
+			}
+			else if (ijob == 6) // SHELL_STRESS_MIDDLE_SURFACE
+			{
+				iValue(0, 0) = data.generalizedStresses(0);
+				iValue(1, 1) = data.generalizedStresses(1);
+				iValue(2, 2) = 0.0;
+				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses[2];
+				iValue(0, 2) = iValue(2, 0) = 0.0;
+				iValue(1, 2) = iValue(2, 1) = 0.0;
+			}
+			else if (ijob == 7) // SHELL_STRESS_BOTTOM_SURFACE
+			{
+				iValue(0, 0) = data.generalizedStresses(0) -
+					data.generalizedStresses(3);
+				iValue(1, 1) = data.generalizedStresses(1) -
+					data.generalizedStresses(4);
+				iValue(2, 2) = 0.0;
+				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses[2] - data.generalizedStresses[5];
 				iValue(0, 2) = iValue(2, 0) = 0.0;
 				iValue(1, 2) = iValue(2, 1) = 0.0;
 			}
