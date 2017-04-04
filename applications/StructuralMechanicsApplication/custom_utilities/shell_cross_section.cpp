@@ -568,8 +568,22 @@ void ShellCrossSection::CalculateSectionResponse(Parameters& rValues, const Cons
 						if (mStorePlyConstitutiveMatrices)
 						{
 							//pwdebug
-							//noalias(DRT) = prod(mPlyConstitutiveMatrices[ply_number], trans(R));
-							//mPlyConstitutiveMatrices[ply_number] = prod(R, DRT);
+							Matrix three_by_three_rotation_matrix = Matrix(3, 3, 0.0);
+							for (unsigned int row = 0; row < 3; row++)
+							{
+								for (unsigned int col = 0; col < 3; col++)
+								{
+									three_by_three_rotation_matrix(row, col) = 
+										R(row, col);
+								}
+							}
+
+							Matrix ply_DRT = 
+								Matrix(prod(mPlyConstitutiveMatrices[ply_number], 
+									trans(three_by_three_rotation_matrix)));
+							
+							mPlyConstitutiveMatrices[ply_number] = 
+								prod(three_by_three_rotation_matrix, ply_DRT);
 						}
 
 						if(mNeedsOOPCondensation)

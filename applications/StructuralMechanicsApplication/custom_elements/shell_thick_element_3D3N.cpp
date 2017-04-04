@@ -886,7 +886,8 @@ namespace Kratos
 	{
 		ShellCrossSection::Pointer& section = mSections[data.gpIndex];
 
-		// Setup container for constitutive data - units [Pa] and un-rotated!
+		// Setup container for constitutive data 
+		//			units [Pa] and rotated to element orientation!
 		/*
 		std::vector<Matrix> ply_constitutive_matrices =
 			std::vector<Matrix>(section->NumberOfPlies());
@@ -895,7 +896,8 @@ namespace Kratos
 			ply_constitutive_matrices[ply].resize(3, 3, false);
 		}
 		*/
-		// get constitutive matrix for each ply - units [Pa] and un-rotated!
+		// Setup container for constitutive data 
+		//			units [Pa] and rotated to element orientation!
 		section->SetupGetPlyConstitutiveMatrices();
 		CalculateSectionResponse(data); //might need to rotate these more in the shell_cross_section
 		//printMatrix( section->GetPlyConstitutiveMatrix(0),"1st ply material matrix");
@@ -912,7 +914,7 @@ namespace Kratos
 		for (unsigned int plyNumber = 0;
 		plyNumber < section->NumberOfPlies(); ++plyNumber)
 		{
-			printMatrix(section->GetPlyConstitutiveMatrix(plyNumber), "ply material matrix");
+			//printMatrix(section->GetPlyConstitutiveMatrix(plyNumber), "ply material matrix");
 			//std::cout << "Material matrix of ply " << plyNumber << " = :" << std::endl;
 			//printMatrix(section->GetPlyConstitutiveMatrix(plyNumber), "Material matrix of ply");
 
@@ -921,9 +923,9 @@ namespace Kratos
 				data.rlaminateStrains[plyNumber]);
 			data.rlaminateStresses[2 * plyNumber] = temp_stresses;
 
-			std::cout << "Strains at bottom surface of ply " << plyNumber << " = :" << data.rlaminateStresses[2 * plyNumber] << std::endl;
+			//std::cout << "Strains at bottom surface of ply " << plyNumber << " = :" << data.rlaminateStrains[2 * plyNumber] << std::endl;
 
-			std::cout << "Stresses at bottom surface of ply " << plyNumber << " = :" << temp_stresses << std::endl;
+			//std::cout << "Stresses at bottom surface of ply " << plyNumber << " = :" << temp_stresses << std::endl;
 
 			// determine stresses at currrent ply - top surface
 			temp_stresses = prod(section->GetPlyConstitutiveMatrix(plyNumber),
@@ -1566,6 +1568,29 @@ namespace Kratos
 		{
 			if (ijob >7)
 			{
+				bool nasaTest5 = false;
+				bool nasaTest7 = false;
+
+				if (nasaTest5)
+				{
+					std::cout << "Running test case for nasa paper ex 5" << std::endl;
+					data.generalizedStrains.clear();
+					data.generalizedStrains[3] = 0.418;
+					data.generalizedStrains[4] = -0.165;
+					data.generalizedStrains[5] = -0.0975;
+				}
+				else if (nasaTest7)
+				{
+					std::cout << "Running test case for nasa paper ex 7" << std::endl;
+					data.generalizedStrains.clear();
+					data.generalizedStrains[0] = 0.00425;
+					data.generalizedStrains[1] = -0.00077;
+					data.generalizedStrains[2] = -0.0029;
+					data.generalizedStrains[3] = -1.02;
+					data.generalizedStrains[4] = 0.088;
+					data.generalizedStrains[5] = 0.92;
+				}
+
 				//Calculate lamina stresses
 				CalculateLaminaStrains(data);
 				CalculateLaminaStresses(data);
@@ -1683,13 +1708,27 @@ namespace Kratos
 			}
 			else if (ijob == 8) // SHELL_ORTHOTROPIC_LAYER_STRESS
 			{
-				bGlobal = false;				
+				bGlobal = true;			
+
+
 				iValue(0, 0) = data.rlaminateStresses[0][0];
 				iValue(1, 1) = data.rlaminateStresses[0][1];
 				iValue(2, 2) = 0.0;
 				iValue(0, 1) = iValue(1, 0) = data.rlaminateStresses[0][2];
-				iValue(0, 2) = iValue(2, 0) = 0.0;	// pwdebug
-				iValue(1, 2) = iValue(2, 1) = 0.0;	// pwdebug
+				iValue(0, 2) = iValue(2, 0) = 0.0;
+				iValue(1, 2) = iValue(2, 1) = 0.0;
+
+				bool topSurface = true;
+				int plies = 2;
+				if (topSurface)
+				{
+					iValue(0, 0) = data.rlaminateStresses[2*plies-1][0];
+					iValue(1, 1) = data.rlaminateStresses[2 * plies-1][1];
+					iValue(2, 2) = 0.0;
+					iValue(0, 1) = iValue(1, 0) = data.rlaminateStresses[2 * plies-1][2];
+					iValue(0, 2) = iValue(2, 0) = 0.0;
+					iValue(1, 2) = iValue(2, 1) = 0.0;
+				}
 				
 			}
 
