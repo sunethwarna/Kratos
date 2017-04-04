@@ -272,6 +272,10 @@ namespace Kratos
 
 			ShellCrossSection::Parameters SectionParameters; /*!< parameters for cross section calculations */
 
+			std::vector<VectorType> rlaminateStrains;
+
+			std::vector<VectorType> rlaminateStresses;
+
 		public:
 
 			const ProcessInfo& CurrentProcessInfo;
@@ -290,6 +294,10 @@ namespace Kratos
 		void CalculateStressesFromForceResultants
 			(VectorType& rstresses, 
 				const double& rthickness);
+
+		void CalculateLaminaStrains(CalculationData& data);
+
+		void CalculateLaminaStresses(CalculationData& data);
 
 		void DecimalCorrection(Vector& a);
 

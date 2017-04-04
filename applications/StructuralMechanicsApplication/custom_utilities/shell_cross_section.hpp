@@ -1102,6 +1102,58 @@ public:
         }
     }
 
+	/**
+	* Stores the thicknesses of plies of this cross section.
+	*/
+	void GetPlyThicknesses(Vector& rply_thicknesses)
+	{
+		int counter = 0;
+		for(PlyCollection::const_iterator it = mStack.begin(); it != mStack.end(); ++it)
+		{
+			const Ply& iPly = *it;
+			rply_thicknesses[counter] = iPly.GetThickness();
+			++counter;
+		}
+	}
+
+	/**
+	* Setup to get the integrated constitutive matrices for each ply
+	*/
+	void SetupGetPlyConstitutiveMatrices()
+	{
+		//this is an ugly solution - need to fix
+		mStorePlyConstitutiveMatrices = true;
+		mPlyConstitutiveMatrices = std::vector<Matrix>(this->NumberOfPlies());
+		for (unsigned int ply = 0; ply < this->NumberOfPlies(); ++ply)
+		{
+			mPlyConstitutiveMatrices[ply].resize(3, 3, false);
+		}
+	}
+
+	/**
+	* Setup to get the integrated constitutive matrices for each ply
+	*/
+	Matrix GetPlyConstitutiveMatrix(const unsigned int ply_number)
+	{
+		/*
+		//this is an ugly solution - need to fix
+		for (unsigned int ply = 0; ply < this->NumberOfPlies(); ++ply)
+		{
+			for (unsigned int row = 0; row < 3; row++)
+			{
+				for (unsigned int col = 0; col < 3; col++)
+				{
+					PlyConstitutiveMatricesIn[ply](row,col) = 
+						mPlyConstitutiveMatrices[ply](row,col);
+				}
+			}
+			
+		}
+		*/
+		//std::cout << "mPlyConstitutiveMatrices[0]11 = " << mPlyConstitutiveMatrices[0](0, 0) << std::endl;
+		return mPlyConstitutiveMatrices[ply_number];
+	}
+
     /**
     * Returns the number of plies of this cross section.
     * @return the number of plies
@@ -1247,7 +1299,8 @@ private:
                                            ConstitutiveLaw::Parameters& rMaterialValues,
                                            Parameters& rValues,
                                            GeneralVariables& rVariables,
-                                           const ConstitutiveLaw::StressMeasure& rStressMeasure);
+                                           const ConstitutiveLaw::StressMeasure& rStressMeasure,
+										   const unsigned int& plyNumber);
 
     /**
     * Creates a deep copy of this cross section.
@@ -1282,6 +1335,8 @@ private:
     bool mNeedsOOPCondensation;
     Vector mOOP_CondensedStrains;
     Vector mOOP_CondensedStrains_converged;
+	bool mStorePlyConstitutiveMatrices = false;
+	std::vector<Matrix> mPlyConstitutiveMatrices;
 
     ///@}
 

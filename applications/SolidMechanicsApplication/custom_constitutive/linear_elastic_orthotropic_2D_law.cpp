@@ -346,6 +346,8 @@ namespace Kratos
 		double Q44 = G23;
 		double Q55 = G13;
 
+		//std::cout << "Q11 in material law = " << Q11 << std::endl;
+
 		double theta = 0.0;	// rotation currently handled through "shell_cross_section.cpp" variable iPlyAngle
 		double c = cos(theta);
 		double c2 = c*c;

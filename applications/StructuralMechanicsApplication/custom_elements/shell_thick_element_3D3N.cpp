@@ -821,6 +821,118 @@ namespace Kratos
 		rstresses[6] *= 1.5 / rthickness;
 		rstresses[7] *= 1.5 / rthickness;
 	}
+	
+	void ShellThickElement3D3N::CalculateLaminaStrains(CalculationData& data)
+	{
+		ShellCrossSection::Pointer& section = mSections[data.gpIndex];
+
+		// Determine midplane of element: z_mid
+		double z_mid = section->GetThickness() / 2.0;
+		double z_current = 0.0;
+		double z_delta;
+
+		// Establish current strains at the midplane - element coordinate system
+		double e_x = data.generalizedStrains[0];
+		double e_y = data.generalizedStrains[1];
+		double e_xy = data.generalizedStrains[2]; // this is still engineering strain (2xtensorial shear)
+		double kap_x = data.generalizedStrains[3];
+		double kap_y = data.generalizedStrains[4];
+		double kap_xy = data.generalizedStrains[5];	// this is still engineering strain (2xtensorial shear)
+
+		// Get ply thicknesses
+		Vector ply_thicknesses = Vector(section->NumberOfPlies(), 0.0);
+		section->GetPlyThicknesses(ply_thicknesses);
+
+		// Resize output vector. 2 Surfaces for each ply
+		std::vector<VectorType> my_laminate_strains =
+			std::vector<VectorType>(2.0*section->NumberOfPlies());
+		data.rlaminateStrains = my_laminate_strains;
+		VectorType temp_strains = VectorType(8, 0.0);
+
+
+		// Loop over all plies - start from bottom ply, bottom surface
+		for (unsigned int plyNumber = 0;
+		plyNumber < section->NumberOfPlies(); ++plyNumber)
+		{
+			// Distance from element midplane to current ply bottom surface
+			z_delta = z_current - z_mid;
+
+			// Calculate strains at bottom surface - arranged in columns
+			// element coordinate system
+			temp_strains(0) = e_x + z_delta*kap_x;
+			temp_strains(1) = e_y + z_delta*kap_y;
+			temp_strains(2) = e_xy + z_delta*kap_xy;
+
+			//std::cout << "Strains at bottom surface of ply " << plyNumber << " = :" << temp_strains << std::endl;
+
+			data.rlaminateStrains[2 * plyNumber] = temp_strains;
+
+			// Move to top surface of current layer
+			z_current += ply_thicknesses[plyNumber];
+			z_delta = z_current - z_mid;
+
+			// Calculate strains at top surface - arranged in columns
+			temp_strains(0) = e_x + z_delta*kap_x;
+			temp_strains(1) = e_y + z_delta*kap_y;
+			temp_strains(2) = e_xy + z_delta*kap_xy;
+
+			data.rlaminateStrains[2 * plyNumber + 1] = temp_strains;
+
+			//std::cout << "Strains at top surface of ply " << plyNumber << " = :" << temp_strains << std::endl;
+		}
+	}
+
+	void ShellThickElement3D3N::CalculateLaminaStresses(CalculationData& data)
+	{
+		ShellCrossSection::Pointer& section = mSections[data.gpIndex];
+
+		// Setup container for constitutive data - units [Pa] and un-rotated!
+		/*
+		std::vector<Matrix> ply_constitutive_matrices =
+			std::vector<Matrix>(section->NumberOfPlies());
+		for (unsigned int ply = 0; ply < section->NumberOfPlies(); ++ply)
+		{
+			ply_constitutive_matrices[ply].resize(3, 3, false);
+		}
+		*/
+		// get constitutive matrix for each ply - units [Pa] and un-rotated!
+		section->SetupGetPlyConstitutiveMatrices();
+		CalculateSectionResponse(data); //might need to rotate these more in the shell_cross_section
+		//printMatrix( section->GetPlyConstitutiveMatrix(0),"1st ply material matrix");
+		//std::cout << "ply_constitutive_matrices[0]11 = " << ply_constitutive_matrices[0](0, 0) << std::endl;
+
+
+		// Resize output vector. 2 Surfaces for each ply
+		std::vector<VectorType> my_laminate_stresses =
+			std::vector<VectorType>(2.0*section->NumberOfPlies());
+		data.rlaminateStresses = my_laminate_stresses;
+		Vector temp_stresses = Vector(8, 0.0);
+
+		// Loop over all plies - start from bottom ply, bottom surface
+		for (unsigned int plyNumber = 0;
+		plyNumber < section->NumberOfPlies(); ++plyNumber)
+		{
+			printMatrix(section->GetPlyConstitutiveMatrix(plyNumber), "ply material matrix");
+			//std::cout << "Material matrix of ply " << plyNumber << " = :" << std::endl;
+			//printMatrix(section->GetPlyConstitutiveMatrix(plyNumber), "Material matrix of ply");
+
+			// determine stresses at currrent ply - bottom surface
+			temp_stresses = prod(section->GetPlyConstitutiveMatrix(plyNumber),
+				data.rlaminateStrains[plyNumber]);
+			data.rlaminateStresses[2 * plyNumber] = temp_stresses;
+
+			std::cout << "Strains at bottom surface of ply " << plyNumber << " = :" << data.rlaminateStresses[2 * plyNumber] << std::endl;
+
+			std::cout << "Stresses at bottom surface of ply " << plyNumber << " = :" << temp_stresses << std::endl;
+
+			// determine stresses at currrent ply - top surface
+			temp_stresses = prod(section->GetPlyConstitutiveMatrix(plyNumber),
+				data.rlaminateStrains[plyNumber + 1]);
+			data.rlaminateStresses[2 * plyNumber + 1] = temp_stresses;
+			
+		}
+
+	}
 
 	void ShellThickElement3D3N::DecimalCorrection(Vector& a)
 	{
@@ -1255,11 +1367,13 @@ namespace Kratos
 		double max_stiff = 0.0; //max diagonal stiffness
 		for (int i = 0; i < 18; i++)
 		{
-			if (rLeftHandSideMatrix(i, i) > max_stiff) { max_stiff = rLeftHandSideMatrix(i, i); }
+			if (rLeftHandSideMatrix(i, i) > max_stiff) 
+			{ max_stiff = rLeftHandSideMatrix(i, i); }
 		}
 		for (int i = 0; i < 3; i++)
 		{
-			rLeftHandSideMatrix(6 * i + 5, 6 * i + 5) = z_rot_multiplier*max_stiff;
+			rLeftHandSideMatrix(6 * i + 5, 6 * i + 5) = 
+				z_rot_multiplier*max_stiff;
 		}
 
 		// Add RHS term
@@ -1413,7 +1527,12 @@ namespace Kratos
 			ijob = 7;
 			bGlobal = true;
 		}
-
+		else if (rVariable == SHELL_ORTHOTROPIC_LAYER_STRESS)
+		{
+			ijob = 8;
+			bGlobal = true;
+		}
+		
 		// quick return
 
 		if (ijob == 0) return false;
@@ -1445,16 +1564,24 @@ namespace Kratos
 		//compute forces
 		if (ijob > 2)
 		{
-			CalculateSectionResponse(data);
-			noalias(data.generalizedStresses) = prod(data.D, data.generalizedStrains);
-
-			if (ijob > 4)
+			if (ijob >7)
 			{
-				// Compute stresses
-				CalculateStressesFromForceResultants(data.generalizedStresses,
-					section->GetThickness());
+				//Calculate lamina stresses
+				CalculateLaminaStrains(data);
+				CalculateLaminaStresses(data);
 			}
+			else
+			{
+				CalculateSectionResponse(data);
+				noalias(data.generalizedStresses) = prod(data.D, data.generalizedStrains);
 
+				if (ijob > 4)
+				{
+					// Compute stresses
+					CalculateStressesFromForceResultants(data.generalizedStresses,
+						section->GetThickness());
+				}
+			}
 			DecimalCorrection(data.generalizedStresses);
 		}
 
@@ -1553,6 +1680,17 @@ namespace Kratos
 				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses[2] - data.generalizedStresses[5];
 				iValue(0, 2) = iValue(2, 0) = 0.0;
 				iValue(1, 2) = iValue(2, 1) = 0.0;
+			}
+			else if (ijob == 8) // SHELL_ORTHOTROPIC_LAYER_STRESS
+			{
+				bGlobal = false;				
+				iValue(0, 0) = data.rlaminateStresses[0][0];
+				iValue(1, 1) = data.rlaminateStresses[0][1];
+				iValue(2, 2) = 0.0;
+				iValue(0, 1) = iValue(1, 0) = data.rlaminateStresses[0][2];
+				iValue(0, 2) = iValue(2, 0) = 0.0;	// pwdebug
+				iValue(1, 2) = iValue(2, 1) = 0.0;	// pwdebug
+				
 			}
 
 			// if requested, rotate the results in the global coordinate system

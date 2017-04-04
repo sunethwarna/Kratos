@@ -436,6 +436,7 @@ void ShellCrossSection::CalculateSectionResponse(Parameters& rValues, const Cons
 		noalias( L ) = ZeroMatrix( strain_size, condensed_strain_size );
 		noalias( LT ) = ZeroMatrix( condensed_strain_size, strain_size );
 
+		unsigned int ply_number = 0;
 		// BEGIN LOOP: integrate the response of each ply in this cross section
 		for(PlyCollection::iterator ply_it = mStack.begin(); ply_it != mStack.end(); ++ply_it)
 		{
@@ -451,7 +452,7 @@ void ShellCrossSection::CalculateSectionResponse(Parameters& rValues, const Cons
 				{
 					IntegrationPoint& iPoint = *intp_it;
 					UpdateIntegrationPointParameters(iPoint, materialValues, variables);								// this just establishes the setup - no values written here
-					CalculateIntegrationPointResponse(iPoint, materialValues, rValues, variables, rStressMeasure);		// this adds the values in
+					CalculateIntegrationPointResponse(iPoint, materialValues, rValues, variables, rStressMeasure,ply_number);		// this adds the values in
 				} // END LOOP: integrate the response of each integration point in this ply
 			}
 			else
@@ -529,7 +530,7 @@ void ShellCrossSection::CalculateSectionResponse(Parameters& rValues, const Cons
 				{
 					IntegrationPoint& iPoint = *intp_it;
 					UpdateIntegrationPointParameters(iPoint, materialValues, variables);
-					CalculateIntegrationPointResponse(iPoint, materialValues, rValues, variables, rStressMeasure);
+					CalculateIntegrationPointResponse(iPoint, materialValues, rValues, variables, rStressMeasure,ply_number);
 				} // END LOOP: integrate the response of each integration point in this ply
 
 				// restore the (working) generalized strain vector with the one in section coordinate system
@@ -564,6 +565,13 @@ void ShellCrossSection::CalculateSectionResponse(Parameters& rValues, const Cons
 						noalias( constitutiveMatrix_section ) += prod( R, DRT );
 						constitutiveMatrix.swap(constitutiveMatrix_section);
 
+						if (mStorePlyConstitutiveMatrices)
+						{
+							//pwdebug
+							//noalias(DRT) = prod(mPlyConstitutiveMatrices[ply_number], trans(R));
+							//mPlyConstitutiveMatrices[ply_number] = prod(R, DRT);
+						}
+
 						if(mNeedsOOPCondensation)
 						{
 							noalias( HRcT ) = prod( H, trans( Rc ) );
@@ -581,7 +589,14 @@ void ShellCrossSection::CalculateSectionResponse(Parameters& rValues, const Cons
 					}
 				}
 			}
+
+			ply_number++;
 		} // END LOOP: integrate the response of each ply in this cross section
+		
+		if (mStorePlyConstitutiveMatrices)
+		{
+			mStorePlyConstitutiveMatrices = false;
+		}
 
 		// quick return if no static condensation is required
 		if(!mNeedsOOPCondensation)
@@ -834,18 +849,25 @@ void ShellCrossSection::ParseOrthotropicPropertyMatrix(Properties& props, Elemen
 			// Assign the property of the current ply 
 			plyThickness = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 0);
 			angleRz = (props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 1);
+			
 			props.SetValue(DENSITY,
 				(props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 2));	//DENSITY
+			
 			props.SetValue(YOUNG_MODULUS_X,
 				(props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 3));	//E1
+			
 			props.SetValue(YOUNG_MODULUS_Y,
 				(props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 4));	//E2
+			
 			props.SetValue(POISSON_RATIO_XY,
 				(props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 5));	//Nu_12
+			
 			props.SetValue(SHEAR_MODULUS_XY,
 				(props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 6));	//G12
+			
 			props.SetValue(SHEAR_MODULUS_XZ,
 				(props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 7));	//G13
+			
 			props.SetValue(SHEAR_MODULUS_YZ,
 				(props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 8));	//G23
 
@@ -1043,7 +1065,8 @@ void ShellCrossSection::CalculateIntegrationPointResponse(IntegrationPoint& rPoi
 		ConstitutiveLaw::Parameters& rMaterialValues,
 		Parameters& rValues,
 		GeneralVariables& rVariables,
-		const ConstitutiveLaw::StressMeasure& rStressMeasure)
+		const ConstitutiveLaw::StressMeasure& rStressMeasure, 
+		const unsigned int& plyNumber)
 {
 	// get some data/references...
 
@@ -1231,6 +1254,83 @@ void ShellCrossSection::CalculateIntegrationPointResponse(IntegrationPoint& rPoi
 				// here the transverse shear is treated elastically
 				D(6, 6) += h * cs * ce * rVariables.GYZ;
 				D(7, 7) += h * cs * ce * rVariables.GXZ;
+			}
+
+			if (mStorePlyConstitutiveMatrices)
+			{
+				// think of a better way to do this
+				
+				// membrane part
+				/*
+				mPlyConstitutiveMatrices[plyNumber](0, 0) += h*C(0, 0);
+				mPlyConstitutiveMatrices[plyNumber](0, 1) += h*C(0, 1);
+				mPlyConstitutiveMatrices[plyNumber](0, 2) += h*C(0, 2);
+				mPlyConstitutiveMatrices[plyNumber](1, 0) += h*C(1, 0);
+				mPlyConstitutiveMatrices[plyNumber](1, 1) += h*C(1, 1);
+				mPlyConstitutiveMatrices[plyNumber](1, 2) += h*C(1, 2);
+				mPlyConstitutiveMatrices[plyNumber](2, 0) += h*C(2, 0);
+				mPlyConstitutiveMatrices[plyNumber](2, 1) += h*C(2, 1);
+				mPlyConstitutiveMatrices[plyNumber](2, 2) += h*C(2, 2);
+				*/
+				
+
+				for (unsigned int i = 0; i < 3; i++)
+				{
+					for (unsigned int j = 0; j < 3; j++)
+					{
+						mPlyConstitutiveMatrices[plyNumber](i, j) = 1.0*C(i, j);
+					}
+				}
+
+				//std::cout << "C11 = " << C(0, 0) << std::endl;
+				//std::cout << "mPlyConstitutiveMatrices[plyNumber]11 = " << mPlyConstitutiveMatrices[plyNumber](0, 0) << std::endl;
+
+				/*
+				// bending part
+				mPlyConstitutiveMatrices[plyNumber](3, 3) += h*C(0, 0);
+				mPlyConstitutiveMatrices[plyNumber](3, 4) += h*C(0, 1);
+				mPlyConstitutiveMatrices[plyNumber](3, 5) += h*C(0, 2);
+				mPlyConstitutiveMatrices[plyNumber](4, 3) += h*C(1, 0);
+				mPlyConstitutiveMatrices[plyNumber](4, 4) += h*C(1, 1);
+				mPlyConstitutiveMatrices[plyNumber](4, 5) += h*C(1, 2);
+				mPlyConstitutiveMatrices[plyNumber](5, 3) += h*C(2, 0);
+				mPlyConstitutiveMatrices[plyNumber](5, 4) += h*C(2, 1);
+				mPlyConstitutiveMatrices[plyNumber](5, 5) += h*C(2, 2);
+
+				// membrane-bending part
+				mPlyConstitutiveMatrices[plyNumber](0, 3) += h*C(0, 0);
+				mPlyConstitutiveMatrices[plyNumber](0, 4) += h*C(0, 1);
+				mPlyConstitutiveMatrices[plyNumber](0, 5) += h*C(0, 2);
+				mPlyConstitutiveMatrices[plyNumber](1, 3) += h*C(1, 0);
+				mPlyConstitutiveMatrices[plyNumber](1, 4) += h*C(1, 1);
+				mPlyConstitutiveMatrices[plyNumber](1, 5) += h*C(1, 2);
+				mPlyConstitutiveMatrices[plyNumber](2, 3) += h*C(2, 0);
+				mPlyConstitutiveMatrices[plyNumber](2, 4) += h*C(2, 1);
+				mPlyConstitutiveMatrices[plyNumber](2, 5) += h*C(2, 2);
+
+				// bending-membrane part
+				mPlyConstitutiveMatrices[plyNumber](3, 0) += h*C(0, 0);
+				mPlyConstitutiveMatrices[plyNumber](3, 1) += h*C(0, 1);
+				mPlyConstitutiveMatrices[plyNumber](3, 2) += h*C(0, 2);
+				mPlyConstitutiveMatrices[plyNumber](4, 0) += h*C(1, 0);
+				mPlyConstitutiveMatrices[plyNumber](4, 1) += h*C(1, 1);
+				mPlyConstitutiveMatrices[plyNumber](4, 2) += h*C(1, 2);
+				mPlyConstitutiveMatrices[plyNumber](5, 0) += h*C(2, 0);
+				mPlyConstitutiveMatrices[plyNumber](5, 1) += h*C(2, 1);
+				mPlyConstitutiveMatrices[plyNumber](5, 2) += h*C(2, 2);
+				
+
+
+				if (mBehavior == Thick)
+				{
+					// here the transverse shear is treated elastically
+					mPlyConstitutiveMatrices[plyNumber](6, 6) += h * cs * ce * rVariables.GYZ;
+					mPlyConstitutiveMatrices[plyNumber](7, 7) += h * cs * ce * rVariables.GXZ;
+				}
+				*/
+				//std::cout << "Q11 = " << C(0, 0) << std::endl;
+				//std::cout << "Q12 = " << C(0, 1) << std::endl;
+				//std::cout << "Q22 = " << C(2, 2) << std::endl;
 			}
 		}
 		else // full 3D case
