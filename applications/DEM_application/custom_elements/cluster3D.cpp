@@ -72,7 +72,6 @@ namespace Kratos {
 
     }
 
-      
     void Cluster3D::Initialize(ProcessInfo& r_process_info) {
         
         if (GetGeometry()[0].GetDof(VELOCITY_X).IsFixed())          GetGeometry()[0].Set(DEMFlags::FIXED_VEL_X, true);
@@ -94,8 +93,7 @@ namespace Kratos {
         SetIntegrationScheme(integration_scheme);
     }
     
-    
-    void Cluster3D::SetIntegrationScheme(DEMIntegrationScheme::Pointer& integration_scheme){
+    void Cluster3D::SetIntegrationScheme(DEMIntegrationScheme::Pointer& integration_scheme) {
     
         mpIntegrationScheme = integration_scheme->CloneRaw();
     }
@@ -165,7 +163,8 @@ namespace Kratos {
         this->GetGeometry()[0].FastGetSolutionStepValue(ORIENTATION) = Orientation;
     }
 
-    void Cluster3D::CreateParticles(ParticleCreatorDestructor* p_creator_destructor, ModelPart& dem_model_part, PropertiesProxy* p_fast_properties, const bool continuum_strategy){        
+    void Cluster3D::CreateParticles(ParticleCreatorDestructor* p_creator_destructor, ModelPart& dem_model_part, PropertiesProxy* p_fast_properties, const bool continuum_strategy) {        
+        
         KRATOS_TRY 
         
         int cluster_id = (int)this->Id();
@@ -180,7 +179,7 @@ namespace Kratos {
         if (continuum_strategy) ElementNameString= "SphericContinuumParticle3D";
         else ElementNameString= "SphericParticle3D";
         
-        if (!continuum_strategy && breakable) KRATOS_THROW_ERROR(std::runtime_error,"Breakable cluster elements are being used inside a non-deformable strategy. The program will now.","")
+        if (!continuum_strategy && breakable) KRATOS_THROW_ERROR(std::runtime_error,"Breakable cluster elements are being used inside a non-deformable strategy. The program will now stop.","")
 
         //We now create a spheric particle and keep it as a reference to an Element
         const Element& r_reference_element = KratosComponents<Element>::Get(ElementNameString);
@@ -332,7 +331,6 @@ namespace Kratos {
         }        
     }
     
-    
     void Cluster3D::UpdatePositionOfSpheres() {
         
         Node<3>& central_node = GetGeometry()[0]; //CENTRAL NODE OF THE CLUSTER
@@ -381,7 +379,7 @@ namespace Kratos {
             
             if (mListOfSphericParticles[i]->mNeighbourElements.size()==0 && mListOfSphericParticles[i]->mNeighbourRigidFaces.size()==0) continue; //Assuming the sphere only adds contact forces to the cluster
             
-            Node<3>& sphere_node = mListOfSphericParticles[i]->GetGeometry()[0]; 
+            Node<3>& sphere_node = mListOfSphericParticles[i]->GetGeometry()[0];
             array_1d<double, 3>& particle_forces       = sphere_node.FastGetSolutionStepValue(TOTAL_FORCES);
             array_1d<double, 3>& rigid_particle_forces = sphere_node.FastGetSolutionStepValue(RIGID_ELEMENT_FORCE);
             center_forces[0] += particle_forces[0];

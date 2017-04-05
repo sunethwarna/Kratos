@@ -118,12 +118,9 @@ void RigidFace3D::CalculateRightHandSide(VectorType& rRightHandSideVector,
     }//Loop condition neighbours (spheres)
 }//CalculateRightHandSide
 
-void RigidFace3D::CalculateElasticForces(VectorType& rElasticForces,
-                                         ProcessInfo& r_process_info)
-{
+void RigidFace3D::CalculateElasticForces(VectorType& rElasticForces, ProcessInfo& r_process_info) {
    
-  
-  const unsigned int number_of_nodes = GetGeometry().size();
+    const unsigned int number_of_nodes = GetGeometry().size();
     unsigned int MatSize = number_of_nodes * 3;
     
     if (rElasticForces.size() != MatSize)
@@ -216,9 +213,9 @@ void RigidFace3D::Calculate(const Variable<Vector >& rVariable, Vector& Output, 
       double Ynormal     = r_process_info[RIGID_FACE_ROTA_AXIAL_DIR][1];
       double Znormal     = r_process_info[RIGID_FACE_ROTA_AXIAL_DIR][2];
 
-      double Xorigin    = r_process_info[RIGID_FACE_ROTA_ORIGIN_COORD][0];   
-      double Yorigin    = r_process_info[RIGID_FACE_ROTA_ORIGIN_COORD][1];
-      double Zorigin    = r_process_info[RIGID_FACE_ROTA_ORIGIN_COORD][2]; 
+      double Xorigin     = r_process_info[RIGID_FACE_ROTA_ORIGIN_COORD][0];   
+      double Yorigin     = r_process_info[RIGID_FACE_ROTA_ORIGIN_COORD][1];
+      double Zorigin     = r_process_info[RIGID_FACE_ROTA_ORIGIN_COORD][2]; 
       
       ///movement of the original point
       int time_step           = r_process_info[TIME_STEPS];			
@@ -303,16 +300,8 @@ void RigidFace3D::Calculate(const Variable<Vector >& rVariable, Vector& Output, 
           Output[3 * j + 2] = (global_vel[2] + g_v[2]);			
         }
     }
-    
 }
 
-void RigidFace3D::FinalizeSolutionStep(ProcessInfo& r_process_info)   
-{
-  
-  
-}
+void RigidFace3D::FinalizeSolutionStep(ProcessInfo& r_process_info) {}
 
-//***********************************************************************************
-//***********************************************************************************
-
-} // Namespace Kratos.
+} // Namespace Kratos

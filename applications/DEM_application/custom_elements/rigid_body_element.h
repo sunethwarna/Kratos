@@ -22,30 +22,30 @@
 #include "containers/weak_pointer_vector.h"
 #include "includes/constitutive_law.h"
 #include "includes/condition.h"
-#include "custom_elements/spheric_particle.h"
 #include "custom_utilities/create_and_destroy.h"
 #include "utilities/quaternion.h"
+#include "custom_conditions/RigidFace.h"
 
 namespace Kratos {
     
-    class RigidBodyElement : public Element {
+    class RigidBodyElement3D : public Element {
         
     public:
-        /// Pointer definition of RigidBodyElement
-        KRATOS_CLASS_POINTER_DEFINITION(RigidBodyElement);
+        /// Pointer definition of RigidBodyElement3D
+        KRATOS_CLASS_POINTER_DEFINITION(RigidBodyElement3D);
        
-        RigidBodyElement();
-        RigidBodyElement(IndexType NewId, GeometryType::Pointer pGeometry);
-        RigidBodyElement(IndexType NewId, NodesArrayType const& ThisNodes);
-        RigidBodyElement(IndexType NewId, GeometryType::Pointer pGeometry,  PropertiesType::Pointer pProperties);
+        RigidBodyElement3D();
+        RigidBodyElement3D(IndexType NewId, GeometryType::Pointer pGeometry);
+        RigidBodyElement3D(IndexType NewId, NodesArrayType const& ThisNodes);
+        RigidBodyElement3D(IndexType NewId, GeometryType::Pointer pGeometry,  PropertiesType::Pointer pProperties);
 
         Element::Pointer Create(IndexType NewId, NodesArrayType const& ThisNodes, PropertiesType::Pointer pProperties) const;      
 
         /// Destructor
-        virtual ~RigidBodyElement();
+        virtual ~RigidBodyElement3D();
       
         using Element::Initialize;
-        virtual void Initialize(ProcessInfo& r_process_info);
+        virtual void Initialize(ProcessInfo& r_process_info, ModelPart& rigid_body_element_sub_model_part);
         virtual void SetIntegrationScheme(DEMIntegrationScheme::Pointer& integration_scheme);
         virtual void InitializeSolutionStep(ProcessInfo& r_process_info){};
         virtual void FinalizeSolutionStep(ProcessInfo& r_process_info){};
@@ -63,8 +63,6 @@ namespace Kratos {
         virtual DEMIntegrationScheme& GetIntegrationScheme() { return *mpIntegrationScheme; }
    
         double GetSqrtOfRealMass();
-        virtual double SlowGetDensity();
-        virtual int SlowGetRigidBodyElementMaterial();
 
         virtual std::string Info() const
         {
@@ -84,11 +82,17 @@ namespace Kratos {
         {
 	    //mpGeometry->PrintData(rOStream);
         }
+        
+        std::vector<array_1d<double, 3> > mListOfCoordinates;
+        std::vector<Node<3>::Pointer > mListOfNodes;
+        DEMIntegrationScheme* mpIntegrationScheme;
  
     protected:
 
-        DEMIntegrationScheme* mpIntegrationScheme;
-        std::vector<array_1d<double, 3> > mListOfCoordinates;
+        
+        std::vector<RigidFace3D*> mListOfRigidFaces;
+        array_1d<double,3> mInertias;                                
+        double mMass;
       
     private:
        
@@ -104,13 +108,13 @@ namespace Kratos {
             KRATOS_SERIALIZE_LOAD_BASE_CLASS(rSerializer, Element );
         }
 
-    }; // Class RigidBodyElement
+    }; // Class RigidBodyElement3D
    
     /// input stream function
-    inline std::istream& operator >> (std::istream& rIStream, RigidBodyElement& rThis);
+    inline std::istream& operator >> (std::istream& rIStream, RigidBodyElement3D& rThis);
 
     /// output stream function
-    inline std::ostream& operator << (std::ostream& rOStream, const RigidBodyElement& rThis)
+    inline std::ostream& operator << (std::ostream& rOStream, const RigidBodyElement3D& rThis)
     {
         rThis.PrintInfo(rOStream);
         rOStream << std::endl;

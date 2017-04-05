@@ -102,14 +102,14 @@ namespace Kratos {
         if (i.Is(DEMFlags::BELONGS_TO_A_CLUSTER)) return;
         CalculateTranslationalMotionOfNode(i, delta_t, force_reduction_factor, StepFlag);  
         
-        if(rotation_option) {
+        if (rotation_option) {
             CalculateRotationalMotionOfNode(i, delta_t, force_reduction_factor, StepFlag); 
         }                        
     }
     
-    void DEMIntegrationScheme::MoveCluster(Cluster3D* cluster_element, Node<3> & i, const double delta_t, const bool rotation_option, const double force_reduction_factor, const int StepFlag) {
+    void DEMIntegrationScheme::MoveCluster(Cluster3D* cluster_element, Node<3>& i, const double delta_t, const bool rotation_option, const double force_reduction_factor, const int StepFlag) {
         CalculateTranslationalMotionOfNode(i, delta_t, force_reduction_factor, StepFlag);   
-        if(rotation_option) {
+        if (rotation_option) {
             RotateClusterNode(i, delta_t, force_reduction_factor, StepFlag);                
             cluster_element->UpdatePositionOfSpheres();
         }  
@@ -118,8 +118,19 @@ namespace Kratos {
         }
     }
     
-    void DEMIntegrationScheme::MoveRigidBodyElement(RigidBodyElement* rigid_body_element, Node<3> & i, const double delta_t,
-                                                    const bool rotation_option, const double force_reduction_factor, const int StepFlag) {}
+    void DEMIntegrationScheme::MoveRigidBodyElement(RigidBodyElement3D* rigid_body_element, Node<3> & i, const double delta_t,
+                                                    const bool rotation_option, const double force_reduction_factor, const int StepFlag) {
+        CalculateTranslationalMotionOfNode(i, delta_t, force_reduction_factor, StepFlag);
+        if (rotation_option) {
+            RotateRigidBodyElementNode(i, delta_t, force_reduction_factor, StepFlag);                
+            rigid_body_element->UpdatePositionOfNodes();
+        }  
+        else {
+            rigid_body_element->UpdateLinearDisplacementAndVelocityOfNodes();
+        }
+    }
+    
+    void DEMIntegrationScheme::RotateRigidBodyElementNode(Node<3> & i, const double delta_t, const double moment_reduction_factor, const int StepFlag) {}
 
     void DEMIntegrationScheme::UpdateTranslationalVariables(
                             int StepFlag,

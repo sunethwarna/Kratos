@@ -17,6 +17,7 @@ class ExplicitStrategy:
         self.fem_model_part = all_model_parts.rigid_face_model_part
         self.cluster_model_part = all_model_parts.cluster_model_part
         self.contact_model_part = all_model_parts.contact_model_part
+        self.rigid_body_model_part = all_model_parts.rigid_body_model_part
         
         self.Parameters = Param
 
@@ -203,12 +204,17 @@ class ExplicitStrategy:
         os.chdir("..")
         for properties in self.spheres_model_part.Properties:
             self.ModifyProperties(properties)
+            print("dises1")
 
         for properties in self.inlet_model_part.Properties:
             self.ModifyProperties(properties)
 
         for properties in self.cluster_model_part.Properties:
             self.ModifyProperties(properties)
+            
+        for properties in self.rigid_body_model_part.Properties:
+            self.ModifyProperties(properties, 1)
+            print("dises")
         
         # RESOLUTION METHODS AND PARAMETERS
         # Creating the solution strategy
@@ -218,6 +224,8 @@ class ExplicitStrategy:
         self.settings.fem_model_part = self.fem_model_part
         self.settings.inlet_model_part = self.inlet_model_part
         self.settings.cluster_model_part = self.cluster_model_part
+        self.settings.rigid_body_model_part = self.rigid_body_model_part
+        
 
     def CheckMomentumConservation(self):
 
@@ -420,38 +428,40 @@ class ExplicitStrategy:
 
         return scheme, error_status, summary
 
-    def ModifyProperties(self, properties):
-        DiscontinuumConstitutiveLawString = properties[DEM_DISCONTINUUM_CONSTITUTIVE_LAW_NAME]
-        DiscontinuumConstitutiveLaw = globals().get(DiscontinuumConstitutiveLawString)()
-        DiscontinuumConstitutiveLaw.SetConstitutiveLawInProperties(properties)
+    def ModifyProperties(self, properties, param = 0):
+        
+        if not param:
+            DiscontinuumConstitutiveLawString = properties[DEM_DISCONTINUUM_CONSTITUTIVE_LAW_NAME]
+            DiscontinuumConstitutiveLaw = globals().get(DiscontinuumConstitutiveLawString)()
+            DiscontinuumConstitutiveLaw.SetConstitutiveLawInProperties(properties)
 
-        coefficient_of_restitution = properties[COEFFICIENT_OF_RESTITUTION]
+            coefficient_of_restitution = properties[COEFFICIENT_OF_RESTITUTION]
 
-        type_of_law = DiscontinuumConstitutiveLaw.GetTypeOfLaw()
+            type_of_law = DiscontinuumConstitutiveLaw.GetTypeOfLaw()
 
-        write_gamma = False
-        write_AlphaFunction = False
+            write_gamma = False
+            write_AlphaFunction = False
 
-        if (type_of_law == 'Linear'):
-            gamma = self.RootByBisection(self.coeff_of_rest_diff, 0.0, 16.0, 0.0001, 300, coefficient_of_restitution)
-            write_gamma = True
+            if (type_of_law == 'Linear'):
+                gamma = self.RootByBisection(self.coeff_of_rest_diff, 0.0, 16.0, 0.0001, 300, coefficient_of_restitution)
+                write_gamma = True
 
-        elif (type_of_law == 'Hertz'):
-            gamma = self.GammaForHertzThornton(coefficient_of_restitution)
-            write_gamma = True
+            elif (type_of_law == 'Hertz'):
+                gamma = self.GammaForHertzThornton(coefficient_of_restitution)
+                write_gamma = True
 
-        else:
-            pass
+            else:
+                pass
 
-        if write_gamma == True:
-            properties[DAMPING_GAMMA] = gamma
-            
-        if properties.Has(CLUSTER_FILE_NAME):
-            cluster_file_name = properties[CLUSTER_FILE_NAME]
-            [name, list_of_coordinates, list_of_radii, size, volume, inertias] = cluster_file_reader.ReadClusterFile(cluster_file_name)
-            pre_utils = PreUtilities(self.spheres_model_part)
-            pre_utils.SetClusterInformationInProperties(name, list_of_coordinates, list_of_radii, size, volume, inertias, properties)
-            self.Procedures.KRATOSprint(properties)
+            if write_gamma == True:
+                properties[DAMPING_GAMMA] = gamma
+
+            if properties.Has(CLUSTER_FILE_NAME):
+                cluster_file_name = properties[CLUSTER_FILE_NAME]
+                [name, list_of_coordinates, list_of_radii, size, volume, inertias] = cluster_file_reader.ReadClusterFile(cluster_file_name)
+                pre_utils = PreUtilities(self.spheres_model_part)
+                pre_utils.SetClusterInformationInProperties(name, list_of_coordinates, list_of_radii, size, volume, inertias, properties)
+                self.Procedures.KRATOSprint(properties)
             
         if properties.Has(DEM_INTEGRATION_SCHEME_NAME):  
             scheme_name = properties[DEM_INTEGRATION_SCHEME_NAME]

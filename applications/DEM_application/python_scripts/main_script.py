@@ -85,7 +85,8 @@ class Solution:
         self.DEM_inlet_model_part  = ModelPart("DEMInletPart")
         self.mapping_model_part    = ModelPart("MappingPart")
         self.contact_model_part    = ModelPart("ContactPart")
-        self.all_model_parts = DEM_procedures.SetOfModelParts(self.spheres_model_part, self.rigid_face_model_part, self.cluster_model_part, self.DEM_inlet_model_part, self.mapping_model_part, self.contact_model_part)
+        self.rigid_body_model_part = ModelPart("RigidBodyPart")
+        self.all_model_parts = DEM_procedures.SetOfModelParts(self.spheres_model_part, self.rigid_face_model_part, self.cluster_model_part, self.DEM_inlet_model_part, self.mapping_model_part, self.contact_model_part, self.rigid_body_model_part)
                 
         self.solver = self.solver_strategy.ExplicitStrategy(self.all_model_parts, self.creator_destructor, self.dem_fem_search, self.scheme, DEM_parameters, self.procedures)
 
@@ -94,11 +95,12 @@ class Solution:
         self.ReadModelParts(iteration, coeff_of_restitution_iteration)        
 
         # Setting up the buffer size
-        self.procedures.SetUpBufferSizeInAllModelParts(self.spheres_model_part, 1, self.cluster_model_part, 1, self.DEM_inlet_model_part, 1, self.rigid_face_model_part, 1)
+        self.procedures.SetUpBufferSizeInAllModelParts(self.spheres_model_part, 1, self.cluster_model_part, 1, self.DEM_inlet_model_part, 1, self.rigid_face_model_part, 1, self.rigid_body_model_part, 1)
         # Adding dofs
         self.solver.AddDofs(self.spheres_model_part)
         self.solver.AddDofs(self.cluster_model_part)
         self.solver.AddDofs(self.DEM_inlet_model_part)
+        self.solver.AddDofs(self.rigid_body_model_part)
         
         os.chdir(self.main_path)
 
@@ -173,45 +175,47 @@ class Solution:
         
         # Reading the model_part
         spheres_mp_filename   = self.GetMpFilename()
-        
         model_part_io_spheres = model_part_reader(spheres_mp_filename)
-
         if (hasattr(DEM_parameters, "do_not_perform_initial_partition") and DEM_parameters.do_not_perform_initial_partition == 1):
             pass
         else:
             self.parallelutils.PerformInitialPartition(model_part_io_spheres)
-
         os.chdir(self.main_path)
         [model_part_io_spheres, self.spheres_model_part, MPICommSetup] = self.parallelutils.SetCommunicator(self.spheres_model_part, model_part_io_spheres, spheres_mp_filename)
-        
         model_part_io_spheres.ReadModelPart(self.spheres_model_part)
-        
         self.SetInitialData(iteration, coeff_of_restitution_iteration)
-       
         max_node_Id = self.creator_destructor.FindMaxNodeIdInModelPart(self.spheres_model_part)
         max_elem_Id = self.creator_destructor.FindMaxElementIdInModelPart(self.spheres_model_part)
         old_max_elem_Id_spheres = max_elem_Id
         max_cond_Id = self.creator_destructor.FindMaxConditionIdInModelPart(self.spheres_model_part)
+        
         rigidFace_mp_filename = DEM_parameters.problem_name + "DEM_FEM_boundary"
-        model_part_io_fem = model_part_reader(rigidFace_mp_filename,max_node_Id+1, max_elem_Id+1, max_cond_Id+1)
+        model_part_io_fem = model_part_reader(rigidFace_mp_filename, max_node_Id+1, max_elem_Id+1, max_cond_Id+1)
         model_part_io_fem.ReadModelPart(self.rigid_face_model_part)
-
         max_node_Id = self.creator_destructor.FindMaxNodeIdInModelPart(self.rigid_face_model_part)
         max_elem_Id = self.creator_destructor.FindMaxElementIdInModelPart(self.rigid_face_model_part)
         max_cond_Id = self.creator_destructor.FindMaxConditionIdInModelPart(self.rigid_face_model_part)
+
         clusters_mp_filename = DEM_parameters.problem_name + "DEM_Clusters"
-        model_part_io_clusters = model_part_reader(clusters_mp_filename,max_node_Id+1, max_elem_Id+1, max_cond_Id+1)
+        model_part_io_clusters = model_part_reader(clusters_mp_filename, max_node_Id+1, max_elem_Id+1, max_cond_Id+1)
         model_part_io_clusters.ReadModelPart(self.cluster_model_part)
         max_elem_Id = self.creator_destructor.FindMaxElementIdInModelPart(self.spheres_model_part)
         if (max_elem_Id != old_max_elem_Id_spheres):
             self.creator_destructor.RenumberElementIdsFromGivenValue(self.cluster_model_part, max_elem_Id)
-
         max_node_Id = self.creator_destructor.FindMaxNodeIdInModelPart(self.cluster_model_part)
         max_elem_Id = self.creator_destructor.FindMaxElementIdInModelPart(self.cluster_model_part)
         max_cond_Id = self.creator_destructor.FindMaxConditionIdInModelPart(self.cluster_model_part)
+        
         DEM_Inlet_filename = self.GetInletFilename()  
-        model_part_io_demInlet = model_part_reader(DEM_Inlet_filename,max_node_Id+1, max_elem_Id+1, max_cond_Id+1)
+        model_part_io_demInlet = model_part_reader(DEM_Inlet_filename, max_node_Id+1, max_elem_Id+1, max_cond_Id+1)
         model_part_io_demInlet.ReadModelPart(self.DEM_inlet_model_part)
+        
+        rigidbody_mp_filename = DEM_parameters.problem_name + "DEM_Rigid_Body"
+        model_part_io_rigidbody = model_part_reader(rigidbody_mp_filename, max_node_Id + 1, max_elem_Id + 1, max_cond_Id + 1)
+        model_part_io_rigidbody.ReadModelPart(self.rigid_body_model_part)
+        max_node_Id = self.creator_destructor.FindMaxNodeIdInModelPart(self.rigid_body_model_part)
+        max_elem_Id = self.creator_destructor.FindMaxElementIdInModelPart(self.rigid_body_model_part)
+        max_cond_Id = self.creator_destructor.FindMaxConditionIdInModelPart(self.rigid_body_model_part)
         
     def RunMainTemporalLoop(self):
         

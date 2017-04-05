@@ -103,7 +103,6 @@ namespace Kratos
                 const int table_number = submp[TABLE_NUMBER];
                 if (!table_number) continue;
                 const int velocity_component = submp[TABLE_VELOCITY_COMPONENT];
-                //const std::string identifier = submp[IDENTIFIER];
                 
                 #pragma omp parallel for
                 for (int k = 0; k < (int)rNodes.size(); k++) {
@@ -127,10 +126,7 @@ namespace Kratos
                     node->Coordinates()[2] = old_coordinates[2] + velocity[2] * dt;
                     
                     array_1d<double, 3> displacement = ZeroVector(3);
-                    //KRATOS_WATCH(time)
-                    //KRATOS_WATCH(identifier)
                     displacement[0] = node->Coordinates()[0] - node->GetInitialPosition().Coordinates()[0];
-                    //KRATOS_WATCH(displacement[0])
                     displacement[1] = node->Coordinates()[1] - node->GetInitialPosition().Coordinates()[1];
                     displacement[2] = node->Coordinates()[2] - node->GetInitialPosition().Coordinates()[2];
                     noalias(node->FastGetSolutionStepValue(DISPLACEMENT)) = displacement;                  

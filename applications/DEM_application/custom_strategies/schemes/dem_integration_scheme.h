@@ -25,7 +25,7 @@
 namespace Kratos {
     
     class Cluster3D;
-    class RigidBodyElement;
+    class RigidBodyElement3D;
 
     class KRATOS_API(DEM_APPLICATION) DEMIntegrationScheme {
     public:
@@ -53,7 +53,7 @@ namespace Kratos {
         virtual void AddClustersVariables(ModelPart & r_model_part, bool TRotationOption); */               
         virtual void Move(Node<3> & i, const double delta_t, const bool rotation_option, const double force_reduction_factor, const int StepFlag);
         virtual void MoveCluster(Cluster3D* cluster_element, Node<3> & i, const double delta_t, const bool rotation_option, const double force_reduction_factor, const int StepFlag);
-        virtual void MoveRigidBodyElement(RigidBodyElement* rigid_body_element, Node<3> & i, const double delta_t,
+        virtual void MoveRigidBodyElement(RigidBodyElement3D* rigid_body_element, Node<3> & i, const double delta_t,
                                           const bool rotation_option, const double force_reduction_factor, const int StepFlag);
         
         virtual void UpdateTranslationalVariables(
@@ -151,6 +151,7 @@ namespace Kratos {
         virtual void CalculateRotationalMotionOfClusters(ModelPart& rcluster_model_part, int StepFlag);
         
         virtual void RotateClusterNode(Node<3> & i, const double delta_t, const double moment_reduction_factor, const int StepFlag);
+        virtual void RotateRigidBodyElementNode(Node<3> & i, const double delta_t, const double moment_reduction_factor, const int StepFlag);
 
         virtual std::string Info() const {
             std::stringstream buffer;

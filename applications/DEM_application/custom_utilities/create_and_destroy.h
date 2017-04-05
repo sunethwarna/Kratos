@@ -112,6 +112,11 @@ public:
                                 double radius, 
                                 Properties& params);
     
+    void CentroidCreatorForRigidBodyElements(ModelPart& r_modelpart,
+                                            Node<3>::Pointer& pnew_node,
+                                            int aId,
+                                            array_1d<double, 3>& reference_coordinates);
+    
     Kratos::SphericParticle* SphereCreatorForClusters( ModelPart& r_modelpart, 
                                     int r_Elem_Id, 
                                     double radius,
@@ -168,7 +173,7 @@ public:
     unsigned int* pGetCurrentMaxNodeId();
     void SetMaxNodeId(unsigned int id);
 
-    /// Turn back information as a stemplate<class T, std::size_t dim> tring.
+    /// Turn back information as a string.
     virtual std::string Info() const;
 
     /// Print information about this object.

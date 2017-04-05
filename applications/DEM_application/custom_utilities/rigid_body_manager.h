@@ -42,7 +42,7 @@ class RigidBodyManager {
 
     protected:
 
-        vector<RigidBodyElement> mVectorOfRigidBodies;
+        vector<RigidBodyElement3D> mVectorOfRigidBodies;
 
     private:
 

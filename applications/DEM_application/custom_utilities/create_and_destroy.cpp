@@ -433,11 +433,11 @@ namespace Kratos {
     }
 
     void ParticleCreatorDestructor::NodeCreatorForClusters(ModelPart& r_modelpart,
-                                                            Node<3>::Pointer& pnew_node,
-                                                            int aId,
-                                                            array_1d<double, 3>& reference_coordinates,
-                                                            double radius,
-                                                            Properties& params) {
+                                                           Node<3>::Pointer& pnew_node,
+                                                           int aId,
+                                                           array_1d<double, 3>& reference_coordinates,
+                                                           double radius,
+                                                           Properties& params) {
         KRATOS_TRY
         pnew_node = boost::make_shared< Node<3> >( aId, reference_coordinates[0], reference_coordinates[1], reference_coordinates[2] );
         pnew_node->SetSolutionStepVariablesList(&r_modelpart.GetNodalSolutionStepVariablesList());
@@ -478,6 +478,49 @@ namespace Kratos {
         pnew_node->Set(DEMFlags::BELONGS_TO_A_CLUSTER, true);
         
         //pnew_node->FastGetSolutionStepValue(SPRAYED_MATERIAL) = 0.0;
+        KRATOS_CATCH("")
+    }
+    
+    void ParticleCreatorDestructor::CentroidCreatorForRigidBodyElements(ModelPart& r_modelpart,
+                                                                        Node<3>::Pointer& pnew_node,
+                                                                        int aId,
+                                                                        array_1d<double, 3>& reference_coordinates) {
+        KRATOS_TRY
+        pnew_node = boost::make_shared< Node<3> >(aId, reference_coordinates[0], reference_coordinates[1], reference_coordinates[2]);
+        pnew_node->SetSolutionStepVariablesList(&r_modelpart.GetNodalSolutionStepVariablesList());
+        pnew_node->SetBufferSize(r_modelpart.GetBufferSize());
+
+        #pragma omp critical
+        {
+            //pnew_node = r_modelpart.CreateNewNode(aId, reference_coordinates[0], reference_coordinates[1], reference_coordinates[2]); //ACTUAL node creation and addition to model part
+            r_modelpart.Nodes().push_back(pnew_node);
+        }                        
+        
+        array_1d<double, 3> null_vector(3, 0.0);
+        pnew_node->FastGetSolutionStepValue(VELOCITY) = null_vector;
+        pnew_node->FastGetSolutionStepValue(ANGULAR_VELOCITY) = null_vector;
+
+        pnew_node->AddDof(VELOCITY_X, REACTION_X);
+        pnew_node->AddDof(VELOCITY_Y, REACTION_Y);
+        pnew_node->AddDof(VELOCITY_Z, REACTION_Z);
+        pnew_node->AddDof(ANGULAR_VELOCITY_X, REACTION_X);
+        pnew_node->AddDof(ANGULAR_VELOCITY_Y, REACTION_Y);
+        pnew_node->AddDof(ANGULAR_VELOCITY_Z, REACTION_Z);
+
+        pnew_node->pGetDof(VELOCITY_X)->FixDof();
+        pnew_node->pGetDof(VELOCITY_Y)->FixDof();
+        pnew_node->pGetDof(VELOCITY_Z)->FixDof();
+        pnew_node->pGetDof(ANGULAR_VELOCITY_X)->FixDof();
+        pnew_node->pGetDof(ANGULAR_VELOCITY_Y)->FixDof();
+        pnew_node->pGetDof(ANGULAR_VELOCITY_Z)->FixDof();
+
+        pnew_node->Set(DEMFlags::FIXED_VEL_X, true);
+        pnew_node->Set(DEMFlags::FIXED_VEL_Y, true);
+        pnew_node->Set(DEMFlags::FIXED_VEL_Z, true);
+        pnew_node->Set(DEMFlags::FIXED_ANG_VEL_X, true);
+        pnew_node->Set(DEMFlags::FIXED_ANG_VEL_Y, true);
+        pnew_node->Set(DEMFlags::FIXED_ANG_VEL_Z, true);
+        
         KRATOS_CATCH("")
     }
 
