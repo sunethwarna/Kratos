@@ -749,6 +749,15 @@ namespace Kratos
 				}
 			}
 		}
+		else if (rVariable == SECTION_ROTATION)
+		{
+			for (unsigned int gauss_point = 0; gauss_point < OPT_NUM_GP; 
+					gauss_point++)
+			{
+				ShellCrossSection::Pointer& section = mSections[gauss_point];
+				rValues[gauss_point] = section->GetOrientationAngle() / KRATOS_M_PI*180.0;
+			}
+		}
 		else
 		{
 			for (int i = 0; i < OPT_NUM_GP; i++)
@@ -847,8 +856,12 @@ namespace Kratos
 		std::vector<VectorType> my_laminate_strains =
 			std::vector<VectorType>(2.0*section->NumberOfPlies());
 		data.rlaminateStrains = my_laminate_strains;
-		VectorType temp_strains = VectorType(8, 0.0);
+		VectorType temp_strains = VectorType(3, 0.0);
 
+		// Get rotation matrix to go from the element coordinate system to the 
+		// section coordinate system
+		Matrix reducedR = Matrix(3, 3, 0.0);
+		section->GetRotationMatrixForGeneralizedStrains(-(section->GetOrientationAngle()), reducedR);
 
 		// Loop over all plies - start from bottom ply, bottom surface
 		for (unsigned int plyNumber = 0;
@@ -859,9 +872,16 @@ namespace Kratos
 
 			// Calculate strains at bottom surface - arranged in columns
 			// element coordinate system
-			temp_strains(0) = e_x + z_delta*kap_x;
-			temp_strains(1) = e_y + z_delta*kap_y;
-			temp_strains(2) = e_xy + z_delta*kap_xy;
+			temp_strains[0] = e_x + z_delta*kap_x;
+			temp_strains[1] = e_y + z_delta*kap_y;
+			temp_strains[2] = e_xy + z_delta*kap_xy;
+			temp_strains = prod(reducedR, temp_strains);
+
+			if (plyNumber == 0)
+			{
+				//std::cout << "Section orientation angle = " << section->GetOrientationAngle()/3.14*180 << std::endl;
+				//std::cout << "Bottom surface strains = " << temp_strains << std::endl;
+			}
 
 			//std::cout << "Strains at bottom surface of ply " << plyNumber << " = :" << temp_strains << std::endl;
 
@@ -875,6 +895,7 @@ namespace Kratos
 			temp_strains(0) = e_x + z_delta*kap_x;
 			temp_strains(1) = e_y + z_delta*kap_y;
 			temp_strains(2) = e_xy + z_delta*kap_xy;
+			temp_strains = prod(reducedR, temp_strains);
 
 			data.rlaminateStrains[2 * plyNumber + 1] = temp_strains;
 
@@ -908,7 +929,7 @@ namespace Kratos
 		std::vector<VectorType> my_laminate_stresses =
 			std::vector<VectorType>(2.0*section->NumberOfPlies());
 		data.rlaminateStresses = my_laminate_stresses;
-		Vector temp_stresses = Vector(8, 0.0);
+		Vector temp_stresses = Vector(3, 0.0);
 
 		// Loop over all plies - start from bottom ply, bottom surface
 		for (unsigned int plyNumber = 0;
@@ -922,6 +943,11 @@ namespace Kratos
 			temp_stresses = prod(section->GetPlyConstitutiveMatrix(plyNumber),
 				data.rlaminateStrains[plyNumber]);
 			data.rlaminateStresses[2 * plyNumber] = temp_stresses;
+
+			if (plyNumber == 0)
+			{
+				//std::cout << "Bottom surface stress = " << temp_stresses << std::endl;
+			}
 
 			//std::cout << "Strains at bottom surface of ply " << plyNumber << " = :" << data.rlaminateStrains[2 * plyNumber] << std::endl;
 
@@ -1616,7 +1642,8 @@ namespace Kratos
 
 		// store the results, but first rotate them back to the section coordinate system.
 		// we want to visualize the results in that system not in the element one!
-		if (section->GetOrientationAngle() != 0.0 && !bGlobal)
+		// Note: Composite quantites are already rotated, no need to do it here!
+		if (section->GetOrientationAngle() != 0.0 && !bGlobal && ijob < 8)
 		{
 			if (ijob > 2)
 			{
@@ -1708,19 +1735,20 @@ namespace Kratos
 			}
 			else if (ijob == 8) // SHELL_ORTHOTROPIC_LAYER_STRESS
 			{
-				bGlobal = true;			
+				bGlobal = false;			
 
+				int surfaceNumber = 0;
 
-				iValue(0, 0) = data.rlaminateStresses[0][0];
-				iValue(1, 1) = data.rlaminateStresses[0][1];
+				iValue(0, 0) = data.rlaminateStresses[surfaceNumber][0];
+				iValue(1, 1) = data.rlaminateStresses[surfaceNumber][1];
 				iValue(2, 2) = 0.0;
-				iValue(0, 1) = iValue(1, 0) = data.rlaminateStresses[0][2];
+				iValue(0, 1) = iValue(1, 0) = data.rlaminateStresses[surfaceNumber][2];
 				iValue(0, 2) = iValue(2, 0) = 0.0;
 				iValue(1, 2) = iValue(2, 1) = 0.0;
 
-				bool topSurface = true;
+				bool topSurface = false;
 				int plies = 2;
-				if (topSurface)
+				if (topSurface == true)
 				{
 					iValue(0, 0) = data.rlaminateStresses[2*plies-1][0];
 					iValue(1, 1) = data.rlaminateStresses[2 * plies-1][1];
@@ -1728,6 +1756,49 @@ namespace Kratos
 					iValue(0, 1) = iValue(1, 0) = data.rlaminateStresses[2 * plies-1][2];
 					iValue(0, 2) = iValue(2, 0) = 0.0;
 					iValue(1, 2) = iValue(2, 1) = 0.0;
+				}
+
+				bool scordelisComposite = true;
+				if (scordelisComposite == true)
+				{
+					std::cout << data.rlaminateStresses[surfaceNumber] << std::endl;
+					// point we want
+					double xp = 0.0;
+					double yp = 300.0;
+					double zp = -300.0;
+
+					//search
+					double x, y, z;
+					for (int i = 0; i < 3; i++)
+					{
+						x = GetGeometry()[i].X0();
+						if (x == xp)
+						{
+							for (int j = 0; j < 3; j++)
+							{
+								y = GetGeometry()[j].Y0();
+								if (y == yp && i != j)
+								{
+									for (int k = 0; k < 3; k++)
+									{
+										z = GetGeometry()[k].Z0();
+										if (z == zp && i !=k && j !=k)
+										{
+											std::cout << "Scordelis composite results" << std::endl;
+											std::cout << "Bottom surface stress results" << std::endl;
+											std::cout << data.rlaminateStresses[0] << std::endl;
+											std::cout << "Top surface stress results" << std::endl;
+											std::cout << data.rlaminateStresses[3] << "\n\n" << std::endl;
+										}
+									}
+								}
+							}
+							
+						}
+					}
+					
+					//std::cout << GetGeometry()[i].X0() << std::endl;
+
 				}
 				
 			}
@@ -1739,6 +1810,8 @@ namespace Kratos
 				noalias(aux33) = prod(trans(RG), iValue);
 				noalias(iValue) = prod(aux33, RG);
 			}
+
+			
 		}
 
 		OPT_INTERPOLATE_RESULTS_TO_STANDARD_GAUSS_POINTS(rValues);
