@@ -163,6 +163,9 @@ class Solution:
     def GetInletFilename(self):
         return DEM_parameters.problem_name + "DEM_Inlet"
     
+    def GetRigidBodyFileName(self):
+        return DEM_parameters.problem_name + "DEM_Rigid_Body"
+    
     def GetProblemTypeFilename(self):
         return DEM_parameters.problem_name
     
@@ -210,7 +213,7 @@ class Solution:
         model_part_io_demInlet = model_part_reader(DEM_Inlet_filename, max_node_Id+1, max_elem_Id+1, max_cond_Id+1)
         model_part_io_demInlet.ReadModelPart(self.DEM_inlet_model_part)
         
-        rigidbody_mp_filename = DEM_parameters.problem_name + "DEM_Rigid_Body"
+        rigidbody_mp_filename = self.GetRigidBodyFileName()
         model_part_io_rigidbody = model_part_reader(rigidbody_mp_filename, max_node_Id + 1, max_elem_Id + 1, max_cond_Id + 1)
         model_part_io_rigidbody.ReadModelPart(self.rigid_body_model_part)
         max_node_Id = self.creator_destructor.FindMaxNodeIdInModelPart(self.rigid_body_model_part)

@@ -48,7 +48,10 @@ class Solution(main_script.Solution):
         return 'benchmark' + str(benchmark_number) + "DEM"
     
     def GetInletFilename(self):
-        return 'benchmark' + "DEM_Inlet"
+        return 'benchmarkDEM_Inlet'
+    
+    def GetRigidBodyFileName(self):
+        return 'benchmarkDEM_Rigid_Body'
     
     def GetProblemTypeFilename(self):
         return 'benchmark' + str(benchmark_number)

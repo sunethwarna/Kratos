@@ -1,0 +1,6 @@
+Radius Mean: 1e-05
+Std Deviation: 0.0
+Relative Std Deviation: 0.0
+Total Particle Volume 3D: 4.188789333333334e-15
+Total Particle Area 2D: 3.141592000000001e-10
+
