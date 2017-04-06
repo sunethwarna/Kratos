@@ -26,7 +26,7 @@
 // preprocessors for the integration
 // method used by this element.
 
-#define OPT_1_POINT_INTEGRATION
+//#define OPT_1_POINT_INTEGRATION
 
 #ifdef OPT_1_POINT_INTEGRATION
 #define OPT_INTEGRATION_METHOD Kratos::GeometryData::GI_GAUSS_1
@@ -682,8 +682,8 @@ namespace Kratos
 				ShellCrossSection::Pointer & section = mSections[gauss_point];
 				CalculateSectionResponse(data);
 				data.generalizedStresses = prod(data.D, data.generalizedStrains);
-				// (perform the calculation manually (outside material law) to 
-				// ensure stabilization is used on the transverse shear part 
+				// (perform the calculation manually (outside material law) to
+				// ensure stabilization is used on the transverse shear part
 				// of the material matrix
 
 				// recover stresses
@@ -751,8 +751,8 @@ namespace Kratos
 		}
 		else if (rVariable == SECTION_ROTATION)
 		{
-			for (unsigned int gauss_point = 0; gauss_point < OPT_NUM_GP; 
-					gauss_point++)
+			for (unsigned int gauss_point = 0; gauss_point < OPT_NUM_GP;
+			gauss_point++)
 			{
 				ShellCrossSection::Pointer& section = mSections[gauss_point];
 				rValues[gauss_point] = section->GetOrientationAngle() / KRATOS_M_PI*180.0;
@@ -830,7 +830,7 @@ namespace Kratos
 		rstresses[6] *= 1.5 / rthickness;
 		rstresses[7] *= 1.5 / rthickness;
 	}
-	
+
 	void ShellThickElement3D3N::CalculateLaminaStrains(CalculationData& data)
 	{
 		ShellCrossSection::Pointer& section = mSections[data.gpIndex];
@@ -858,7 +858,7 @@ namespace Kratos
 		data.rlaminateStrains = my_laminate_strains;
 		VectorType temp_strains = VectorType(3, 0.0);
 
-		// Get rotation matrix to go from the element coordinate system to the 
+		// Get rotation matrix to go from the element coordinate system to the
 		// section coordinate system
 		Matrix reducedR = Matrix(3, 3, 0.0);
 		section->GetRotationMatrixForGeneralizedStrains(-(section->GetOrientationAngle()), reducedR);
@@ -907,7 +907,7 @@ namespace Kratos
 	{
 		ShellCrossSection::Pointer& section = mSections[data.gpIndex];
 
-		// Setup container for constitutive data 
+		// Setup container for constitutive data
 		//			units [Pa] and rotated to element orientation!
 		/*
 		std::vector<Matrix> ply_constitutive_matrices =
@@ -917,13 +917,12 @@ namespace Kratos
 			ply_constitutive_matrices[ply].resize(3, 3, false);
 		}
 		*/
-		// Setup container for constitutive data 
+		// Setup container for constitutive data
 		//			units [Pa] and rotated to element orientation!
 		section->SetupGetPlyConstitutiveMatrices();
 		CalculateSectionResponse(data); //might need to rotate these more in the shell_cross_section
 		//printMatrix( section->GetPlyConstitutiveMatrix(0),"1st ply material matrix");
 		//std::cout << "ply_constitutive_matrices[0]11 = " << ply_constitutive_matrices[0](0, 0) << std::endl;
-
 
 		// Resize output vector. 2 Surfaces for each ply
 		std::vector<VectorType> my_laminate_stresses =
@@ -957,9 +956,7 @@ namespace Kratos
 			temp_stresses = prod(section->GetPlyConstitutiveMatrix(plyNumber),
 				data.rlaminateStrains[plyNumber + 1]);
 			data.rlaminateStresses[2 * plyNumber + 1] = temp_stresses;
-			
 		}
-
 	}
 
 	void ShellThickElement3D3N::DecimalCorrection(Vector& a)
@@ -1034,7 +1031,7 @@ namespace Kratos
 		data.SectionParameters.SetShapeFunctionsValues(data.N);
 		section->CalculateSectionResponse(data.SectionParameters, ConstitutiveLaw::StressMeasure_PK2);
 
-		if (data.basicTriCST == false && 
+		if (data.basicTriCST == false &&
 			data.ignore_shear_stabilization == false)
 		{
 			//add in shear stabilization
@@ -1395,12 +1392,14 @@ namespace Kratos
 		double max_stiff = 0.0; //max diagonal stiffness
 		for (int i = 0; i < 18; i++)
 		{
-			if (rLeftHandSideMatrix(i, i) > max_stiff) 
-			{ max_stiff = rLeftHandSideMatrix(i, i); }
+			if (rLeftHandSideMatrix(i, i) > max_stiff)
+			{
+				max_stiff = rLeftHandSideMatrix(i, i);
+			}
 		}
 		for (int i = 0; i < 3; i++)
 		{
-			rLeftHandSideMatrix(6 * i + 5, 6 * i + 5) = 
+			rLeftHandSideMatrix(6 * i + 5, 6 * i + 5) =
 				z_rot_multiplier*max_stiff;
 		}
 
@@ -1555,12 +1554,15 @@ namespace Kratos
 			ijob = 7;
 			bGlobal = true;
 		}
-		else if (rVariable == SHELL_ORTHOTROPIC_LAYER_STRESS)
+		else if (rVariable == SHELL_ORTHOTROPIC_STRESS_BOTTOM_SURFACE)
 		{
 			ijob = 8;
-			bGlobal = true;
 		}
-		
+		else if (rVariable == SHELL_ORTHOTROPIC_STRESS_TOP_SURFACE)
+		{
+			ijob = 9;
+		}
+
 		// quick return
 
 		if (ijob == 0) return false;
@@ -1592,7 +1594,7 @@ namespace Kratos
 		//compute forces
 		if (ijob > 2)
 		{
-			if (ijob >7)
+			if (ijob > 7)
 			{
 				bool nasaTest5 = false;
 				bool nasaTest7 = false;
@@ -1709,7 +1711,8 @@ namespace Kratos
 				iValue(1, 1) = data.generalizedStresses(1) +
 					data.generalizedStresses(4);
 				iValue(2, 2) = 0.0;
-				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses[2] + data.generalizedStresses[5];
+				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses[2] +
+					data.generalizedStresses[5];
 				iValue(0, 2) = iValue(2, 0) = 0.0;
 				iValue(1, 2) = iValue(2, 1) = 0.0;
 			}
@@ -1729,78 +1732,33 @@ namespace Kratos
 				iValue(1, 1) = data.generalizedStresses(1) -
 					data.generalizedStresses(4);
 				iValue(2, 2) = 0.0;
-				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses[2] - data.generalizedStresses[5];
+				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses[2] -
+					data.generalizedStresses[5];
 				iValue(0, 2) = iValue(2, 0) = 0.0;
 				iValue(1, 2) = iValue(2, 1) = 0.0;
 			}
-			else if (ijob == 8) // SHELL_ORTHOTROPIC_LAYER_STRESS
+			else if (ijob == 8) // SHELL_ORTHOTROPIC_STRESS_BOTTOM_SURFACE
 			{
-				bGlobal = false;			
-
-				int surfaceNumber = 0;
-
-				iValue(0, 0) = data.rlaminateStresses[surfaceNumber][0];
-				iValue(1, 1) = data.rlaminateStresses[surfaceNumber][1];
+				bGlobal = true;
+				iValue(0, 0) = data.rlaminateStresses[0][0];
+				iValue(1, 1) = data.rlaminateStresses[0][1];
 				iValue(2, 2) = 0.0;
-				iValue(0, 1) = iValue(1, 0) = data.rlaminateStresses[surfaceNumber][2];
+				iValue(0, 1) = iValue(1, 0) = data.rlaminateStresses[0][2];
 				iValue(0, 2) = iValue(2, 0) = 0.0;
 				iValue(1, 2) = iValue(2, 1) = 0.0;
-
-				bool topSurface = false;
-				int plies = 2;
-				if (topSurface == true)
-				{
-					iValue(0, 0) = data.rlaminateStresses[2*plies-1][0];
-					iValue(1, 1) = data.rlaminateStresses[2 * plies-1][1];
-					iValue(2, 2) = 0.0;
-					iValue(0, 1) = iValue(1, 0) = data.rlaminateStresses[2 * plies-1][2];
-					iValue(0, 2) = iValue(2, 0) = 0.0;
-					iValue(1, 2) = iValue(2, 1) = 0.0;
-				}
-
-				bool scordelisComposite = true;
-				if (scordelisComposite == true)
-				{
-					std::cout << data.rlaminateStresses[surfaceNumber] << std::endl;
-					// point we want
-					double xp = 0.0;
-					double yp = 300.0;
-					double zp = -300.0;
-
-					//search
-					double x, y, z;
-					for (int i = 0; i < 3; i++)
-					{
-						x = GetGeometry()[i].X0();
-						if (x == xp)
-						{
-							for (int j = 0; j < 3; j++)
-							{
-								y = GetGeometry()[j].Y0();
-								if (y == yp && i != j)
-								{
-									for (int k = 0; k < 3; k++)
-									{
-										z = GetGeometry()[k].Z0();
-										if (z == zp && i !=k && j !=k)
-										{
-											std::cout << "Scordelis composite results" << std::endl;
-											std::cout << "Bottom surface stress results" << std::endl;
-											std::cout << data.rlaminateStresses[0] << std::endl;
-											std::cout << "Top surface stress results" << std::endl;
-											std::cout << data.rlaminateStresses[3] << "\n\n" << std::endl;
-										}
-									}
-								}
-							}
-							
-						}
-					}
-					
-					//std::cout << GetGeometry()[i].X0() << std::endl;
-
-				}
-				
+			}
+			else if (ijob == 9) // SHELL_ORTHOTROPIC_STRESS_TOP_SURFACE
+			{
+				bGlobal = true;
+				iValue(0, 0) =
+					data.rlaminateStresses[data.rlaminateStresses.size() - 1][0];
+				iValue(1, 1) =
+					data.rlaminateStresses[data.rlaminateStresses.size() - 1][1];
+				iValue(2, 2) = 0.0;
+				iValue(0, 1) = iValue(1, 0) =
+					data.rlaminateStresses[data.rlaminateStresses.size() - 1][2];
+				iValue(0, 2) = iValue(2, 0) = 0.0;
+				iValue(1, 2) = iValue(2, 1) = 0.0;
 			}
 
 			// if requested, rotate the results in the global coordinate system
@@ -1810,8 +1768,6 @@ namespace Kratos
 				noalias(aux33) = prod(trans(RG), iValue);
 				noalias(iValue) = prod(aux33, RG);
 			}
-
-			
 		}
 
 		OPT_INTERPOLATE_RESULTS_TO_STANDARD_GAUSS_POINTS(rValues);
