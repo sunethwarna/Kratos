@@ -846,6 +846,7 @@ void ShellCrossSection::ParseOrthotropicPropertyMatrix(Properties& props, Elemen
 
 	// figure out the format of material properties based on it's width
 	int myFormat = (props)[SHELL_ORTHOTROPIC_LAYERS].size2();
+	//std::cout << (props)[SHELL_ORTHOTROPIC_LAYERS] << std::endl;
 
 	double plyThickness, angleRz, elementThickness;
 	elementThickness = 0.0;
