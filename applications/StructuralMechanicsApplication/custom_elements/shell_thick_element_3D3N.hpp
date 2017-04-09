@@ -263,6 +263,7 @@ namespace Kratos
 			double h_e;		/*!< longest edge of triangle */
 			double alpha = 0.1;	// modifier of shear material matrix stabilization parameter
 								// refer Lyly(1993)
+			double shearStabilisation;
 
 			Matrix D;		/*!< section constitutive matrix at the current integration point */
 

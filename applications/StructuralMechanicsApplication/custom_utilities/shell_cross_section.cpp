@@ -567,23 +567,8 @@ void ShellCrossSection::CalculateSectionResponse(Parameters& rValues, const Cons
 
 						if (mStorePlyConstitutiveMatrices)
 						{
-							//pwdebug
-							Matrix three_by_three_rotation_matrix = Matrix(3, 3, 0.0);
-							for (unsigned int row = 0; row < 3; row++)
-							{
-								for (unsigned int col = 0; col < 3; col++)
-								{
-									three_by_three_rotation_matrix(row, col) = 
-										R(row, col);
-								}
-							}
-
-							Matrix ply_DRT = 
-								Matrix(prod(mPlyConstitutiveMatrices[ply_number], 
-									trans(three_by_three_rotation_matrix)));
-							
-							mPlyConstitutiveMatrices[ply_number] = 
-								prod(three_by_three_rotation_matrix, ply_DRT);
+							noalias(DRT) = prod(mPlyConstitutiveMatrices[ply_number], trans(R));
+							mPlyConstitutiveMatrices[ply_number] = prod(R, DRT);
 						}
 
 						if(mNeedsOOPCondensation)
@@ -1273,22 +1258,7 @@ void ShellCrossSection::CalculateIntegrationPointResponse(IntegrationPoint& rPoi
 
 			if (mStorePlyConstitutiveMatrices)
 			{
-				// think of a better way to do this
-				
-				// membrane part
-				/*
-				mPlyConstitutiveMatrices[plyNumber](0, 0) += h*C(0, 0);
-				mPlyConstitutiveMatrices[plyNumber](0, 1) += h*C(0, 1);
-				mPlyConstitutiveMatrices[plyNumber](0, 2) += h*C(0, 2);
-				mPlyConstitutiveMatrices[plyNumber](1, 0) += h*C(1, 0);
-				mPlyConstitutiveMatrices[plyNumber](1, 1) += h*C(1, 1);
-				mPlyConstitutiveMatrices[plyNumber](1, 2) += h*C(1, 2);
-				mPlyConstitutiveMatrices[plyNumber](2, 0) += h*C(2, 0);
-				mPlyConstitutiveMatrices[plyNumber](2, 1) += h*C(2, 1);
-				mPlyConstitutiveMatrices[plyNumber](2, 2) += h*C(2, 2);
-				*/
-				
-
+				//TODO p3 think of a better way to do this
 				for (unsigned int i = 0; i < 3; i++)
 				{
 					for (unsigned int j = 0; j < 3; j++)
@@ -1296,56 +1266,12 @@ void ShellCrossSection::CalculateIntegrationPointResponse(IntegrationPoint& rPoi
 						mPlyConstitutiveMatrices[plyNumber](i, j) = 1.0*C(i, j);
 					}
 				}
-
-				//std::cout << "C11 = " << C(0, 0) << std::endl;
-				//std::cout << "mPlyConstitutiveMatrices[plyNumber]11 = " << mPlyConstitutiveMatrices[plyNumber](0, 0) << std::endl;
-
-				/*
-				// bending part
-				mPlyConstitutiveMatrices[plyNumber](3, 3) += h*C(0, 0);
-				mPlyConstitutiveMatrices[plyNumber](3, 4) += h*C(0, 1);
-				mPlyConstitutiveMatrices[plyNumber](3, 5) += h*C(0, 2);
-				mPlyConstitutiveMatrices[plyNumber](4, 3) += h*C(1, 0);
-				mPlyConstitutiveMatrices[plyNumber](4, 4) += h*C(1, 1);
-				mPlyConstitutiveMatrices[plyNumber](4, 5) += h*C(1, 2);
-				mPlyConstitutiveMatrices[plyNumber](5, 3) += h*C(2, 0);
-				mPlyConstitutiveMatrices[plyNumber](5, 4) += h*C(2, 1);
-				mPlyConstitutiveMatrices[plyNumber](5, 5) += h*C(2, 2);
-
-				// membrane-bending part
-				mPlyConstitutiveMatrices[plyNumber](0, 3) += h*C(0, 0);
-				mPlyConstitutiveMatrices[plyNumber](0, 4) += h*C(0, 1);
-				mPlyConstitutiveMatrices[plyNumber](0, 5) += h*C(0, 2);
-				mPlyConstitutiveMatrices[plyNumber](1, 3) += h*C(1, 0);
-				mPlyConstitutiveMatrices[plyNumber](1, 4) += h*C(1, 1);
-				mPlyConstitutiveMatrices[plyNumber](1, 5) += h*C(1, 2);
-				mPlyConstitutiveMatrices[plyNumber](2, 3) += h*C(2, 0);
-				mPlyConstitutiveMatrices[plyNumber](2, 4) += h*C(2, 1);
-				mPlyConstitutiveMatrices[plyNumber](2, 5) += h*C(2, 2);
-
-				// bending-membrane part
-				mPlyConstitutiveMatrices[plyNumber](3, 0) += h*C(0, 0);
-				mPlyConstitutiveMatrices[plyNumber](3, 1) += h*C(0, 1);
-				mPlyConstitutiveMatrices[plyNumber](3, 2) += h*C(0, 2);
-				mPlyConstitutiveMatrices[plyNumber](4, 0) += h*C(1, 0);
-				mPlyConstitutiveMatrices[plyNumber](4, 1) += h*C(1, 1);
-				mPlyConstitutiveMatrices[plyNumber](4, 2) += h*C(1, 2);
-				mPlyConstitutiveMatrices[plyNumber](5, 0) += h*C(2, 0);
-				mPlyConstitutiveMatrices[plyNumber](5, 1) += h*C(2, 1);
-				mPlyConstitutiveMatrices[plyNumber](5, 2) += h*C(2, 2);
-				
-
-
 				if (mBehavior == Thick)
 				{
-					// here the transverse shear is treated elastically
-					mPlyConstitutiveMatrices[plyNumber](6, 6) += h * cs * ce * rVariables.GYZ;
-					mPlyConstitutiveMatrices[plyNumber](7, 7) += h * cs * ce * rVariables.GXZ;
+					// include transverse moduli and add in shear stabilization
+					mPlyConstitutiveMatrices[plyNumber](6, 6) = cs * ce * rVariables.GYZ *mDSG_shear_stabilization;
+					mPlyConstitutiveMatrices[plyNumber](7, 7) =  cs * ce * rVariables.GXZ *mDSG_shear_stabilization;
 				}
-				*/
-				//std::cout << "Q11 = " << C(0, 0) << std::endl;
-				//std::cout << "Q12 = " << C(0, 1) << std::endl;
-				//std::cout << "Q22 = " << C(2, 2) << std::endl;
 			}
 		}
 		else // full 3D case

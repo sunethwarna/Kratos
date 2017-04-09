@@ -920,6 +920,126 @@ namespace Kratos
 		}
 	}
 
+	void ShellThinElement3D4N::CalculateLaminaStrains(CalculationData& data)
+	{
+		ShellCrossSection::Pointer& section = mSections[data.gpIndex];
+
+		// Determine midplane of element: z_mid
+		double z_mid = section->GetThickness() / 2.0;
+		double z_current = 0.0; // start from the bottom of the 1st layer
+		double z_delta;
+
+		//std::cout << "z_mid = " << z_mid << std::endl;
+
+		// Establish current strains at the midplane - element coordinate system
+		double e_x = data.generalizedStrains[0];
+		double e_y = data.generalizedStrains[1];
+		double e_xy = data.generalizedStrains[2]; // this is still engineering strain (2xtensorial shear)
+		double kap_x = data.generalizedStrains[3];
+		double kap_y = data.generalizedStrains[4];
+		double kap_xy = data.generalizedStrains[5];	// this is still engineering strain (2xtensorial shear)
+
+													//std::cout << "generalized strains = " << data.generalizedStrains << std::endl;
+
+													// Get ply thicknesses
+		Vector ply_thicknesses = Vector(section->NumberOfPlies(), 0.0);
+		section->GetPlyThicknesses(ply_thicknesses);
+
+		// Resize output vector. 2 Surfaces for each ply
+		data.rlaminateStrains.resize(2 * section->NumberOfPlies());
+		for (unsigned int i = 0; i < 2 * section->NumberOfPlies(); i++)
+		{
+			data.rlaminateStrains[i].resize(3, false);
+		}
+
+		// Get rotation matrix to go from the element coordinate system to the
+		// section coordinate system
+		Matrix R = Matrix(6, 6, 0.0);
+		Matrix reducedR = Matrix(3, 3, 0.0);
+		section->GetRotationMatrixForGeneralizedStrains(-(section->GetOrientationAngle()), R);
+		for (unsigned int i = 0; i < 3; i++)
+		{
+			for (unsigned int j = 0; j < 3; j++)
+			{
+				reducedR(i, j) = R(i, j);
+			}
+		}
+
+		// Loop over all plies - start from bottom ply, bottom surface
+		for (unsigned int plyNumber = 0;
+		plyNumber < section->NumberOfPlies(); ++plyNumber)
+		{
+			// Distance from element midplane to current ply bottom surface
+			//std::cout << "BOTTOM SURFACE OF PLY " << plyNumber << std::endl;
+			//std::cout << "z_current = " << z_current << std::endl;
+			z_delta = z_current - z_mid;
+
+			// Calculate strains at bottom surface - arranged in columns
+			// element coordinate system
+			data.rlaminateStrains[2 * plyNumber][0] = e_x + z_delta*kap_x;
+			data.rlaminateStrains[2 * plyNumber][1] = e_y + z_delta*kap_y;
+			data.rlaminateStrains[2 * plyNumber][2] = e_xy + z_delta*kap_xy;
+			data.rlaminateStrains[2 * plyNumber] = prod(reducedR, data.rlaminateStrains[2 * plyNumber]);
+
+			//std::cout << "Strains at bottom surface of ply " << plyNumber << " = :" << data.rlaminateStrains[2 * plyNumber] << std::endl;
+
+			// Move to top surface of current layer
+			//std::cout << "TOP SURFACE OF PLY " << plyNumber << std::endl;
+			z_current += ply_thicknesses[plyNumber];
+			//std::cout << "z_current = " << z_current << std::endl;
+			z_delta = z_current - z_mid;
+
+			// Calculate strains at top surface - arranged in columns
+			data.rlaminateStrains[2 * plyNumber + 1][0] = e_x + z_delta*kap_x;
+			data.rlaminateStrains[2 * plyNumber + 1][1] = e_y + z_delta*kap_y;
+			data.rlaminateStrains[2 * plyNumber + 1][2] = e_xy + z_delta*kap_xy;
+			data.rlaminateStrains[2 * plyNumber + 1] = prod(reducedR, data.rlaminateStrains[2 * plyNumber + 1]);
+
+			//std::cout << "Strains at top surface of ply " << plyNumber << " = :" << data.rlaminateStrains[2 * plyNumber+1] << std::endl;
+		}
+	}
+
+	void ShellThinElement3D4N::CalculateLaminaStresses(CalculationData& data)
+	{
+		ShellCrossSection::Pointer& section = mSections[data.gpIndex];
+
+		// Setup container for constitutive data
+		//			units [Pa] and rotated to element orientation!
+		section->SetupGetPlyConstitutiveMatrices();
+		CalculateSectionResponse(data); //might need to rotate these more in the shell_cross_section
+
+		// Resize output vector. 2 Surfaces for each ply
+		data.rlaminateStresses.resize(2 * section->NumberOfPlies());
+		for (unsigned int i = 0; i < 2 * section->NumberOfPlies(); i++)
+		{
+			data.rlaminateStresses[i].resize(3, false);
+		}
+
+		// Loop over all plies - start from bottom ply, bottom surface
+		for (unsigned int plyNumber = 0;
+		plyNumber < section->NumberOfPlies(); ++plyNumber)
+		{
+			//printMatrix(section->GetPlyConstitutiveMatrix(plyNumber), "ply material matrix");
+			//std::cout << "Material matrix of ply " << plyNumber << " = :" << std::endl;
+			//printMatrix(section->GetPlyConstitutiveMatrix(plyNumber), "Material matrix of ply");
+
+			// determine stresses at currrent ply - bottom surface
+			data.rlaminateStresses[2 * plyNumber] = prod(section->GetPlyConstitutiveMatrix(plyNumber),
+				data.rlaminateStrains[2 * plyNumber]);
+
+			//std::cout << "Strains at bottom surface of ply " << plyNumber << " = :" << data.rlaminateStrains[2 * plyNumber] << std::endl;
+
+			//std::cout << "Stresses at bottom surface of ply " << plyNumber << " = :" << data.rlaminateStresses[2 * plyNumber] << std::endl;
+
+			// determine stresses at currrent ply - top surface
+			data.rlaminateStresses[2 * plyNumber + 1] = prod(section->GetPlyConstitutiveMatrix(plyNumber),
+				data.rlaminateStrains[2 * plyNumber + 1]);
+
+			//std::cout << "Stresses at TOP surface of ply " << plyNumber << " = :" << data.rlaminateStresses[2 * plyNumber+1] << std::endl;
+			//std::cout << "Strains at TOP surface of ply " << plyNumber << " = :" << data.rlaminateStrains[2 * plyNumber+1] << std::endl;
+		}
+	}
+
 	void ShellThinElement3D4N::DecimalCorrection(Vector& a)
 	{
 		double norm = norm_2(a);
@@ -2143,6 +2263,24 @@ namespace Kratos
 			ijob = 7;
 			bGlobal = true;
 		}
+		else if (rVariable == SHELL_ORTHOTROPIC_STRESS_BOTTOM_SURFACE)
+		{
+			ijob = 8;
+		}
+		else if (rVariable == SHELL_ORTHOTROPIC_STRESS_BOTTOM_SURFACE_GLOBAL)
+		{
+			ijob = 8;
+			bGlobal = true;
+		}
+		else if (rVariable == SHELL_ORTHOTROPIC_STRESS_TOP_SURFACE)
+		{
+			ijob = 9;
+		}
+		else if (rVariable == SHELL_ORTHOTROPIC_STRESS_TOP_SURFACE_GLOBAL)
+		{
+			ijob = 9;
+			bGlobal = true;
+		}
 
 		// quick return
 
@@ -2187,21 +2325,55 @@ namespace Kratos
 			noalias(data.generalizedStrains) =
 				prod(data.B, data.localDisplacements);
 
+			//std::cout << "local displacements = " << data.localDisplacements << std::endl;
+			//std::cout << "strains = " << data.generalizedStrains << std::endl;
+
 			//data.generalizedStrains[4] = 0.1;// composite testing
 
 			// Calculate the response of the Cross Section
 			ShellCrossSection::Pointer & section = mSections[i];
 			if (ijob > 2)
 			{
-				CalculateSectionResponse(data);
-
-				if (ijob > 4)
+				if (ijob > 7)
 				{
-					// Compute stresses
-					CalculateStressesFromForceResultants(data.generalizedStresses,
-						section->GetThickness());
-				}
+					bool nasaTest6 = false;
+					bool nasaTest7 = false;
 
+					if (nasaTest6)
+					{
+						std::cout << "Running test case for nasa paper ex 6" << std::endl;
+						data.generalizedStrains.clear();
+						data.generalizedStrains[3] = 0.418;
+						data.generalizedStrains[4] = -0.165;
+						data.generalizedStrains[5] = -0.0975;
+					}
+					else if (nasaTest7)
+					{
+						std::cout << "Running test case for nasa paper ex 7" << std::endl;
+						data.generalizedStrains.clear();
+						data.generalizedStrains[0] = 0.00425;
+						data.generalizedStrains[1] = -0.00077;
+						data.generalizedStrains[2] = -0.0029;
+						data.generalizedStrains[3] = -1.02;
+						data.generalizedStrains[4] = 0.088;
+						data.generalizedStrains[5] = 0.92;
+					}
+
+					//Calculate lamina stresses
+					CalculateLaminaStrains(data);
+					CalculateLaminaStresses(data);
+				}
+				else
+				{
+					CalculateSectionResponse(data);	// calculate force resultants
+
+					if (ijob > 4)
+					{
+						// Compute stresses
+						CalculateStressesFromForceResultants(data.generalizedStresses,
+							section->GetThickness());
+					}
+				}
 				DecimalCorrection(data.generalizedStresses);
 			}
 
@@ -2212,19 +2384,38 @@ namespace Kratos
 			// now the results are in the element coordinate system
 			// if necessary, rotate the results in the section (local)
 			// coordinate system
-			if (section->GetOrientationAngle() != 0.0 && !bGlobal)
+			if (section->GetOrientationAngle() != 0.0)
 			{
-				if (ijob > 2)
+				if (ijob > 7)
 				{
-					section->GetRotationMatrixForGeneralizedStresses
-						(-(section->GetOrientationAngle()), R);
-					data.generalizedStresses = prod(R, data.generalizedStresses);
+					Matrix reducedR = Matrix(3, 3, 0.0);
+					section->GetRotationMatrixForGeneralizedStresses(-(section->GetOrientationAngle()), R);
+					for (unsigned int i = 0; i < 3; i++)
+					{
+						for (unsigned int j = 0; j < 3; j++)
+						{
+							reducedR(i, j) = R(i, j);
+						}
+					}
+					for (unsigned int i = 0; i < data.rlaminateStresses.size(); i++)
+					{
+						data.rlaminateStresses[i] = prod(reducedR, data.rlaminateStresses[i]);
+					}
 				}
-				else
+				else if (!bGlobal)
 				{
-					section->GetRotationMatrixForGeneralizedStrains
-						(-(section->GetOrientationAngle()), R);
-					data.generalizedStrains = prod(R, data.generalizedStrains);
+					if (ijob > 2)
+					{
+						section->GetRotationMatrixForGeneralizedStresses
+							(-(section->GetOrientationAngle()), R);
+						data.generalizedStresses = prod(R, data.generalizedStresses);
+					}
+					else
+					{
+						section->GetRotationMatrixForGeneralizedStrains
+							(-(section->GetOrientationAngle()), R);
+						data.generalizedStrains = prod(R, data.generalizedStrains);
+					}
 				}
 			}
 
@@ -2296,6 +2487,28 @@ namespace Kratos
 					data.generalizedStresses(4);
 				iValue(2, 2) = 0.0;
 				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses[2] - data.generalizedStresses[5];
+				iValue(0, 2) = iValue(2, 0) = 0.0;
+				iValue(1, 2) = iValue(2, 1) = 0.0;
+			}
+			else if (ijob == 8) // SHELL_ORTHOTROPIC_STRESS_BOTTOM_SURFACE
+			{
+				std::cout << "SHELL_ORTHOTROPIC_STRESS_BOTTOM_SURFACE ARE STRAINS!!" << std::endl;
+				iValue(0, 0) = data.rlaminateStrains[0][0];
+				iValue(1, 1) = data.rlaminateStrains[0][1];
+				iValue(2, 2) = 0.0;
+				iValue(0, 1) = iValue(1, 0) = data.rlaminateStrains[0][2];
+				iValue(0, 2) = iValue(2, 0) = 0.0;
+				iValue(1, 2) = iValue(2, 1) = 0.0;
+			}
+			else if (ijob == 9) // SHELL_ORTHOTROPIC_STRESS_TOP_SURFACE
+			{
+				iValue(0, 0) =
+					data.rlaminateStresses[data.rlaminateStresses.size() - 1][0];
+				iValue(1, 1) =
+					data.rlaminateStresses[data.rlaminateStresses.size() - 1][1];
+				iValue(2, 2) = 0.0;
+				iValue(0, 1) = iValue(1, 0) =
+					data.rlaminateStresses[data.rlaminateStresses.size() - 1][2];
 				iValue(0, 2) = iValue(2, 0) = 0.0;
 				iValue(1, 2) = iValue(2, 1) = 0.0;
 			}

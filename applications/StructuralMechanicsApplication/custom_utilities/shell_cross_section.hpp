@@ -1119,15 +1119,17 @@ public:
 	/**
 	* Setup to get the integrated constitutive matrices for each ply
 	*/
-	void SetupGetPlyConstitutiveMatrices()
+	void SetupGetPlyConstitutiveMatrices(const double shear_stabilization = 1.0)
 	{
 		//this is an ugly solution - need to fix
 		mStorePlyConstitutiveMatrices = true;
 		mPlyConstitutiveMatrices = std::vector<Matrix>(this->NumberOfPlies());
 		for (unsigned int ply = 0; ply < this->NumberOfPlies(); ++ply)
 		{
-			mPlyConstitutiveMatrices[ply].resize(3, 3, false);
+			mPlyConstitutiveMatrices[ply].resize(8, 8, false);
+			mPlyConstitutiveMatrices[ply].clear();
 		}
+		mDSG_shear_stabilization = shear_stabilization;
 	}
 
 	/**
@@ -1135,22 +1137,7 @@ public:
 	*/
 	Matrix GetPlyConstitutiveMatrix(const unsigned int ply_number)
 	{
-		/*
-		//this is an ugly solution - need to fix
-		for (unsigned int ply = 0; ply < this->NumberOfPlies(); ++ply)
-		{
-			for (unsigned int row = 0; row < 3; row++)
-			{
-				for (unsigned int col = 0; col < 3; col++)
-				{
-					PlyConstitutiveMatricesIn[ply](row,col) = 
-						mPlyConstitutiveMatrices[ply](row,col);
-				}
-			}
-			
-		}
-		*/
-		//std::cout << "mPlyConstitutiveMatrices[0]11 = " << mPlyConstitutiveMatrices[0](0, 0) << std::endl;
+		// TODO p3 maybe think of a different solution to this
 		return mPlyConstitutiveMatrices[ply_number];
 	}
 
@@ -1337,6 +1324,7 @@ private:
     Vector mOOP_CondensedStrains_converged;
 	bool mStorePlyConstitutiveMatrices = false;
 	std::vector<Matrix> mPlyConstitutiveMatrices;
+	double mDSG_shear_stabilization;
 
     ///@}
 

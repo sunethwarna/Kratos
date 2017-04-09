@@ -323,8 +323,14 @@ namespace Kratos
 			bool CalculateRHS; /*!< flag for the calculation of the right-hand-side vector */
 			bool CalculateLHS; /*!< flag for the calculation of the left-hand-side vector */
 
-			const bool basicQuad = true;	/*!< flag for using basic membrane 
-											formulation - should be false unless
+			// ---------------------------------------
+			// Testing flags
+			// ---------------------------------------
+			// These should both be FALSE unless you are testing, or 
+			// investigating the effects of element enhancements!
+
+			const bool basicQuad = false;	/*!< flag for using basic membrane 
+											formulation - should be FALSE unless
 											you are testing */
 
 			// ---------------------------------------
@@ -349,6 +355,9 @@ namespace Kratos
 
 			VectorType generalizedStrains;  /*!< generalized strain vector at the current integration point */
 			VectorType generalizedStresses; /*!< generalized stress vector at the current integration point */
+
+			std::vector<VectorType> rlaminateStrains;	/*!< laminate strain vector at all surfaces at the current integration point */
+			std::vector<VectorType> rlaminateStresses;	/*!< laminate stress vector at all surfaces at the current integration point */
 
 			VectorType N; /*!< shape function vector at the current integration point */
 			JacobianOperator jacOp;
@@ -375,6 +384,10 @@ namespace Kratos
 		void CalculateStressesFromForceResultants
 			(VectorType& rstresses,
 				const double& rthickness);
+
+		void CalculateLaminaStrains(CalculationData& data);
+
+		void CalculateLaminaStresses(CalculationData& data);
 
 		void DecimalCorrection(Vector& a);
 
