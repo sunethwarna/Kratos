@@ -451,8 +451,8 @@ void ShellCrossSection::CalculateSectionResponse(Parameters& rValues, const Cons
 				for(Ply::IntegrationPointCollection::iterator intp_it = iPly.GetIntegrationPoints().begin(); intp_it != iPly.GetIntegrationPoints().end(); ++intp_it)
 				{
 					IntegrationPoint& iPoint = *intp_it;
-					UpdateIntegrationPointParameters(iPoint, materialValues, variables);								// this just establishes the setup - no values written here
-					CalculateIntegrationPointResponse(iPoint, materialValues, rValues, variables, rStressMeasure,ply_number);		// this adds the values in
+					UpdateIntegrationPointParameters(iPoint, materialValues, variables);
+					CalculateIntegrationPointResponse(iPoint, materialValues, rValues, variables, rStressMeasure,ply_number);
 				} // END LOOP: integrate the response of each integration point in this ply
 			}
 			else
@@ -592,11 +592,6 @@ void ShellCrossSection::CalculateSectionResponse(Parameters& rValues, const Cons
 			ply_number++;
 		} // END LOOP: integrate the response of each ply in this cross section
 		
-		if (mStorePlyConstitutiveMatrices)
-		{
-			mStorePlyConstitutiveMatrices = false;
-		}
-
 		// quick return if no static condensation is required
 		if(!mNeedsOOPCondensation)
 		{
@@ -673,8 +668,23 @@ void ShellCrossSection::CalculateSectionResponse(Parameters& rValues, const Cons
 			{
 				noalias( DRT ) = prod( constitutiveMatrix, trans( R ) );
 				noalias( constitutiveMatrix ) = prod( R, DRT );
+				
+				if (mStorePlyConstitutiveMatrices)
+				{
+					for (size_t ply = 0; ply < this->NumberOfPlies(); ply++)
+					{
+						// TODO p1 add rotation of plyconstitutive matrix here!
+						noalias(DRT) = prod(mPlyConstitutiveMatrices[ply], trans(R));
+						mPlyConstitutiveMatrices[ply] = prod(R, DRT);
+					}
+				}
 			}
 		}
+	}
+
+	if (mStorePlyConstitutiveMatrices)
+	{
+		mStorePlyConstitutiveMatrices = false;
 	}
 
 	// restore the original strain vector in element coordinate system
@@ -1268,6 +1278,7 @@ void ShellCrossSection::CalculateIntegrationPointResponse(IntegrationPoint& rPoi
 				}
 				if (mBehavior == Thick)
 				{
+					//mDSG_shear_stabilization = 1.0;
 					// include transverse moduli and add in shear stabilization
 					mPlyConstitutiveMatrices[plyNumber](6, 6) = cs * ce * rVariables.GYZ *mDSG_shear_stabilization;
 					mPlyConstitutiveMatrices[plyNumber](7, 7) =  cs * ce * rVariables.GXZ *mDSG_shear_stabilization;

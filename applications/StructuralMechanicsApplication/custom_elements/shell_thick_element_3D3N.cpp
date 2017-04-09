@@ -130,8 +130,8 @@ namespace Kratos
 	// =========================================================================
 
 	ShellThickElement3D3N::CalculationData::CalculationData
-		(const CoordinateTransformationBasePointerType& pCoordinateTransformation,
-			const ProcessInfo& rCurrentProcessInfo)
+	(const CoordinateTransformationBasePointerType& pCoordinateTransformation,
+		const ProcessInfo& rCurrentProcessInfo)
 		: LCS0(pCoordinateTransformation->CreateReferenceCoordinateSystem())
 		, LCS(pCoordinateTransformation->CreateLocalCoordinateSystem())
 		, CurrentProcessInfo(rCurrentProcessInfo)
@@ -536,7 +536,7 @@ namespace Kratos
 	}
 
 	void ShellThickElement3D3N::InitializeNonLinearIteration
-		(ProcessInfo& CurrentProcessInfo)
+	(ProcessInfo& CurrentProcessInfo)
 	{
 		mpCoordinateTransformation->
 			InitializeNonLinearIteration(CurrentProcessInfo);
@@ -695,7 +695,7 @@ namespace Kratos
 				{
 					Matrix R(8, 8);
 					section->GetRotationMatrixForGeneralizedStresses
-						(-(section->GetOrientationAngle()), R);
+					(-(section->GetOrientationAngle()), R);
 					data.generalizedStresses = prod(R, data.generalizedStresses);
 				}
 
@@ -752,7 +752,7 @@ namespace Kratos
 		else if (rVariable == SECTION_ROTATION)
 		{
 			for (unsigned int gauss_point = 0; gauss_point < OPT_NUM_GP;
-			gauss_point++)
+				gauss_point++)
 			{
 				ShellCrossSection::Pointer& section = mSections[gauss_point];
 				rValues[gauss_point] = section->GetOrientationAngle() / KRATOS_M_PI*180.0;
@@ -812,7 +812,7 @@ namespace Kratos
 	// =====================================================================================
 
 	void ShellThickElement3D3N::CalculateStressesFromForceResultants
-		(VectorType& rstresses, const double& rthickness)
+	(VectorType& rstresses, const double& rthickness)
 	{
 		// Refer http://www.colorado.edu/engineering/CAS/courses.d/AFEM.d/AFEM.Ch20.d/AFEM.Ch20.pdf
 
@@ -840,17 +840,16 @@ namespace Kratos
 		double z_current = 0.0; // start from the bottom of the 1st layer
 		double z_delta;
 
-		//std::cout << "z_mid = " << z_mid << std::endl;
-
-		// Establish current strains at the midplane - element coordinate system
+		// Establish current strains at the midplane
+		// (element coordinate system)
 		double e_x = data.generalizedStrains[0];
 		double e_y = data.generalizedStrains[1];
-		double e_xy = data.generalizedStrains[2]; // this is still engineering strain (2xtensorial shear)
+		double e_xy = data.generalizedStrains[2];	//this is still engineering
+													//strain (2xtensorial shear)
 		double kap_x = data.generalizedStrains[3];
 		double kap_y = data.generalizedStrains[4];
-		double kap_xy = data.generalizedStrains[5];	// this is still engineering strain (2xtensorial shear)
-
-		//std::cout << "generalized strains = " << data.generalizedStrains << std::endl;
+		double kap_xy = data.generalizedStrains[5];	//this is still engineering
+													//strain (2xtensorial shear)
 
 		// Get ply thicknesses
 		Vector ply_thicknesses = Vector(section->NumberOfPlies(), 0.0);
@@ -864,54 +863,34 @@ namespace Kratos
 			data.rlaminateStrains[i].clear();
 		}
 
-		// Get rotation matrix to go from the element coordinate system to the
-		// section coordinate system
-		Matrix R = Matrix(8, 8, 0.0);
-		Matrix reducedR = Matrix(3, 3, 0.0);
-		section->GetRotationMatrixForGeneralizedStrains(-(section->GetOrientationAngle()), R);
-		for (unsigned int i = 0; i < 3; i++)
-		{
-			for (unsigned int j = 0; j < 3; j++)
-			{
-				reducedR(i, j) = R(i, j);
-			}
-		}
-
 		// Loop over all plies - start from bottom ply, bottom surface
 		for (unsigned int plyNumber = 0;
-		plyNumber < section->NumberOfPlies(); ++plyNumber)
+			plyNumber < section->NumberOfPlies(); ++plyNumber)
 		{
 			// Distance from element midplane to current ply bottom surface
-			//std::cout << "BOTTOM SURFACE OF PLY " << plyNumber << std::endl;
-			//std::cout << "z_current = " << z_current << std::endl;
 			z_delta = z_current - z_mid;
 
-			// Calculate strains at bottom surface - arranged in columns
-			// element coordinate system
+			// Calculate strains at bottom surface, arranged in columns.
+			// (element coordinate system)
+			//TODO p1 check the signage here!
 			data.rlaminateStrains[2 * plyNumber][0] = e_x + z_delta*kap_x;
 			data.rlaminateStrains[2 * plyNumber][1] = e_y + z_delta*kap_y;
 			data.rlaminateStrains[2 * plyNumber][2] = e_xy + z_delta*kap_xy;
 			data.rlaminateStrains[2 * plyNumber][6] = data.generalizedStrains[6];
 			data.rlaminateStrains[2 * plyNumber][7] = data.generalizedStrains[7];
-			data.rlaminateStrains[2 * plyNumber] = prod(R, data.rlaminateStrains[2 * plyNumber]);
-
-			//std::cout << "Strains at bottom surface of ply " << plyNumber << " = :" << data.rlaminateStrains[2 * plyNumber] << std::endl;
 
 			// Move to top surface of current layer
-			//std::cout << "TOP SURFACE OF PLY " << plyNumber << std::endl;
 			z_current += ply_thicknesses[plyNumber];
-			//std::cout << "z_current = " << z_current << std::endl;
 			z_delta = z_current - z_mid;
 
-			// Calculate strains at top surface - arranged in columns
+			// Calculate strains at top surface, arranged in columns
+			// (element coordinate system)
+			//TODO p1 check the signage here!
 			data.rlaminateStrains[2 * plyNumber + 1][0] = e_x + z_delta*kap_x;
 			data.rlaminateStrains[2 * plyNumber + 1][1] = e_y + z_delta*kap_y;
 			data.rlaminateStrains[2 * plyNumber + 1][2] = e_xy + z_delta*kap_xy;
-			data.rlaminateStrains[2 * plyNumber+1][6] = data.generalizedStrains[6];
-			data.rlaminateStrains[2 * plyNumber+1][7] = data.generalizedStrains[7];
-			data.rlaminateStrains[2 * plyNumber + 1] = prod(R, data.rlaminateStrains[2 * plyNumber + 1]);
-
-			//std::cout << "Strains at top surface of ply " << plyNumber << " = :" << data.rlaminateStrains[2 * plyNumber+1] << std::endl;
+			data.rlaminateStrains[2 * plyNumber + 1][6] = data.generalizedStrains[6];
+			data.rlaminateStrains[2 * plyNumber + 1][7] = data.generalizedStrains[7];
 		}
 	}
 
@@ -919,24 +898,10 @@ namespace Kratos
 	{
 		ShellCrossSection::Pointer& section = mSections[data.gpIndex];
 
-		// Setup container for constitutive data
-		//			units [Pa] and rotated to element orientation!
-		/*
-		std::vector<Matrix> ply_constitutive_matrices =
-			std::vector<Matrix>(section->NumberOfPlies());
-		for (unsigned int ply = 0; ply < section->NumberOfPlies(); ++ply)
-		{
-			ply_constitutive_matrices[ply].resize(3, 3, false);
-		}
-		*/
-		// Setup container for constitutive data
-		//			units [Pa] and rotated to element orientation!
+		// Setup flag to compute ply constitutive matrices
+		// (units [Pa] and rotated to element orientation)
 		section->SetupGetPlyConstitutiveMatrices(data.shearStabilisation);
-		CalculateSectionResponse(data); //might need to rotate these more in the shell_cross_section
-		//printMatrix( section->GetPlyConstitutiveMatrix(0),"1st ply material matrix");
-		//std::cout << "ply_constitutive_matrices[0]11 = " << ply_constitutive_matrices[0](0, 0) << std::endl;
-
-		// TODO p1 add in stabilization to the material matrices
+		CalculateSectionResponse(data); 
 
 		// Resize output vector. 2 Surfaces for each ply
 		data.rlaminateStresses.resize(2 * section->NumberOfPlies());
@@ -946,28 +911,35 @@ namespace Kratos
 			data.rlaminateStresses[i].clear();
 		}
 
+		bool bcomposite_debugging = false;
+
 		// Loop over all plies - start from bottom ply, bottom surface
 		for (unsigned int plyNumber = 0;
-		plyNumber < section->NumberOfPlies(); ++plyNumber)
+			plyNumber < section->NumberOfPlies(); ++plyNumber)
 		{
-			//printMatrix(section->GetPlyConstitutiveMatrix(plyNumber), "ply material matrix");
-			//std::cout << "Material matrix of ply " << plyNumber << " = :" << std::endl;
-			//printMatrix(section->GetPlyConstitutiveMatrix(plyNumber), "Material matrix of ply");
+			// determine stresses at currrent ply, bottom surface
+			// (element coordinate system)
+			data.rlaminateStresses[2 * plyNumber] = prod(
+								section->GetPlyConstitutiveMatrix(plyNumber),
+								data.rlaminateStrains[2 * plyNumber]);
 
-			// determine stresses at currrent ply - bottom surface
-			data.rlaminateStresses[2 * plyNumber] = prod(section->GetPlyConstitutiveMatrix(plyNumber),
-				data.rlaminateStrains[2 * plyNumber]);
+			// determine stresses at currrent ply, top surface
+			// (element coordinate system)
+			data.rlaminateStresses[2 * plyNumber + 1] = prod(
+								section->GetPlyConstitutiveMatrix(plyNumber),
+								data.rlaminateStrains[2 * plyNumber + 1]);
 
-			//std::cout << "Strains at bottom surface of ply " << plyNumber << " = :" << data.rlaminateStrains[2 * plyNumber] << std::endl;
+			if (bcomposite_debugging)
+			{
+				printMatrix(section->GetPlyConstitutiveMatrix(plyNumber), 
+					"Material matrix of ply");
 
-			//std::cout << "Stresses at bottom surface of ply " << plyNumber << " = :" << data.rlaminateStresses[2 * plyNumber] << std::endl;
+				std::cout << "Strains at bottom surface of ply " << plyNumber << 
+					" = :" << data.rlaminateStrains[2 * plyNumber] << std::endl;
 
-			// determine stresses at currrent ply - top surface
-			data.rlaminateStresses[2 * plyNumber + 1] = prod(section->GetPlyConstitutiveMatrix(plyNumber),
-				data.rlaminateStrains[2 * plyNumber + 1]);
-
-			//std::cout << "Stresses at TOP surface of ply " << plyNumber << " = :" << data.rlaminateStresses[2 * plyNumber+1] << std::endl;
-			//std::cout << "Strains at TOP surface of ply " << plyNumber << " = :" << data.rlaminateStrains[2 * plyNumber+1] << std::endl;
+				std::cout << "Stresses at bottom surface of ply " << plyNumber << 
+					" = :" << data.rlaminateStresses[2 * plyNumber] << std::endl;
+			}
 		}
 	}
 
@@ -1649,7 +1621,7 @@ namespace Kratos
 			else
 			{
 				CalculateSectionResponse(data);
-				noalias(data.generalizedStresses) = prod(data.D, data.generalizedStrains); 
+				noalias(data.generalizedStresses) = prod(data.D, data.generalizedStrains);
 				//TODO p3 might be able to achieve this function in shell_cross_section by modifying it a bit to include a shear stabilization flag
 
 				if (ijob > 4)
@@ -1665,56 +1637,35 @@ namespace Kratos
 		// adjust output
 		DecimalCorrection(data.generalizedStrains);
 
-		// store the results, but first rotate them back to the section coordinate system.
-		// we want to visualize the results in that system not in the element one!
-		if (section->GetOrientationAngle() != 0.0)
+		// store the results, but first rotate them back to the section
+		// coordinate system. we want to visualize the results in that system not
+		// in the element one!
+		if (section->GetOrientationAngle() != 0.0 && !bGlobal)
 		{
 			if (ijob > 7)
 			{
-				//std::cout << "here!" << std::endl;
-				//Matrix R = Matrix(8, 8, 0.0);
-				//Matrix reducedR = Matrix(3, 3, 0.0);
 				section->GetRotationMatrixForGeneralizedStresses(-(section->GetOrientationAngle()), R);
-				for (unsigned int i = 0; i < 3; i++)
-				{
-					for (unsigned int j = 0; j < 3; j++)
-					{
-						//reducedR(i, j) = R(i, j);
-					}
-				}
 				for (unsigned int i = 0; i < data.rlaminateStresses.size(); i++)
 				{
 					data.rlaminateStresses[i] = prod(R, data.rlaminateStresses[i]);
 				}
 
-				// TESTING below
+				// TODO p2 if statement here
 				section->GetRotationMatrixForGeneralizedStrains(-(section->GetOrientationAngle()), R);
-				for (unsigned int i = 0; i < 3; i++)
-				{
-					for (unsigned int j = 0; j < 3; j++)
-					{
-						//reducedR(i, j) = R(i, j);
-					}
-				}
 				for (unsigned int i = 0; i < data.rlaminateStrains.size(); i++)
 				{
 					data.rlaminateStrains[i] = prod(R, data.rlaminateStrains[i]);
 				}
-				// TESTing above
-
 			}
-			else if (!bGlobal)
+			else if (ijob > 2)
 			{
-				if (ijob > 2)
-				{
-					section->GetRotationMatrixForGeneralizedStresses(-(section->GetOrientationAngle()), R);
-					data.generalizedStresses = prod(R, data.generalizedStresses);
-				}
-				else
-				{
-					section->GetRotationMatrixForGeneralizedStrains(-(section->GetOrientationAngle()), R);
-					data.generalizedStrains = prod(R, data.generalizedStrains);
-				}
+				section->GetRotationMatrixForGeneralizedStresses(-(section->GetOrientationAngle()), R);
+				data.generalizedStresses = prod(R, data.generalizedStresses);
+			}
+			else
+			{
+				section->GetRotationMatrixForGeneralizedStrains(-(section->GetOrientationAngle()), R);
+				data.generalizedStrains = prod(R, data.generalizedStrains);
 			}
 		}
 
@@ -1815,9 +1766,9 @@ namespace Kratos
 				iValue(2, 2) = 0.0;
 				iValue(0, 1) = iValue(1, 0) =
 					data.rlaminateStresses[data.rlaminateStresses.size() - 1][2];
-				iValue(0, 2) = iValue(2, 0) = 
+				iValue(0, 2) = iValue(2, 0) =
 					data.rlaminateStresses[data.rlaminateStresses.size() - 1][6];
-				iValue(1, 2) = iValue(2, 1) = 
+				iValue(1, 2) = iValue(2, 1) =
 					data.rlaminateStresses[data.rlaminateStresses.size() - 1][7];
 			}
 
