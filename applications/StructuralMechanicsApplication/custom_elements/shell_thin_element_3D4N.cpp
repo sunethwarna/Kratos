@@ -187,7 +187,9 @@ namespace Kratos
 			new ShellQ4_CorotationalCoordinateTransformation(pGeometry) :
 			new ShellQ4_CoordinateTransformation(pGeometry))
 	{
+		
 		mThisIntegrationMethod = GetGeometry().GetDefaultIntegrationMethod();
+		//mThisIntegrationMethod = OPT_INTEGRATION_METHOD;
 	}
 
 	ShellThinElement3D4N::ShellThinElement3D4N(IndexType NewId,
@@ -200,6 +202,7 @@ namespace Kratos
 			new ShellQ4_CoordinateTransformation(pGeometry))
 	{
 		mThisIntegrationMethod = GetGeometry().GetDefaultIntegrationMethod();
+		//mThisIntegrationMethod = OPT_INTEGRATION_METHOD;
 	}
 
 	ShellThinElement3D4N::ShellThinElement3D4N(IndexType NewId,
@@ -210,6 +213,7 @@ namespace Kratos
 		, mpCoordinateTransformation(pCoordinateTransformation)
 	{
 		mThisIntegrationMethod = GetGeometry().GetDefaultIntegrationMethod();
+		//mThisIntegrationMethod = OPT_INTEGRATION_METHOD;
 	}
 
 	ShellThinElement3D4N::~ShellThinElement3D4N()
@@ -736,6 +740,8 @@ namespace Kratos
 			std::vector<double>& rValues,
 			const ProcessInfo& rCurrentProcessInfo)
 	{
+		KRATOS_TRY;
+
 		if (rVariable == VON_MISES_STRESS ||
 			rVariable == VON_MISES_STRESS_TOP_SURFACE ||
 			rVariable == VON_MISES_STRESS_MIDDLE_SURFACE ||
@@ -743,9 +749,17 @@ namespace Kratos
 		{
 
 			// resize output
-			size_t size = 4;
-			if (rValues.size() != size)
-				rValues.resize(size);
+			//size_t size = 4;
+			//if (rValues.size() != size)
+			//	rValues.resize(size);
+
+			const unsigned int& integration_point_number = GetGeometry().IntegrationPointsNumber(mThisIntegrationMethod);
+
+			if (rValues.size() != integration_point_number)
+			{
+				rValues.resize(integration_point_number, false);
+			}
+
 
 			// Compute the local coordinate system.
 			ShellQ4_LocalCoordinateSystem localCoordinateSystem(
@@ -762,8 +776,12 @@ namespace Kratos
 			InitializeCalculationData(data);
 			double von_mises_top, von_mises_mid, von_mises_bottom;
 
+			/* Reading integration points */
+			const GeometryType::IntegrationPointsArrayType& integration_points = GetGeometry().IntegrationPoints(mThisIntegrationMethod);
+			//std::cout << "number of integation points  = " << integration_point_number << std::endl;
+
 			// loop over gauss points
-			for (unsigned int gauss_point = 0; gauss_point < 4; ++gauss_point)
+			for (unsigned int gauss_point = 0; gauss_point < integration_points.size(); ++gauss_point)
 			{
 				// Compute all strain-displacement matrices
 				data.gpIndex = gauss_point;
@@ -835,6 +853,10 @@ namespace Kratos
 					rValues[gauss_point] =
 						sqrt(std::max(von_mises_top,
 							std::max(von_mises_mid, von_mises_bottom)));
+					if (gauss_point == 0)
+					{
+						std::cout << rValues[0] << std::endl;
+					}
 				}
 			}
 		}
@@ -863,6 +885,8 @@ namespace Kratos
 				}
 			}
 		}
+
+		KRATOS_CATCH("");
 	}
 
 	void ShellThinElement3D4N::GetValueOnIntegrationPoints
@@ -908,16 +932,15 @@ namespace Kratos
 	{
 		// Refer http://www.colorado.edu/engineering/CAS/courses.d/AFEM.d/AFEM.Ch20.d/AFEM.Ch20.pdf
 
-		// recover stresses
-		for (unsigned int index = 0; index < 3; ++index)
-		{
-			// membrane forces -> stresses (av. across whole thickness)
-			rstresses[index] /= rthickness;
+		// membrane forces -> in-plane stresses (av. across whole thickness)
+		rstresses[0] /= rthickness;
+		rstresses[1] /= rthickness;
+		rstresses[2] /= rthickness;
 
-			// bending moments -> stresses (@ top and bottom surface)
-			rstresses[3 + index] *=
-				6.0 / (rthickness*rthickness);
-		}
+		// bending moments -> peak in-plane stresses (@ top and bottom surface)
+		rstresses[3] *= 6.0 / (rthickness*rthickness);
+		rstresses[4] *= 6.0 / (rthickness*rthickness);
+		rstresses[5] *= 6.0 / (rthickness*rthickness);
 	}
 
 	void ShellThinElement3D4N::CalculateLaminaStrains(CalculationData& data)
@@ -2425,6 +2448,7 @@ namespace Kratos
 
 			if (ijob == 1) // strains
 			{
+				//std::cout << data.generalizedStrains << std::endl;
 				iValue(0, 0) = data.generalizedStrains(0);
 				iValue(1, 1) = data.generalizedStrains(1);
 				iValue(2, 2) = 0.0;

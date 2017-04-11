@@ -239,7 +239,7 @@ namespace Kratos
 											testing! */
 
 			const bool ignore_shear_stabilization = false; /*!< flag to 
-											stabilize the transverse shear part of the material						matrix. This should be false unless 
+											stabilize the transverse shear part of the							material matrix. This should be false unless 
 											you are testing! */
 
 			// ---------------------------------------

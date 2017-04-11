@@ -673,7 +673,6 @@ void ShellCrossSection::CalculateSectionResponse(Parameters& rValues, const Cons
 				{
 					for (size_t ply = 0; ply < this->NumberOfPlies(); ply++)
 					{
-						// TODO p1 add rotation of plyconstitutive matrix here!
 						noalias(DRT) = prod(mPlyConstitutiveMatrices[ply], trans(R));
 						mPlyConstitutiveMatrices[ply] = prod(R, DRT);
 					}
@@ -969,6 +968,7 @@ void ShellCrossSection::ParseOrthotropicPropertyMatrix(Properties& props, Elemen
 	}
 	
 	this->EndStack();
+	//std::cout << this->GetInfo() << std::endl;
 	props.SetValue(THICKNESS, elementThickness);
 }
 
