@@ -1124,9 +1124,18 @@ public:
 		//this is an ugly solution - need to fix
 		mStorePlyConstitutiveMatrices = true;
 		mPlyConstitutiveMatrices = std::vector<Matrix>(this->NumberOfPlies());
+
 		for (unsigned int ply = 0; ply < this->NumberOfPlies(); ++ply)
 		{
-			mPlyConstitutiveMatrices[ply].resize(8, 8, false);
+			if (mBehavior == Thick)
+			{
+				mPlyConstitutiveMatrices[ply].resize(8, 8, false);
+			}
+			else
+			{
+				mPlyConstitutiveMatrices[ply].resize(6, 6, false);
+			}
+			
 			mPlyConstitutiveMatrices[ply].clear();
 		}
 		mDSG_shear_stabilization = shear_stabilization;

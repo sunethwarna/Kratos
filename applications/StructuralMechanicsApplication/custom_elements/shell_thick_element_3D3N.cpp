@@ -866,10 +866,6 @@ namespace Kratos
 		for (unsigned int plyNumber = 0;
 			plyNumber < section->NumberOfPlies(); ++plyNumber)
 		{
-			// Distance from element midplane to current ply top surface
-			// (defined so top of plate is -h/2, bottom is +h/2)
-			//z_delta = z_mid - z_current;
-
 			// Calculate strains at top surface, arranged in columns.
 			// (element coordinate system)
 			data.rlaminateStrains[2 * plyNumber][0] = e_x + z_current*kap_x;
@@ -885,7 +881,7 @@ namespace Kratos
 			// Move to bottom surface of current layer
 			z_current += ply_thicknesses[plyNumber];
 
-			// Calculate strains at top surface, arranged in columns
+			// Calculate strains at bottom surface, arranged in columns
 			// (element coordinate system)
 			data.rlaminateStrains[2 * plyNumber + 1][0] = e_x + z_current*kap_x;
 			data.rlaminateStrains[2 * plyNumber + 1][1] = e_y + z_current*kap_y;

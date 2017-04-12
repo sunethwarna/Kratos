@@ -947,24 +947,22 @@ namespace Kratos
 	{
 		ShellCrossSection::Pointer& section = mSections[data.gpIndex];
 
-		// Determine midplane of element: z_mid
-		double z_mid = section->GetThickness() / 2.0;
-		double z_current = 0.0; // start from the bottom of the 1st layer
-		double z_delta;
+		// Get laminate properties
+		double thickness = section->GetThickness();
+		double z_current = thickness / -2.0; // start from the top of the 1st layer
 
-		//std::cout << "z_mid = " << z_mid << std::endl;
 
-		// Establish current strains at the midplane - element coordinate system
+		// Establish current strains at the midplane
+		// (element coordinate system)
 		double e_x = data.generalizedStrains[0];
 		double e_y = data.generalizedStrains[1];
-		double e_xy = data.generalizedStrains[2]; // this is still engineering strain (2xtensorial shear)
+		double e_xy = data.generalizedStrains[2];	//this is still engineering
+													//strain (2xtensorial shear)
 		double kap_x = data.generalizedStrains[3];
 		double kap_y = data.generalizedStrains[4];
-		double kap_xy = data.generalizedStrains[5];	// this is still engineering strain (2xtensorial shear)
+		double kap_xy = data.generalizedStrains[5];	//this is still engineering
 
-													//std::cout << "generalized strains = " << data.generalizedStrains << std::endl;
-
-													// Get ply thicknesses
+		// Get ply thicknesses
 		Vector ply_thicknesses = Vector(section->NumberOfPlies(), 0.0);
 		section->GetPlyThicknesses(ply_thicknesses);
 
@@ -972,53 +970,28 @@ namespace Kratos
 		data.rlaminateStrains.resize(2 * section->NumberOfPlies());
 		for (unsigned int i = 0; i < 2 * section->NumberOfPlies(); i++)
 		{
-			data.rlaminateStrains[i].resize(3, false);
-		}
-
-		// Get rotation matrix to go from the element coordinate system to the
-		// section coordinate system
-		Matrix R = Matrix(6, 6, 0.0);
-		Matrix reducedR = Matrix(3, 3, 0.0);
-		section->GetRotationMatrixForGeneralizedStrains(-(section->GetOrientationAngle()), R);
-		for (unsigned int i = 0; i < 3; i++)
-		{
-			for (unsigned int j = 0; j < 3; j++)
-			{
-				reducedR(i, j) = R(i, j);
-			}
+			data.rlaminateStrains[i].resize(6, false);
+			data.rlaminateStrains[i].clear();
 		}
 
 		// Loop over all plies - start from bottom ply, bottom surface
 		for (unsigned int plyNumber = 0;
 		plyNumber < section->NumberOfPlies(); ++plyNumber)
 		{
-			// Distance from element midplane to current ply bottom surface
-			//std::cout << "BOTTOM SURFACE OF PLY " << plyNumber << std::endl;
-			//std::cout << "z_current = " << z_current << std::endl;
-			z_delta = z_current - z_mid;
+			// Calculate strains at top surface, arranged in columns.
+			// (element coordinate system)
+			data.rlaminateStrains[2 * plyNumber][0] = e_x + z_current*kap_x;
+			data.rlaminateStrains[2 * plyNumber][1] = e_y + z_current*kap_y;
+			data.rlaminateStrains[2 * plyNumber][2] = e_xy + z_current*kap_xy;
 
-			// Calculate strains at bottom surface - arranged in columns
-			// element coordinate system
-			data.rlaminateStrains[2 * plyNumber][0] = e_x + z_delta*kap_x;
-			data.rlaminateStrains[2 * plyNumber][1] = e_y + z_delta*kap_y;
-			data.rlaminateStrains[2 * plyNumber][2] = e_xy + z_delta*kap_xy;
-			data.rlaminateStrains[2 * plyNumber] = prod(reducedR, data.rlaminateStrains[2 * plyNumber]);
-
-			//std::cout << "Strains at bottom surface of ply " << plyNumber << " = :" << data.rlaminateStrains[2 * plyNumber] << std::endl;
-
-			// Move to top surface of current layer
-			//std::cout << "TOP SURFACE OF PLY " << plyNumber << std::endl;
+			// Move to bottom surface of current layer
 			z_current += ply_thicknesses[plyNumber];
-			//std::cout << "z_current = " << z_current << std::endl;
-			z_delta = z_current - z_mid;
 
-			// Calculate strains at top surface - arranged in columns
-			data.rlaminateStrains[2 * plyNumber + 1][0] = e_x + z_delta*kap_x;
-			data.rlaminateStrains[2 * plyNumber + 1][1] = e_y + z_delta*kap_y;
-			data.rlaminateStrains[2 * plyNumber + 1][2] = e_xy + z_delta*kap_xy;
-			data.rlaminateStrains[2 * plyNumber + 1] = prod(reducedR, data.rlaminateStrains[2 * plyNumber + 1]);
-
-			//std::cout << "Strains at top surface of ply " << plyNumber << " = :" << data.rlaminateStrains[2 * plyNumber+1] << std::endl;
+			// Calculate strains at bottom surface, arranged in columns
+			// (element coordinate system)
+			data.rlaminateStrains[2 * plyNumber + 1][0] = e_x + z_current*kap_x;
+			data.rlaminateStrains[2 * plyNumber + 1][1] = e_y + z_current*kap_y;
+			data.rlaminateStrains[2 * plyNumber + 1][2] = e_xy + z_current*kap_xy;
 		}
 	}
 
