@@ -1266,11 +1266,6 @@ void ShellCrossSection::CalculateIntegrationPointResponse(IntegrationPoint& rPoi
 				D(7, 7) += h * cs * ce * rVariables.GXZ;
 			}
 
-			if (!mStorePlyConstitutiveMatrices)
-			{
-				std::cout << "flag is false" << std::endl;
-			}
-
 			if (mStorePlyConstitutiveMatrices)
 			{
 				//TODO p3 think of a better way to do this
@@ -1288,7 +1283,6 @@ void ShellCrossSection::CalculateIntegrationPointResponse(IntegrationPoint& rPoi
 					mPlyConstitutiveMatrices[plyNumber](6, 6) = cs * ce * rVariables.GYZ *mDSG_shear_stabilization;
 					mPlyConstitutiveMatrices[plyNumber](7, 7) =  cs * ce * rVariables.GXZ *mDSG_shear_stabilization;
 				}
-				std::cout << mPlyConstitutiveMatrices[plyNumber] << std::endl;
 			}
 		}
 		else // full 3D case
