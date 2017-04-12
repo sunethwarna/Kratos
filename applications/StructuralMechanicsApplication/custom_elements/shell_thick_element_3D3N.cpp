@@ -1293,12 +1293,17 @@ namespace Kratos
 
 	void ShellThickElement3D3N::AddBodyForces(CalculationData& data, VectorType& rRightHandSideVector)
 	{
+		// TODO p2 update this when results is sorted out
+		// This is hardcoded to use 1 gauss point, despite the declared def
+		// using 3 gps.
 		const GeometryType& geom = GetGeometry();
 
 		// Get shape functions
 #ifdef OPT_USES_INTERIOR_GAUSS_POINTS
 		const Matrix & N = GetGeometry().ShapeFunctionsValues(mThisIntegrationMethod);
 #else
+		// Disabled to use 1 gp below
+		/*
 		Matrix N(3, 3);
 		for (unsigned int igauss = 0; igauss < OPT_NUM_GP; igauss++)
 		{
@@ -1307,13 +1312,23 @@ namespace Kratos
 			N(igauss, 1) = loc[1];
 			N(igauss, 2) = loc[2];
 		}
+		*/
+		// 1 gp used!
+		Matrix N(1, 3);
+		N(0,0) = 1.0 / 3.0;
+		N(0,1) = 1.0 / 3.0;
+		N(0,2) = 1.0 / 3.0;
+
+
 #endif // !OPT_USES_INTERIOR_GAUSS_POINTS
+
 
 		// auxiliary
 		array_1d<double, 3> bf;
 
 		// gauss loop to integrate the external force vector
-		for (unsigned int igauss = 0; igauss < OPT_NUM_GP; igauss++)
+		//for (unsigned int igauss = 0; igauss < OPT_NUM_GP; igauss++)
+		for (unsigned int igauss = 0; igauss < 1; igauss++)
 		{
 			// get mass per unit area
 			double mass_per_unit_area = mSections[igauss]->CalculateMassPerUnitArea();
