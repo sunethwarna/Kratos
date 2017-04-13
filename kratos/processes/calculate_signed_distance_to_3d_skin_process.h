@@ -833,9 +833,9 @@ public:
 #pragma omp parallel for firstprivate(ElementsSize)
         for(int i = 0 ; i < ElementsSize ; i++)
         {
-            fluid_Elements[i]->GetValue(ELEMENTAL_DISTANCES) = ElementalDistances;
-            fluid_Elements[i]->GetValue(SPLIT_ELEMENT) = false;
-            fluid_Elements[i]->GetValue(EMBEDDED_VELOCITY)=ZeroVector(3);
+            fluid_Elements[i]->SetValue(ELEMENTAL_DISTANCES, ElementalDistances);
+            fluid_Elements[i]->SetValue(SPLIT_ELEMENT,false);
+            fluid_Elements[i]->SetValue(EMBEDDED_VELOCITY,ZeroVector(3));
         }
 
     }
