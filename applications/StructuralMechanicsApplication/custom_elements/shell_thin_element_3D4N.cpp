@@ -151,7 +151,7 @@ namespace Kratos
 	}
 
 	void ShellThinElement3D4N::JacobianOperator::Calculate
-		(const ShellQ4_LocalCoordinateSystem & CS, const Matrix & dN)
+	(const ShellQ4_LocalCoordinateSystem & CS, const Matrix & dN)
 	{
 		mJac(0, 0) = dN(0, 0) * CS.X1() + dN(1, 0) * CS.X2() +
 			dN(2, 0) * CS.X3() + dN(3, 0) * CS.X4();
@@ -187,7 +187,6 @@ namespace Kratos
 			new ShellQ4_CorotationalCoordinateTransformation(pGeometry) :
 			new ShellQ4_CoordinateTransformation(pGeometry))
 	{
-		
 		mThisIntegrationMethod = GetGeometry().GetDefaultIntegrationMethod();
 		//mThisIntegrationMethod = OPT_INTEGRATION_METHOD;
 	}
@@ -564,7 +563,7 @@ namespace Kratos
 	}
 
 	void ShellThinElement3D4N::InitializeNonLinearIteration
-		(ProcessInfo& CurrentProcessInfo)
+	(ProcessInfo& CurrentProcessInfo)
 	{
 		mpCoordinateTransformation->
 			InitializeNonLinearIteration(CurrentProcessInfo);
@@ -578,7 +577,7 @@ namespace Kratos
 	}
 
 	void ShellThinElement3D4N::FinalizeNonLinearIteration
-		(ProcessInfo& CurrentProcessInfo)
+	(ProcessInfo& CurrentProcessInfo)
 	{
 		mpCoordinateTransformation->
 			FinalizeNonLinearIteration(CurrentProcessInfo);
@@ -592,7 +591,7 @@ namespace Kratos
 	}
 
 	void ShellThinElement3D4N::InitializeSolutionStep
-		(ProcessInfo& CurrentProcessInfo)
+	(ProcessInfo& CurrentProcessInfo)
 	{
 		const PropertiesType& props = GetProperties();
 		const GeometryType & geom = GetGeometry();
@@ -607,7 +606,7 @@ namespace Kratos
 	}
 
 	void ShellThinElement3D4N::FinalizeSolutionStep
-		(ProcessInfo& CurrentProcessInfo)
+	(ProcessInfo& CurrentProcessInfo)
 	{
 		const PropertiesType& props = GetProperties();
 		const GeometryType& geom = GetGeometry();
@@ -629,39 +628,143 @@ namespace Kratos
 		noalias(rMassMatrix) = ZeroMatrix(24, 24);
 
 		// Compute the local coordinate system.
-
 		ShellQ4_LocalCoordinateSystem referenceCoordinateSystem(
 			mpCoordinateTransformation->CreateReferenceCoordinateSystem());
 
-		// lumped area
+		// Flag for consistent or lumped matrix
+		bool bconsistent_matrix = true;
 
-		double lump_area = referenceCoordinateSystem.Area() / 4.0;
-
-		// Calculate avarage mass per unit area
+		// Calculate average mass per unit area over the whole element
 		double av_mass_per_unit_area = 0.0;
 		for (size_t i = 0; i < 4; i++)
 			av_mass_per_unit_area += mSections[i]->CalculateMassPerUnitArea();
 		av_mass_per_unit_area /= 4.0;
 
-		// Gauss Loop
-
-		for (size_t i = 0; i < 4; i++)
+		if (bconsistent_matrix)
 		{
-			size_t index = i * 6;
+			// Get shape function values and setup jacobian
+			GeometryType & geom = GetGeometry();
+			const Matrix & shapeFunctions = geom.ShapeFunctionsValues();
+			JacobianOperator jacOp;
 
-			double nodal_mass = av_mass_per_unit_area * lump_area;
+			// Get integration points
+			const GeometryType::IntegrationPointsArrayType& integration_points = GetGeometry().IntegrationPoints(mThisIntegrationMethod);
 
-			// translational mass
-			rMassMatrix(index, index) = nodal_mass;
-			rMassMatrix(index + 1, index + 1) = nodal_mass;
-			rMassMatrix(index + 2, index + 2) = nodal_mass;
+			// Setup matrix of shape functions
+			Matrix N = Matrix(6, 24, 0.0);
 
-			// rotational mass - neglected for the moment...
+			// Other variables
+			double dA = 0.0;
+			double thickness = 0.0;
+			double drilling_factor = 30.0;	// sqrt of the actual factor applied
+
+			for (size_t gauss_point = 0; gauss_point < 4; gauss_point++)
+			{
+				Matrix temp = Matrix(24, 24, 0.0);
+
+				// Calculate average mass per unit area and thickness at the
+				// current GP
+				av_mass_per_unit_area = mSections[gauss_point]->CalculateMassPerUnitArea();
+				thickness = mSections[gauss_point]->GetThickness();
+
+				// Calc jacobian and weighted dA at current GP
+				jacOp.Calculate(referenceCoordinateSystem,
+					geom.ShapeFunctionLocalGradient(gauss_point));
+				dA = integration_points[gauss_point].Weight() * jacOp.Determinant();
+
+				// Add entries to shape function matrix
+				for (size_t node = 0; node < 4; node++)
+				{
+					// translational
+					for (size_t dof = 0; dof < 3; dof++)
+					{
+						N(dof, 6 * node + dof) = shapeFunctions(gauss_point, node);
+					}
+
+					// rotational
+					for (size_t dof = 0; dof < 2; dof++)
+					{
+						N(dof + 3, 6 * node + dof + 3) =  thickness / std::sqrt(12.0) * shapeFunctions(gauss_point, node);
+					}
+
+					// drilling - artifical factor included
+					N(5, 6 * node + 5) = thickness / std::sqrt(12.0) * shapeFunctions(gauss_point, node) / drilling_factor;
+				}
+
+				// Add contribution to mass matrix
+				temp = prod(trans(N), N);
+				temp *= dA*av_mass_per_unit_area;
+				rMassMatrix += temp;
+				//rMassMatrix += prod(trans(N), N) * dA*av_mass_per_unit_area;
+				//printMatrix(rMassMatrix, "Consistent matrix");
+			}
+
+			//rMassMatrix /= (referenceCoordinateSystem.Area()*av_mass_per_unit_area);
+			//rMassMatrix *= 432.0;
+
+			//printMatrix(rMassMatrix, "Consistent matrix");
 		}
+		else
+		{
+			// Calculate average mass per unit area over the whole element
+			for (size_t i = 0; i < 4; i++)
+				av_mass_per_unit_area += mSections[i]->CalculateMassPerUnitArea();
+			av_mass_per_unit_area /= 4.0;
+
+			// lumped area
+			double lump_area = referenceCoordinateSystem.Area() / 4.0;
+			//std::cout << "lump_area = " << lump_area << std::endl;
+
+			// Gauss Loop
+			for (size_t i = 0; i < 4; i++)
+			{
+				size_t index = i * 6;
+
+				double nodal_mass = av_mass_per_unit_area * lump_area;
+
+				// translational mass
+				rMassMatrix(index, index) = nodal_mass;
+				rMassMatrix(index + 1, index + 1) = nodal_mass;
+				rMassMatrix(index + 2, index + 2) = nodal_mass;
+
+				// rotational mass - neglected for the moment...
+			}
+		}
+
+		//std::cout << rMassMatrix(4, 4) << std::endl;
+
+		bool test = false;
+		if (test)
+		{
+			rMassMatrix.clear();
+			// Calculate average mass per unit area over the whole element
+			for (size_t i = 0; i < 4; i++)
+				av_mass_per_unit_area += mSections[i]->CalculateMassPerUnitArea();
+			av_mass_per_unit_area /= 4.0;
+
+			// lumped area
+			double lump_area = referenceCoordinateSystem.Area() / 4.0;
+
+			// Gauss Loop
+			for (size_t i = 0; i < 4; i++)
+			{
+				size_t index = i * 6;
+
+				double nodal_mass = av_mass_per_unit_area * lump_area;
+
+				// translational mass
+				rMassMatrix(index, index) = nodal_mass;
+				rMassMatrix(index + 1, index + 1) = nodal_mass;
+				rMassMatrix(index + 2, index + 2) = nodal_mass;
+
+				// rotational mass - neglected for the moment...
+			}
+		}
+		//printMatrix(rMassMatrix, "Lumped matrix");
 	}
 
 	void ShellThinElement3D4N::CalculateDampingMatrix
-		(MatrixType& rDampingMatrix, ProcessInfo& rCurrentProcessInfo)
+	(MatrixType& rDampingMatrix, ProcessInfo& rCurrentProcessInfo)
 	{
 		if ((rDampingMatrix.size1() != 24) || (rDampingMatrix.size2() != 24))
 			rDampingMatrix.resize(24, 24, false);
@@ -712,17 +815,17 @@ namespace Kratos
 	}
 
 	void ShellThinElement3D4N::CalculateLocalSystem
-		(MatrixType& rLeftHandSideMatrix,
-			VectorType& rRightHandSideVector,
-			ProcessInfo& rCurrentProcessInfo)
+	(MatrixType& rLeftHandSideMatrix,
+		VectorType& rRightHandSideVector,
+		ProcessInfo& rCurrentProcessInfo)
 	{
 		CalculateAll(rLeftHandSideMatrix, rRightHandSideVector,
 			rCurrentProcessInfo, true, true);
 	}
 
 	void ShellThinElement3D4N::CalculateRightHandSide
-		(VectorType& rRightHandSideVector,
-			ProcessInfo& rCurrentProcessInfo)
+	(VectorType& rRightHandSideVector,
+		ProcessInfo& rCurrentProcessInfo)
 	{
 		Matrix dummy;
 		CalculateAll(dummy, rRightHandSideVector, rCurrentProcessInfo, true,
@@ -736,9 +839,9 @@ namespace Kratos
 	// =========================================================================
 
 	void ShellThinElement3D4N::GetValueOnIntegrationPoints
-		(const Variable<double>& rVariable,
-			std::vector<double>& rValues,
-			const ProcessInfo& rCurrentProcessInfo)
+	(const Variable<double>& rVariable,
+		std::vector<double>& rValues,
+		const ProcessInfo& rCurrentProcessInfo)
 	{
 		KRATOS_TRY;
 
@@ -747,7 +850,6 @@ namespace Kratos
 			rVariable == VON_MISES_STRESS_MIDDLE_SURFACE ||
 			rVariable == VON_MISES_STRESS_BOTTOM_SURFACE)
 		{
-
 			// resize output
 			//size_t size = 4;
 			//if (rValues.size() != size)
@@ -760,7 +862,6 @@ namespace Kratos
 				rValues.resize(integration_point_number, false);
 			}
 
-
 			// Compute the local coordinate system.
 			ShellQ4_LocalCoordinateSystem localCoordinateSystem(
 				mpCoordinateTransformation->CreateLocalCoordinateSystem());
@@ -769,8 +870,8 @@ namespace Kratos
 				mpCoordinateTransformation->CreateReferenceCoordinateSystem());
 
 			// Initialize common calculation variables
-			CalculationData data(localCoordinateSystem, 
-				referenceCoordinateSystem,rCurrentProcessInfo);
+			CalculationData data(localCoordinateSystem,
+				referenceCoordinateSystem, rCurrentProcessInfo);
 			data.CalculateLHS = false;
 			data.CalculateRHS = true;
 			InitializeCalculationData(data);
@@ -794,7 +895,7 @@ namespace Kratos
 				// Calculate the response of the Cross Section
 				ShellCrossSection::Pointer & section = mSections[gauss_point];
 				CalculateSectionResponse(data);
-				
+
 				// recover stresses
 				CalculateStressesFromForceResultants(data.generalizedStresses,
 					section->GetThickness());
@@ -804,11 +905,11 @@ namespace Kratos
 				{
 					Matrix R(6, 6);
 					section->GetRotationMatrixForGeneralizedStresses
-						(-(section->GetOrientationAngle()), R);
+					(-(section->GetOrientationAngle()), R);
 					data.generalizedStresses = prod(R, data.generalizedStresses);
 				}
 
-				// calc von mises stresses at top mid and bottom surfaces for 
+				// calc von mises stresses at top mid and bottom surfaces for
 				// thin shell
 				double sxx, syy, sxy;
 
@@ -853,11 +954,8 @@ namespace Kratos
 					rValues[gauss_point] =
 						sqrt(std::max(von_mises_top,
 							std::max(von_mises_mid, von_mises_bottom)));
-					if (gauss_point == 0)
-					{
-						std::cout << rValues[0] << std::endl;
-					}
 				}
+				//std::cout << rValues[gauss_point] << std::endl;
 			}
 		}
 		else
@@ -890,35 +988,68 @@ namespace Kratos
 	}
 
 	void ShellThinElement3D4N::GetValueOnIntegrationPoints
-		(const Variable<Vector>& rVariable,
-			std::vector<Vector>& rValues,
-			const ProcessInfo& rCurrentProcessInfo)
+	(const Variable<Vector>& rVariable,
+		std::vector<Vector>& rValues,
+		const ProcessInfo& rCurrentProcessInfo)
 	{
 	}
 
 	void ShellThinElement3D4N::GetValueOnIntegrationPoints
-		(const Variable<Matrix>& rVariable,
-			std::vector<Matrix>& rValues,
-			const ProcessInfo& rCurrentProcessInfo)
+	(const Variable<Matrix>& rVariable,
+		std::vector<Matrix>& rValues,
+		const ProcessInfo& rCurrentProcessInfo)
 	{
 		if (TryGetValueOnIntegrationPoints_GeneralizedStrainsOrStresses
-			(rVariable, rValues, rCurrentProcessInfo)) return;
+		(rVariable, rValues, rCurrentProcessInfo)) return;
 	}
 
 	void ShellThinElement3D4N::GetValueOnIntegrationPoints
-		(const Variable<array_1d<double, 3> >& rVariable,
-			std::vector<array_1d<double, 3> >& rValues,
-			const ProcessInfo& rCurrentProcessInfo)
+	(const Variable<array_1d<double, 3> >& rVariable,
+		std::vector<array_1d<double, 3> >& rValues,
+		const ProcessInfo& rCurrentProcessInfo)
 	{
 		if (TryGetValueOnIntegrationPoints_MaterialOrientation(rVariable,
 			rValues, rCurrentProcessInfo)) return;
 	}
 
 	void ShellThinElement3D4N::GetValueOnIntegrationPoints
-		(const Variable<array_1d<double, 6> >& rVariable,
-			std::vector<array_1d<double, 6> >& rValues,
-			const ProcessInfo& rCurrentProcessInfo)
+	(const Variable<array_1d<double, 6> >& rVariable,
+		std::vector<array_1d<double, 6> >& rValues,
+		const ProcessInfo& rCurrentProcessInfo)
 	{
+	}
+
+	void ShellThinElement3D4N::CalculateOnIntegrationPoints(const Variable<double>& rVariable, std::vector<double>& rValues, const ProcessInfo & rCurrentProcessInfo)
+	{
+		GetValueOnIntegrationPoints(rVariable, rValues, rCurrentProcessInfo);
+	}
+
+	void ShellThinElement3D4N::CalculateOnIntegrationPoints(const Variable<Vector>& rVariable,
+		std::vector<Vector>& rValues,
+		const ProcessInfo& rCurrentProcessInfo)
+	{
+		GetValueOnIntegrationPoints(rVariable, rValues, rCurrentProcessInfo);
+	}
+
+	void ShellThinElement3D4N::CalculateOnIntegrationPoints(const Variable<Matrix>& rVariable,
+		std::vector<Matrix>& rValues,
+		const ProcessInfo& rCurrentProcessInfo)
+	{
+		GetValueOnIntegrationPoints(rVariable, rValues, rCurrentProcessInfo);
+	}
+
+	void ShellThinElement3D4N::CalculateOnIntegrationPoints(const Variable<array_1d<double, 3> >& rVariable,
+		std::vector<array_1d<double, 3> >& rValues,
+		const ProcessInfo& rCurrentProcessInfo)
+	{
+		GetValueOnIntegrationPoints(rVariable, rValues, rCurrentProcessInfo);
+	}
+
+	void ShellThinElement3D4N::CalculateOnIntegrationPoints(const Variable<array_1d<double, 6> >& rVariable,
+		std::vector<array_1d<double, 6> >& rValues,
+		const ProcessInfo& rCurrentProcessInfo)
+	{
+		GetValueOnIntegrationPoints(rVariable, rValues, rCurrentProcessInfo);
 	}
 
 	// =========================================================================
@@ -928,7 +1059,7 @@ namespace Kratos
 	// =========================================================================
 
 	void ShellThinElement3D4N::CalculateStressesFromForceResultants
-		(VectorType& rstresses, const double& rthickness)
+	(VectorType& rstresses, const double& rthickness)
 	{
 		// Refer http://www.colorado.edu/engineering/CAS/courses.d/AFEM.d/AFEM.Ch20.d/AFEM.Ch20.pdf
 
@@ -950,7 +1081,6 @@ namespace Kratos
 		// Get laminate properties
 		double thickness = section->GetThickness();
 		double z_current = thickness / -2.0; // start from the top of the 1st layer
-
 
 		// Establish current strains at the midplane
 		// (element coordinate system)
@@ -976,7 +1106,7 @@ namespace Kratos
 
 		// Loop over all plies - start from bottom ply, bottom surface
 		for (unsigned int plyNumber = 0;
-		plyNumber < section->NumberOfPlies(); ++plyNumber)
+			plyNumber < section->NumberOfPlies(); ++plyNumber)
 		{
 			// Calculate strains at top surface, arranged in columns.
 			// (element coordinate system)
@@ -1002,7 +1132,7 @@ namespace Kratos
 		// Setup flag to compute ply constitutive matrices
 		// (units [Pa] and rotated to element orientation)
 		section->SetupGetPlyConstitutiveMatrices();
-		CalculateSectionResponse(data); 
+		CalculateSectionResponse(data);
 
 		// Resize output vector. 2 Surfaces for each ply
 		data.rlaminateStresses.resize(2 * section->NumberOfPlies());
@@ -1016,7 +1146,7 @@ namespace Kratos
 
 		// Loop over all plies - start from top ply, top surface
 		for (unsigned int plyNumber = 0;
-		plyNumber < section->NumberOfPlies(); ++plyNumber)
+			plyNumber < section->NumberOfPlies(); ++plyNumber)
 		{
 			// determine stresses at currrent ply, top surface
 			// (element coordinate system)
@@ -1396,12 +1526,12 @@ namespace Kratos
 		{
 			//eqn 5.2.29
 			Vector vec1 = Vector(MathUtils<double>::CrossProduct
-				(data.r_cartesian[i], s_xi));
+			(data.r_cartesian[i], s_xi));
 			d_xi_i[i] = std::sqrt(inner_prod(vec1, vec1));
 			chi_xi_i[i] = d_xi_i[i] / l_xi;
 
 			Vector vec2 = Vector(MathUtils<double>::CrossProduct
-				(data.r_cartesian[i], s_eta));
+			(data.r_cartesian[i], s_eta));
 			d_eta_i[i] = std::sqrt(inner_prod(vec2, vec2));
 			chi_eta_i[i] = d_eta_i[i] / l_eta;
 		}
@@ -1767,9 +1897,9 @@ namespace Kratos
 		data.SectionParameters.SetProcessInfo(data.CurrentProcessInfo);
 
 		data.SectionParameters.SetGeneralizedStrainVector
-			(data.generalizedStrains);
+		(data.generalizedStrains);
 		data.SectionParameters.SetGeneralizedStressVector
-			(data.generalizedStresses);
+		(data.generalizedStresses);
 		data.SectionParameters.SetConstitutiveMatrix(data.D);
 
 		//this isn't constant for a quad!!!!
@@ -2016,7 +2146,7 @@ namespace Kratos
 		data.jacOp.Calculate(data.LCS0,
 			geom.ShapeFunctionLocalGradient(data.gpIndex));
 		data.SectionParameters.SetShapeFunctionsDerivatives
-			(data.jacOp.XYDerivatives());
+		(data.jacOp.XYDerivatives());
 
 		ShellCrossSection::Pointer& section = mSections[data.gpIndex];
 		data.SectionParameters.SetShapeFunctionsValues(iN);
@@ -2026,7 +2156,7 @@ namespace Kratos
 	}
 
 	void ShellThinElement3D4N::CalculateGaussPointContribution
-		(CalculationData& data, MatrixType& LHS, VectorType& RHS)
+	(CalculationData& data, MatrixType& LHS, VectorType& RHS)
 	{
 		// calculate the total strain displ. matrix
 		CalculateBMatrix(data);
@@ -2126,9 +2256,9 @@ namespace Kratos
 	}
 
 	bool ShellThinElement3D4N::TryGetValueOnIntegrationPoints_MaterialOrientation
-		(const Variable<array_1d<double, 3> >& rVariable,
-			std::vector<array_1d<double, 3> >& rValues,
-			const ProcessInfo& rCurrentProcessInfo)
+	(const Variable<array_1d<double, 3> >& rVariable,
+		std::vector<array_1d<double, 3> >& rValues,
+		const ProcessInfo& rCurrentProcessInfo)
 	{
 		// Check the required output
 
@@ -2383,7 +2513,7 @@ namespace Kratos
 
 			// save the results
 
-			DecimalCorrection(data.generalizedStrains);
+			//DecimalCorrection(data.generalizedStrains);
 
 			// now the results are in the element coordinate system
 			// if necessary, rotate the results in the section (local)
@@ -2408,13 +2538,13 @@ namespace Kratos
 				else if (ijob > 2)
 				{
 					section->GetRotationMatrixForGeneralizedStresses
-						(-(section->GetOrientationAngle()), R);
+					(-(section->GetOrientationAngle()), R);
 					data.generalizedStresses = prod(R, data.generalizedStresses);
 				}
 				else
 				{
 					section->GetRotationMatrixForGeneralizedStrains
-						(-(section->GetOrientationAngle()), R);
+					(-(section->GetOrientationAngle()), R);
 					data.generalizedStrains = prod(R, data.generalizedStrains);
 				}
 			}
@@ -2432,6 +2562,7 @@ namespace Kratos
 				iValue(0, 1) = iValue(1, 0) = 0.5 * data.generalizedStrains(2);
 				iValue(0, 2) = iValue(2, 0) = 0;
 				iValue(1, 2) = iValue(2, 1) = 0;
+				//std::cout << iValue << std::endl;
 			}
 			else if (ijob == 2) // curvatures
 			{
@@ -2534,7 +2665,7 @@ namespace Kratos
 			std::cout << "| ";
 			for (unsigned j = 0; j < matrixIn.size2(); ++j)
 			{
-				std::cout << std::fixed << std::setprecision(1) << std::setw(8)
+				std::cout << std::fixed << std::setprecision(2) << std::setw(8)
 					<< matrixIn(i, j) << " | ";
 			}
 			std::cout << std::endl;
@@ -2591,9 +2722,9 @@ namespace Kratos
 	// =========================================================================
 
 	ShellThinElement3D4N::CalculationData::CalculationData
-		(const ShellQ4_LocalCoordinateSystem& localcoordsys,
-			const ShellQ4_LocalCoordinateSystem& refcoordsys,
-			const ProcessInfo& rCurrentProcessInfo)
+	(const ShellQ4_LocalCoordinateSystem& localcoordsys,
+		const ShellQ4_LocalCoordinateSystem& refcoordsys,
+		const ProcessInfo& rCurrentProcessInfo)
 		: LCS(localcoordsys)
 		, LCS0(refcoordsys)
 		, CurrentProcessInfo(rCurrentProcessInfo)

@@ -793,6 +793,39 @@ namespace Kratos
 	{
 	}
 
+	void ShellThickElement3D3N::CalculateOnIntegrationPoints(const Variable<double>& rVariable, std::vector<double>& rValues, const ProcessInfo & rCurrentProcessInfo)
+	{
+		GetValueOnIntegrationPoints(rVariable, rValues, rCurrentProcessInfo);
+	}
+
+	void ShellThickElement3D3N::CalculateOnIntegrationPoints(const Variable<Vector>& rVariable,
+		std::vector<Vector>& rValues,
+		const ProcessInfo& rCurrentProcessInfo)
+	{
+		GetValueOnIntegrationPoints(rVariable, rValues, rCurrentProcessInfo);
+	}
+
+	void ShellThickElement3D3N::CalculateOnIntegrationPoints(const Variable<Matrix>& rVariable,
+		std::vector<Matrix>& rValues,
+		const ProcessInfo& rCurrentProcessInfo)
+	{
+		GetValueOnIntegrationPoints(rVariable, rValues, rCurrentProcessInfo);
+	}
+
+	void ShellThickElement3D3N::CalculateOnIntegrationPoints(const Variable<array_1d<double, 3> >& rVariable,
+		std::vector<array_1d<double, 3> >& rValues,
+		const ProcessInfo& rCurrentProcessInfo)
+	{
+		GetValueOnIntegrationPoints(rVariable, rValues, rCurrentProcessInfo);
+	}
+
+	void ShellThickElement3D3N::CalculateOnIntegrationPoints(const Variable<array_1d<double, 6> >& rVariable,
+		std::vector<array_1d<double, 6> >& rValues,
+		const ProcessInfo& rCurrentProcessInfo)
+	{
+		GetValueOnIntegrationPoints(rVariable, rValues, rCurrentProcessInfo);
+	}
+
 	void ShellThickElement3D3N::SetCrossSectionsOnIntegrationPoints(std::vector< ShellCrossSection::Pointer >& crossSections)
 	{
 		KRATOS_TRY
@@ -886,10 +919,10 @@ namespace Kratos
 			data.rlaminateStrains[2 * plyNumber + 1][0] = e_x + z_current*kap_x;
 			data.rlaminateStrains[2 * plyNumber + 1][1] = e_y + z_current*kap_y;
 			data.rlaminateStrains[2 * plyNumber + 1][2] = e_xy + z_current*kap_xy;
-			data.rlaminateStrains[2 * plyNumber + 1][6] = 
+			data.rlaminateStrains[2 * plyNumber + 1][6] =
 				1.5*(1.0 - 4 * z_current*z_current / thickness / thickness)*
 				data.generalizedStrains[6];
-			data.rlaminateStrains[2 * plyNumber + 1][7] = 
+			data.rlaminateStrains[2 * plyNumber + 1][7] =
 				1.5*(1.0 - 4 * z_current*z_current / thickness / thickness)*
 				data.generalizedStrains[7];
 		}
@@ -1311,13 +1344,11 @@ namespace Kratos
 		*/
 		// 1 gp used!
 		Matrix N(1, 3);
-		N(0,0) = 1.0 / 3.0;
-		N(0,1) = 1.0 / 3.0;
-		N(0,2) = 1.0 / 3.0;
-
+		N(0, 0) = 1.0 / 3.0;
+		N(0, 1) = 1.0 / 3.0;
+		N(0, 2) = 1.0 / 3.0;
 
 #endif // !OPT_USES_INTERIOR_GAUSS_POINTS
-
 
 		// auxiliary
 		array_1d<double, 3> bf;
@@ -1651,7 +1682,7 @@ namespace Kratos
 		}
 
 		// adjust output
-		DecimalCorrection(data.generalizedStrains);
+		//DecimalCorrection(data.generalizedStrains);
 
 		// store the results, but first rotate them back to the section
 		// coordinate system. we want to visualize the results in that system not
@@ -1711,6 +1742,7 @@ namespace Kratos
 				iValue(0, 1) = iValue(1, 0) = 0.5 * data.generalizedStrains(5);
 				iValue(0, 2) = iValue(2, 0) = 0.0;
 				iValue(1, 2) = iValue(2, 1) = 0.0;
+				std::cout << data.generalizedStrains << std::endl;
 			}
 			else if (ijob == 3) // forces
 			{
@@ -1732,8 +1764,7 @@ namespace Kratos
 			}
 			else if (ijob == 5) // SHELL_STRESS_TOP_SURFACE
 			{
-
-				std::cout << data.generalizedStresses << std::endl;
+				//std::cout << data.generalizedStresses << std::endl;
 
 				iValue(0, 0) = data.generalizedStresses(0) -
 					data.generalizedStresses(3);

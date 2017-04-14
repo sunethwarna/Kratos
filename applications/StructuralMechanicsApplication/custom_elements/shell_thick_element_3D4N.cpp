@@ -1540,6 +1540,7 @@ bool ShellThickElement3D4N::TryGetValueOnIntegrationPoints_GeneralizedStrainsOrS
             iValue(0, 1) = iValue(1, 0) = 0.5 * generalizedStrains(2);
             iValue(0, 2) = iValue(2, 0) = 0.5 * generalizedStrains(7);
             iValue(1, 2) = iValue(2, 1) = 0.5 * generalizedStrains(6);
+			//std::cout << iValue << std::endl;
         }
         else if(ijob == 2) // curvatures
         {
