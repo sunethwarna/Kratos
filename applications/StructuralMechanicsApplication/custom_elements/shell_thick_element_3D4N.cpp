@@ -758,35 +758,106 @@ void ShellThickElement3D4N::CalculateMassMatrix(MatrixType& rMassMatrix, Process
     noalias(rMassMatrix) = ZeroMatrix(24, 24);
 
     // Compute the local coordinate system.
-
     ShellQ4_LocalCoordinateSystem referenceCoordinateSystem(
         mpCoordinateTransformation->CreateReferenceCoordinateSystem() );
 
-    // lumped area
+	// Average mass per unit area over the whole element
+	double av_mass_per_unit_area = 0.0;
 
-    double lump_area = referenceCoordinateSystem.Area() / 4.0;
+	// Flag for consistent or lumped mass matrix
+	bool bconsistent_matrix = false;
 
-    // Calculate avarage mass per unit area
-    double av_mass_per_unit_area = 0.0;
-    for(size_t i = 0; i < 4; i++)
-        av_mass_per_unit_area += mSections[i]->CalculateMassPerUnitArea();
-    av_mass_per_unit_area /= 4.0;
+	// Consistent mass matrix
+	if (bconsistent_matrix)
+	{
+		// Get shape function values and setup jacobian
+		GeometryType & geom = GetGeometry();
+		const Matrix & shapeFunctions = geom.ShapeFunctionsValues();
+		JacobianOperator jacOp;
 
-    // Gauss Loop
+		// Get integration points
+		const GeometryType::IntegrationPointsArrayType& integration_points =
+			GetGeometry().IntegrationPoints(GetIntegrationMethod());
 
-    for(size_t i = 0; i < 4; i++)
-    {
-        size_t index = i * 6;
+		// Setup matrix of shape functions
+		Matrix N = Matrix(6, 24, 0.0);
 
-        double nodal_mass = av_mass_per_unit_area * lump_area;
+		// Other variables
+		double dA = 0.0;
+		double thickness = 0.0;
+		double drilling_factor = 1.0;	// sqrt of the actual factor applied, 
+										// 1.0 is no reduction.
 
-        // translational mass
-        rMassMatrix(index, index)            = nodal_mass;
-        rMassMatrix(index + 1, index + 1)    = nodal_mass;
-        rMassMatrix(index + 2, index + 2)    = nodal_mass;
+										// Gauss loop
+		for (size_t gauss_point = 0; gauss_point < 4; gauss_point++)
+		{
+			// Calculate average mass per unit area and thickness at the
+			// current GP
+			av_mass_per_unit_area =
+				mSections[gauss_point]->CalculateMassPerUnitArea();
+			thickness = mSections[gauss_point]->GetThickness();
 
-        // rotational mass - neglected for the moment...
-    }
+			// Calc jacobian and weighted dA at current GP
+			jacOp.Calculate(referenceCoordinateSystem,
+				geom.ShapeFunctionLocalGradient(gauss_point));
+			dA = integration_points[gauss_point].Weight() *
+				jacOp.Determinant();
+
+			// Assemble shape function matrix over nodes
+			for (size_t node = 0; node < 4; node++)
+			{
+				// translational entries
+				for (size_t dof = 0; dof < 3; dof++)
+				{
+					N(dof, 6 * node + dof) =
+						shapeFunctions(gauss_point, node);
+				}
+
+				// rotational inertia entries
+				for (size_t dof = 0; dof < 2; dof++)
+				{
+					N(dof + 3, 6 * node + dof + 3) =
+						thickness / std::sqrt(12.0) *
+						shapeFunctions(gauss_point, node);
+				}
+
+				// drilling rotational entry - artifical factor included
+				N(5, 6 * node + 5) = thickness / std::sqrt(12.0) *
+					shapeFunctions(gauss_point, node) /
+					drilling_factor;
+			}
+
+			// Add contribution to total mass matrix
+			rMassMatrix += prod(trans(N), N)*dA*av_mass_per_unit_area;
+		}// Gauss loop
+	}// Consistent mass matrix
+	else
+	{
+		// Lumped mass matrix
+
+		// Calculate average mass per unit area over the whole element
+		for (size_t i = 0; i < 4; i++)
+			av_mass_per_unit_area += mSections[i]->CalculateMassPerUnitArea();
+		av_mass_per_unit_area /= 4.0;
+
+		// lumped area
+		double lump_area = referenceCoordinateSystem.Area() / 4.0;
+
+		// Gauss Loop
+		for (size_t i = 0; i < 4; i++)
+		{
+			size_t index = i * 6;
+
+			double nodal_mass = av_mass_per_unit_area * lump_area;
+
+			// translational mass
+			rMassMatrix(index, index) = nodal_mass;
+			rMassMatrix(index + 1, index + 1) = nodal_mass;
+			rMassMatrix(index + 2, index + 2) = nodal_mass;
+
+			// rotational mass - neglected for the moment...
+		}
+	}// Lumped mass matrix
 }
 
 void ShellThickElement3D4N::CalculateDampingMatrix(MatrixType& rDampingMatrix, ProcessInfo& rCurrentProcessInfo)

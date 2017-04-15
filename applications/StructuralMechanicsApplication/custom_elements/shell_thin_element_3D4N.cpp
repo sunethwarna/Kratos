@@ -631,15 +631,13 @@ namespace Kratos
 		ShellQ4_LocalCoordinateSystem referenceCoordinateSystem(
 			mpCoordinateTransformation->CreateReferenceCoordinateSystem());
 
-		// Flag for consistent or lumped matrix
+		// Average mass per unit area over the whole element
+		double av_mass_per_unit_area = 0.0;
+
+		// Flag for consistent or lumped mass matrix
 		bool bconsistent_matrix = true;
 
-		// Calculate average mass per unit area over the whole element
-		double av_mass_per_unit_area = 0.0;
-		for (size_t i = 0; i < 4; i++)
-			av_mass_per_unit_area += mSections[i]->CalculateMassPerUnitArea();
-		av_mass_per_unit_area /= 4.0;
-
+		// Consistent mass matrix
 		if (bconsistent_matrix)
 		{
 			// Get shape function values and setup jacobian
@@ -648,7 +646,8 @@ namespace Kratos
 			JacobianOperator jacOp;
 
 			// Get integration points
-			const GeometryType::IntegrationPointsArrayType& integration_points = GetGeometry().IntegrationPoints(mThisIntegrationMethod);
+			const GeometryType::IntegrationPointsArrayType& integration_points =
+				GetGeometry().IntegrationPoints(mThisIntegrationMethod);
 
 			// Setup matrix of shape functions
 			Matrix N = Matrix(6, 24, 0.0);
@@ -656,87 +655,67 @@ namespace Kratos
 			// Other variables
 			double dA = 0.0;
 			double thickness = 0.0;
-			double drilling_factor = 30.0;	// sqrt of the actual factor applied
+			double drilling_factor = 1.0;	// sqrt of the actual factor applied, 
+											// 1.0 is no reduction.
 
+			// Gauss loop
 			for (size_t gauss_point = 0; gauss_point < 4; gauss_point++)
 			{
-				Matrix temp = Matrix(24, 24, 0.0);
-
 				// Calculate average mass per unit area and thickness at the
 				// current GP
-				av_mass_per_unit_area = mSections[gauss_point]->CalculateMassPerUnitArea();
+				av_mass_per_unit_area =
+					mSections[gauss_point]->CalculateMassPerUnitArea();
 				thickness = mSections[gauss_point]->GetThickness();
 
 				// Calc jacobian and weighted dA at current GP
 				jacOp.Calculate(referenceCoordinateSystem,
 					geom.ShapeFunctionLocalGradient(gauss_point));
-				dA = integration_points[gauss_point].Weight() * jacOp.Determinant();
+				dA = integration_points[gauss_point].Weight() *
+					jacOp.Determinant();
 
-				// Add entries to shape function matrix
+				// Assemble shape function matrix over nodes
 				for (size_t node = 0; node < 4; node++)
 				{
-					// translational
+					// translational entries
 					for (size_t dof = 0; dof < 3; dof++)
 					{
-						N(dof, 6 * node + dof) = shapeFunctions(gauss_point, node);
+						N(dof, 6 * node + dof) =
+							shapeFunctions(gauss_point, node);
 					}
 
-					// rotational
+					// rotational inertia entries
 					for (size_t dof = 0; dof < 2; dof++)
 					{
-						N(dof + 3, 6 * node + dof + 3) =  thickness / std::sqrt(12.0) * shapeFunctions(gauss_point, node);
+						N(dof + 3, 6 * node + dof + 3) =
+							thickness / std::sqrt(12.0) *
+							shapeFunctions(gauss_point, node);
 					}
 
-					// drilling - artifical factor included
-					N(5, 6 * node + 5) = thickness / std::sqrt(12.0) * shapeFunctions(gauss_point, node) / drilling_factor;
+					// drilling rotational entry - artifical factor included
+					N(5, 6 * node + 5) = thickness / std::sqrt(12.0) *
+						shapeFunctions(gauss_point, node) /
+						drilling_factor;
 				}
 
-				// Add contribution to mass matrix
-				temp = prod(trans(N), N);
-				temp *= dA*av_mass_per_unit_area;
-				rMassMatrix += temp;
-				//rMassMatrix += prod(trans(N), N) * dA*av_mass_per_unit_area;
-				//printMatrix(rMassMatrix, "Consistent matrix");
+				// Add contribution to total mass matrix
+				rMassMatrix += prod(trans(N), N)*dA*av_mass_per_unit_area;
 			}
 
-			//rMassMatrix /= (referenceCoordinateSystem.Area()*av_mass_per_unit_area);
-			//rMassMatrix *= 432.0;
+			bool bprint_normalised_mat = false;
+			if (bprint_normalised_mat)
+			{
+				Matrix printMat = Matrix(rMassMatrix);
+				printMat /= (referenceCoordinateSystem.Area()*
+					av_mass_per_unit_area);
+				printMat *= 432.0;
+				printMatrix(printMat, "Consistent matrix");
+			}
 
-			//printMatrix(rMassMatrix, "Consistent matrix");
-		}
+		}// Consistent mass matrix
 		else
 		{
-			// Calculate average mass per unit area over the whole element
-			for (size_t i = 0; i < 4; i++)
-				av_mass_per_unit_area += mSections[i]->CalculateMassPerUnitArea();
-			av_mass_per_unit_area /= 4.0;
+			// Lumped mass matrix
 
-			// lumped area
-			double lump_area = referenceCoordinateSystem.Area() / 4.0;
-			//std::cout << "lump_area = " << lump_area << std::endl;
-
-			// Gauss Loop
-			for (size_t i = 0; i < 4; i++)
-			{
-				size_t index = i * 6;
-
-				double nodal_mass = av_mass_per_unit_area * lump_area;
-
-				// translational mass
-				rMassMatrix(index, index) = nodal_mass;
-				rMassMatrix(index + 1, index + 1) = nodal_mass;
-				rMassMatrix(index + 2, index + 2) = nodal_mass;
-
-				// rotational mass - neglected for the moment...
-			}
-		}
-
-		//std::cout << rMassMatrix(4, 4) << std::endl;
-
-		bool test = false;
-		if (test)
-		{
-			rMassMatrix.clear();
 			// Calculate average mass per unit area over the whole element
 			for (size_t i = 0; i < 4; i++)
 				av_mass_per_unit_area += mSections[i]->CalculateMassPerUnitArea();
@@ -759,8 +738,7 @@ namespace Kratos
 
 				// rotational mass - neglected for the moment...
 			}
-		}
-		//printMatrix(rMassMatrix, "Lumped matrix");
+		}// Lumped mass matrix
 	}
 
 	void ShellThinElement3D4N::CalculateDampingMatrix
@@ -2427,7 +2405,6 @@ namespace Kratos
 			rValues.resize(size);
 
 		// Compute the local coordinate system.
-
 		ShellQ4_LocalCoordinateSystem localCoordinateSystem(
 			mpCoordinateTransformation->CreateLocalCoordinateSystem());
 
@@ -2513,7 +2490,7 @@ namespace Kratos
 
 			// save the results
 
-			//DecimalCorrection(data.generalizedStrains);
+			DecimalCorrection(data.generalizedStrains);
 
 			// now the results are in the element coordinate system
 			// if necessary, rotate the results in the section (local)
@@ -2572,6 +2549,32 @@ namespace Kratos
 				iValue(0, 1) = iValue(1, 0) = 0.5 * data.generalizedStrains(5);
 				iValue(0, 2) = iValue(2, 0) = 0.0;
 				iValue(1, 2) = iValue(2, 1) = 0.0;
+
+				bool bTesting = true;
+				if (bTesting)
+				{
+					const GeometryType & geom = GetGeometry();
+
+					for (int node = 0; node < 4; node++)
+					{
+						const NodeType & iNode = geom[node];
+						if (iNode.Y() > 99.9)
+						{
+							if (i == 0)
+							{
+								std::cout << "\nNode @ X,Y [" << iNode.X() << ", " << iNode.Y() << "]" << std::endl;
+								std::cout << "Z Disp = \t\t\t" << data.globalDisplacements[6 * node + 2] << std::endl;
+								
+								//std::cout << "Kappa Y = \t" << data.generalizedStrains(3) << std::endl;
+							}
+
+							std::cout << "Kappa X (GP" << i <<") = \t\t" << data.generalizedStrains(3) << std::endl;
+							printMatrix(data.B, "B mat");
+						}
+						
+						
+					}
+				}
 			}
 			else if (ijob == 3) // forces
 			{

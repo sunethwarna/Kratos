@@ -7,7 +7,6 @@
 //					 license: structural_mechanics_application/license.txt
 //
 //  Main authors:    Peter Wilson
-//					 (inspired by Massimo Petracca's shells)
 
 #include "shell_thick_element_3D3N.hpp"
 #include "custom_utilities/shellt3_corotational_coordinate_transformation.hpp"
@@ -590,34 +589,92 @@ namespace Kratos
 		noalias(rMassMatrix) = ZeroMatrix(OPT_NUM_DOFS, OPT_NUM_DOFS);
 
 		// Compute the local coordinate system.
-
 		ShellT3_LocalCoordinateSystem referenceCoordinateSystem(
 			mpCoordinateTransformation->CreateReferenceCoordinateSystem());
 
-		// lumped area
-
-		double lump_area = referenceCoordinateSystem.Area() / 3.0;
-
-		// Calculate avarage mass per unit area
+		// Average mass per unit area over the whole element
 		double av_mass_per_unit_area = 0.0;
-		for (size_t i = 0; i < OPT_NUM_GP; i++)	//this might be just 1
+		for (size_t i = 0; i < OPT_NUM_GP; i++)
 			av_mass_per_unit_area += mSections[i]->CalculateMassPerUnitArea();
 		av_mass_per_unit_area /= double(OPT_NUM_GP);
 
-		// loop on nodes
-		for (size_t i = 0; i < 3; i++)
+		// Flag for consistent or lumped mass matrix
+		bool bconsistent_matrix = true;
+
+		// Consistent mass matrix
+		if (bconsistent_matrix)
 		{
-			size_t index = i * 6;
+			// Setup for one Gauss Point only!
 
-			double nodal_mass = av_mass_per_unit_area * lump_area;
+			// Average thickness over the whole element
+			double thickness = 0.0;
+			for (size_t i = 0; i < OPT_NUM_GP; i++)
+				thickness += mSections[i]->GetThickness();
+			thickness /= double(OPT_NUM_GP);
+			
+			// Reduction factor for drilling inertia
+			double drilling_factor = 1.0;	// sqrt of the actual factor applied, 
+											// 1.0 is no reduction.
 
-			// translational mass
-			rMassMatrix(index, index) = nodal_mass;
-			rMassMatrix(index + 1, index + 1) = nodal_mass;
-			rMassMatrix(index + 2, index + 2) = nodal_mass;
+			double modifier = thickness*thickness / 12.0; //rotation modifier
+			unsigned int offset = 0;
 
-			// rotational mass - neglected for the moment...
-		}
+			for (size_t row = 0; row < 18; row++)
+			{
+				for (size_t col = 0; col < 9; col++)
+				{
+					offset = row % 2;
+					if (row%6 < 3) //translational
+					{
+						if (row == col) // diagonal
+						{
+							rMassMatrix(row, 2 * col + offset) = 2.0;
+						}
+						else
+						{
+							rMassMatrix(row, 2 * col + offset) = 1.0;
+						}
+					}
+					
+				}
+			}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		}// Consistent mass matrix
+		else
+		{
+			// Lumped mass matrix
+
+			// lumped area
+			double lump_area = referenceCoordinateSystem.Area() / 3.0;
+
+			// loop on nodes
+			for (size_t i = 0; i < 3; i++)
+			{
+				size_t index = i * 6;
+
+				double nodal_mass = av_mass_per_unit_area * lump_area;
+
+				// translational mass
+				rMassMatrix(index, index) = nodal_mass;
+				rMassMatrix(index + 1, index + 1) = nodal_mass;
+				rMassMatrix(index + 2, index + 2) = nodal_mass;
+
+				// rotational mass - neglected for the moment...
+			}
+		}// Lumped mass matrix
 	}
 
 	void ShellThickElement3D3N::CalculateDampingMatrix(MatrixType& rDampingMatrix, ProcessInfo& rCurrentProcessInfo)
