@@ -599,59 +599,49 @@ namespace Kratos
 		av_mass_per_unit_area /= double(OPT_NUM_GP);
 
 		// Flag for consistent or lumped mass matrix
-		bool bconsistent_matrix = true;
+		bool bconsistent_matrix = false;
 
 		// Consistent mass matrix
 		if (bconsistent_matrix)
 		{
-			// Setup for one Gauss Point only!
+			// General matrix form as per Felippa plane stress CST eqn 31.27:
+			// http://kis.tu.kielce.pl/mo/COLORADO_FEM/colorado/IFEM.Ch31.pdf
+			// 
+			// Density and thickness are averaged over element.
 
 			// Average thickness over the whole element
 			double thickness = 0.0;
 			for (size_t i = 0; i < OPT_NUM_GP; i++)
 				thickness += mSections[i]->GetThickness();
 			thickness /= double(OPT_NUM_GP);
-			
-			// Reduction factor for drilling inertia
-			double drilling_factor = 1.0;	// sqrt of the actual factor applied, 
-											// 1.0 is no reduction.
 
-			double modifier = thickness*thickness / 12.0; //rotation modifier
-			unsigned int offset = 0;
-
+			// Populate mass matrix with integation results
 			for (size_t row = 0; row < 18; row++)
 			{
-				for (size_t col = 0; col < 9; col++)
+				if (row % 6 < 3)
 				{
-					offset = row % 2;
-					if (row%6 < 3) //translational
+					// translational entry
+					for (size_t col = 0; col < 3; col++)
 					{
-						if (row == col) // diagonal
-						{
-							rMassMatrix(row, 2 * col + offset) = 2.0;
-						}
-						else
-						{
-							rMassMatrix(row, 2 * col + offset) = 1.0;
-						}
+						rMassMatrix(row, 6 * col + row % 6) = 1.0;
 					}
-					
 				}
+				else
+				{
+					// rotational entry
+					for (size_t col = 0; col < 3; col++)
+					{
+						rMassMatrix(row, 6 * col + row % 6) = 
+							thickness*thickness / 12.0;
+					}
+				}
+
+				// Diagonal entry
+				rMassMatrix(row, row) *= 2.0;
 			}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+			rMassMatrix *= 
+				av_mass_per_unit_area*referenceCoordinateSystem.Area() / 12.0;
 		}// Consistent mass matrix
 		else
 		{

@@ -499,34 +499,82 @@ void ShellThinElement3D3N::CalculateMassMatrix(MatrixType& rMassMatrix, ProcessI
     noalias(rMassMatrix) = ZeroMatrix(OPT_NUM_DOFS, OPT_NUM_DOFS);
 
     // Compute the local coordinate system.
-
     ShellT3_LocalCoordinateSystem referenceCoordinateSystem(
         mpCoordinateTransformation->CreateReferenceCoordinateSystem() );
 
-    // lumped area
+	// Average mass per unit area over the whole element
+	double av_mass_per_unit_area = 0.0;
+	for (size_t i = 0; i < OPT_NUM_GP; i++)
+		av_mass_per_unit_area += mSections[i]->CalculateMassPerUnitArea();
+	av_mass_per_unit_area /= double(OPT_NUM_GP);
 
-    double lump_area = referenceCoordinateSystem.Area() / 3.0;
+	// Flag for consistent or lumped mass matrix
+	bool bconsistent_matrix = false;
 
-    // Calculate avarage mass per unit area
-    double av_mass_per_unit_area = 0.0;
-    for(size_t i = 0; i < OPT_NUM_GP; i++)
-        av_mass_per_unit_area += mSections[i]->CalculateMassPerUnitArea();
-    av_mass_per_unit_area /= double(OPT_NUM_GP);
+	// Consistent mass matrix
+	if (bconsistent_matrix)
+	{
+		// General matrix form as per Felippa plane stress CST (eqn 31.27):
+		// http://kis.tu.kielce.pl/mo/COLORADO_FEM/colorado/IFEM.Ch31.pdf
+		// 
+		// Density and thickness are averaged over element.
 
-    // loop on nodes
-    for(size_t i = 0; i < 3; i++)
-    {
-        size_t index = i * 6;
+		// Average thickness over the whole element
+		double thickness = 0.0;
+		for (size_t i = 0; i < OPT_NUM_GP; i++)
+			thickness += mSections[i]->GetThickness();
+		thickness /= double(OPT_NUM_GP);
 
-        double nodal_mass = av_mass_per_unit_area * lump_area;
+		// Populate mass matrix with integation results
+		for (size_t row = 0; row < 18; row++)
+		{
+			if (row % 6 < 3)
+			{
+				// translational entry
+				for (size_t col = 0; col < 3; col++)
+				{
+					rMassMatrix(row, 6 * col + row % 6) = 1.0;
+				}
+			}
+			else
+			{
+				// rotational entry
+				for (size_t col = 0; col < 3; col++)
+				{
+					rMassMatrix(row, 6 * col + row % 6) =
+						thickness*thickness / 12.0;
+				}
+			}
 
-        // translational mass
-        rMassMatrix(index, index)            = nodal_mass;
-        rMassMatrix(index + 1, index + 1)    = nodal_mass;
-        rMassMatrix(index + 2, index + 2)    = nodal_mass;
+			// Diagonal entry
+			rMassMatrix(row, row) *= 2.0;
+		}
 
-        // rotational mass - neglected for the moment...
-    }
+		rMassMatrix *=
+			av_mass_per_unit_area*referenceCoordinateSystem.Area() / 12.0;
+	}// Consistent mass matrix
+	else
+	{
+		// Lumped mass matrix
+
+		// lumped area
+		double lump_area = referenceCoordinateSystem.Area() / 3.0;
+
+		// loop on nodes
+		for (size_t i = 0; i < 3; i++)
+		{
+			size_t index = i * 6;
+
+			double nodal_mass = av_mass_per_unit_area * lump_area;
+
+			// translational mass
+			rMassMatrix(index, index) = nodal_mass;
+			rMassMatrix(index + 1, index + 1) = nodal_mass;
+			rMassMatrix(index + 2, index + 2) = nodal_mass;
+
+			// rotational mass - neglected for the moment...
+		}
+	}// Lumped mass matrix
 }
 
 void ShellThinElement3D3N::CalculateDampingMatrix(MatrixType& rDampingMatrix, ProcessInfo& rCurrentProcessInfo)
