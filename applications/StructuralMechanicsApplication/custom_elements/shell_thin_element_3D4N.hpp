@@ -302,6 +302,7 @@ namespace Kratos
 			MatrixType B_h_3;
 			MatrixType B_h_4;
 			MatrixType B_h_bar;
+			MatrixType B_bend_test; //TODO p1 delete later
 
 			array_1d<double, 4> DKQ_a;
 			array_1d<double, 4> DKQ_b;

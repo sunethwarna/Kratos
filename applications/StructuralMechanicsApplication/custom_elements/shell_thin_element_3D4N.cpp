@@ -2073,6 +2073,10 @@ namespace Kratos
 
 		B_bend_total.clear();
 		B_bend_total += B_bend_DKQ;
+		//TODO p1 delete after testing
+		//data.B_bend_test.resize(3, 12, 0.0);
+		data.B_bend_test = Matrix(B_bend_total);
+
 
 		//---------------------------------------------
 		// assemble the membrane contribution
@@ -2416,13 +2420,22 @@ namespace Kratos
 		Matrix aux33(3, 3);
 
 		// Initialize common calculation variables
-
 		CalculationData data(localCoordinateSystem, referenceCoordinateSystem,
 			rCurrentProcessInfo);
-		data.CalculateLHS = true;
+		data.CalculateLHS = false; //TODO p1 check out if this kills composites
 		data.CalculateRHS = true;
 		InitializeCalculationData(data);
 		//this covers: B,D, jacOp, stresses/strains, local + global disps
+
+		//TODO p1 added for testing
+		// Get the current displacements in global coordinate system
+		Vector globalDisplacements(24);
+		GetValuesVector(globalDisplacements, 0);
+		// Get the current displacements in local coordinate system
+		Vector localDisplacements(
+			mpCoordinateTransformation->CalculateLocalDisplacements(localCoordinateSystem, globalDisplacements));
+
+
 
 		// Gauss Loop
 
@@ -2434,12 +2447,9 @@ namespace Kratos
 
 			// Calculate strain vectors in local coordinate system
 			noalias(data.generalizedStrains) =
-				prod(data.B, data.localDisplacements);
-
-			//std::cout << "local displacements = " << data.localDisplacements << std::endl;
-			//std::cout << "strains = " << data.generalizedStrains << std::endl;
-
-			//data.generalizedStrains[4] = 0.1;// composite testing
+				prod(data.B, data.localDisplacements); 
+			//noalias(data.generalizedStrains) =
+			//	prod(data.B, data.globalDisplacements); //TODO p1 remove after testing
 
 			// Calculate the response of the Cross Section
 			ShellCrossSection::Pointer & section = mSections[i];
@@ -2476,7 +2486,8 @@ namespace Kratos
 				}
 				else
 				{
-					CalculateSectionResponse(data);	// calculate force resultants
+					// calculate force resultants
+					CalculateSectionResponse(data);	
 
 					if (ijob > 4)
 					{
@@ -2489,10 +2500,9 @@ namespace Kratos
 			}
 
 			// save the results
-
 			DecimalCorrection(data.generalizedStrains);
 
-			// now the results are in the element coordinate system
+			// now the results are in the element coordinate system.
 			// if necessary, rotate the results in the section (local)
 			// coordinate system
 			if (section->GetOrientationAngle() != 0.0 && !bGlobal)
@@ -2563,13 +2573,23 @@ namespace Kratos
 							if (i == 0)
 							{
 								std::cout << "\nNode @ X,Y [" << iNode.X() << ", " << iNode.Y() << "]" << std::endl;
-								std::cout << "Z Disp = \t\t\t" << data.globalDisplacements[6 * node + 2] << std::endl;
-								
-								//std::cout << "Kappa Y = \t" << data.generalizedStrains(3) << std::endl;
+								//std::cout << "Z Disp = \t\t\t" << data.globalDisplacements[6 * node + 2] << std::endl;
+								//printMatrix(data.B_bend_test, "B bending");
+
+								Vector BendingDisps = Vector(12, 0.0);
+								for (size_t k = 0; k < 4; k++)
+								{
+									BendingDisps[3 * k] = data.localDisplacements[3 * k + 2];
+									BendingDisps[3 * k+1] = data.localDisplacements[3 * k + 4];
+									BendingDisps[3 * k+2] = data.localDisplacements[3 * k + 5];
+								}
+								//printVector(BendingDisps, "Bending disp");
+								//printVector(localDisplacements, "new local disps");
+								//printVector(globalDisplacements, "new global disp");
 							}
 
 							std::cout << "Kappa X (GP" << i <<") = \t\t" << data.generalizedStrains(3) << std::endl;
-							printMatrix(data.B, "B mat");
+							//printMatrix(data.B, "B mat");
 						}
 						
 						
@@ -2593,6 +2613,33 @@ namespace Kratos
 				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses(5);
 				iValue(0, 2) = iValue(2, 0) = 0.0;
 				iValue(1, 2) = iValue(2, 1) = 0.0;
+
+				bool bTesting = false;
+				if (bTesting)
+				{
+					const GeometryType & geom = GetGeometry();
+
+					for (int node = 0; node < 4; node++)
+					{
+						const NodeType & iNode = geom[node];
+						if (iNode.Y() > 99.9)
+						{
+							if (i == 0)
+							{
+								std::cout << "\nNode @ X,Y [" << iNode.X() << ", " << iNode.Y() << "]" << std::endl;
+								std::cout << "Z Disp = \t\t\t" << data.globalDisplacements[6 * node + 2] << std::endl;
+
+								//std::cout << "Kappa Y = \t" << data.generalizedStrains(3) << std::endl;
+								
+							}
+
+							std::cout << "Moment X (GP" << i << ") = \t\t" << data.generalizedStresses(3) << std::endl;
+							
+						}
+
+
+					}
+				}
 			}
 			else if (ijob == 5) // SHELL_STRESS_TOP_SURFACE
 			{
@@ -2668,7 +2715,7 @@ namespace Kratos
 			std::cout << "| ";
 			for (unsigned j = 0; j < matrixIn.size2(); ++j)
 			{
-				std::cout << std::fixed << std::setprecision(2) << std::setw(8)
+				std::cout << std::fixed << std::setprecision(4) << std::setw(10)
 					<< matrixIn(i, j) << " | ";
 			}
 			std::cout << std::endl;

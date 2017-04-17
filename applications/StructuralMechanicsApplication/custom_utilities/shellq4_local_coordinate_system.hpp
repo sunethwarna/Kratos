@@ -228,9 +228,15 @@ namespace Kratos
 			for(size_t k = 0; k < 8; k++)
 			{
 				size_t i = k * 3;
-				R(i  , i  ) = mOrientation(0, 0);   R(i  , i+1) = mOrientation(0, 1);   R(i  , i+2) = mOrientation(0, 2);
-				R(i+1, i  ) = mOrientation(1, 0);   R(i+1, i+1) = mOrientation(1, 1);   R(i+1, i+2) = mOrientation(1, 2);
-				R(i+2, i  ) = mOrientation(2, 0);   R(i+2, i+1) = mOrientation(2, 1);   R(i+2, i+2) = mOrientation(2, 2);
+				R(i  , i  ) = mOrientation(0, 0);   
+				R(i  , i+1) = mOrientation(0, 1);   
+				R(i  , i+2) = mOrientation(0, 2);
+				R(i+1, i  ) = mOrientation(1, 0);   
+				R(i+1, i+1) = mOrientation(1, 1);   
+				R(i+1, i+2) = mOrientation(1, 2);
+				R(i+2, i  ) = mOrientation(2, 0);   
+				R(i+2, i+1) = mOrientation(2, 1);   
+				R(i+2, i+2) = mOrientation(2, 2);
 			}
 		}
 
