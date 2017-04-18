@@ -1152,6 +1152,91 @@ namespace Kratos
 		}
 	}
 
+	void ShellThinElement3D4N::CheckGeneralizedStressOrStrainOutput(const Variable<Matrix>& rVariable, int & ijob, bool & bGlobal)
+	{
+		if (rVariable == SHELL_STRAIN)
+		{
+			ijob = 1;
+		}
+		else if (rVariable == SHELL_STRAIN_GLOBAL)
+		{
+			ijob = 1;
+			bGlobal = true;
+		}
+		else if (rVariable == SHELL_CURVATURE)
+		{
+			ijob = 2;
+		}
+		else if (rVariable == SHELL_CURVATURE_GLOBAL)
+		{
+			ijob = 2;
+			bGlobal = true;
+		}
+		else if (rVariable == SHELL_FORCE)
+		{
+			ijob = 3;
+		}
+		else if (rVariable == SHELL_FORCE_GLOBAL)
+		{
+			ijob = 3;
+			bGlobal = true;
+		}
+		else if (rVariable == SHELL_MOMENT)
+		{
+			ijob = 4;
+		}
+		else if (rVariable == SHELL_MOMENT_GLOBAL)
+		{
+			ijob = 4;
+			bGlobal = true;
+		}
+		else if (rVariable == SHELL_STRESS_TOP_SURFACE)
+		{
+			ijob = 5;
+		}
+		else if (rVariable == SHELL_STRESS_TOP_SURFACE_GLOBAL)
+		{
+			ijob = 5;
+			bGlobal = true;
+		}
+		else if (rVariable == SHELL_STRESS_MIDDLE_SURFACE)
+		{
+			ijob = 6;
+		}
+		else if (rVariable == SHELL_STRESS_MIDDLE_SURFACE_GLOBAL)
+		{
+			ijob = 6;
+			bGlobal = true;
+		}
+		else if (rVariable == SHELL_STRESS_BOTTOM_SURFACE)
+		{
+			ijob = 7;
+		}
+		else if (rVariable == SHELL_STRESS_BOTTOM_SURFACE_GLOBAL)
+		{
+			ijob = 7;
+			bGlobal = true;
+		}
+		else if (rVariable == SHELL_ORTHOTROPIC_STRESS_BOTTOM_SURFACE)
+		{
+			ijob = 8;
+		}
+		else if (rVariable == SHELL_ORTHOTROPIC_STRESS_BOTTOM_SURFACE_GLOBAL)
+		{
+			ijob = 8;
+			bGlobal = true;
+		}
+		else if (rVariable == SHELL_ORTHOTROPIC_STRESS_TOP_SURFACE)
+		{
+			ijob = 9;
+		}
+		else if (rVariable == SHELL_ORTHOTROPIC_STRESS_TOP_SURFACE_GLOBAL)
+		{
+			ijob = 9;
+			bGlobal = true;
+		}
+	}
+
 	void ShellThinElement3D4N::DecimalCorrection(Vector& a)
 	{
 		double norm = norm_2(a);
@@ -1226,7 +1311,7 @@ namespace Kratos
 
 			//-------------------------------------
 			// geometry data
-			const double x12 = data.LCS0.X1() - data.LCS0.X2();
+		const double x12 = data.LCS0.X1() - data.LCS0.X2();
 		const double x13 = data.LCS0.X1() - data.LCS0.X3();
 		const double x23 = data.LCS0.X2() - data.LCS0.X3();
 		const double x24 = data.LCS0.X2() - data.LCS0.X4();
@@ -1849,7 +1934,6 @@ namespace Kratos
 
 		data.globalDisplacements.resize(OPT_NUM_DOFS, false);
 		GetValuesVector(data.globalDisplacements);
-
 		data.localDisplacements =
 			mpCoordinateTransformation->CalculateLocalDisplacements(
 				data.LCS, data.globalDisplacements);
@@ -2073,9 +2157,6 @@ namespace Kratos
 
 		B_bend_total.clear();
 		B_bend_total += B_bend_DKQ;
-		//TODO p1 delete after testing
-		//data.B_bend_test.resize(3, 12, 0.0);
-		data.B_bend_test = Matrix(B_bend_total);
 
 
 		//---------------------------------------------
@@ -2313,97 +2394,14 @@ namespace Kratos
 			const ProcessInfo& rCurrentProcessInfo)
 	{
 		// Check the required output
-
 		int ijob = 0;
 		bool bGlobal = false;
-		if (rVariable == SHELL_STRAIN)
-		{
-			ijob = 1;
-		}
-		else if (rVariable == SHELL_STRAIN_GLOBAL)
-		{
-			ijob = 1;
-			bGlobal = true;
-		}
-		else if (rVariable == SHELL_CURVATURE)
-		{
-			ijob = 2;
-		}
-		else if (rVariable == SHELL_CURVATURE_GLOBAL)
-		{
-			ijob = 2;
-			bGlobal = true;
-		}
-		else if (rVariable == SHELL_FORCE)
-		{
-			ijob = 3;
-		}
-		else if (rVariable == SHELL_FORCE_GLOBAL)
-		{
-			ijob = 3;
-			bGlobal = true;
-		}
-		else if (rVariable == SHELL_MOMENT)
-		{
-			ijob = 4;
-		}
-		else if (rVariable == SHELL_MOMENT_GLOBAL)
-		{
-			ijob = 4;
-			bGlobal = true;
-		}
-		else if (rVariable == SHELL_STRESS_TOP_SURFACE)
-		{
-			ijob = 5;
-		}
-		else if (rVariable == SHELL_STRESS_TOP_SURFACE_GLOBAL)
-		{
-			ijob = 5;
-			bGlobal = true;
-		}
-		else if (rVariable == SHELL_STRESS_MIDDLE_SURFACE)
-		{
-			ijob = 6;
-		}
-		else if (rVariable == SHELL_STRESS_MIDDLE_SURFACE_GLOBAL)
-		{
-			ijob = 6;
-			bGlobal = true;
-		}
-		else if (rVariable == SHELL_STRESS_BOTTOM_SURFACE)
-		{
-			ijob = 7;
-		}
-		else if (rVariable == SHELL_STRESS_BOTTOM_SURFACE_GLOBAL)
-		{
-			ijob = 7;
-			bGlobal = true;
-		}
-		else if (rVariable == SHELL_ORTHOTROPIC_STRESS_BOTTOM_SURFACE)
-		{
-			ijob = 8;
-		}
-		else if (rVariable == SHELL_ORTHOTROPIC_STRESS_BOTTOM_SURFACE_GLOBAL)
-		{
-			ijob = 8;
-			bGlobal = true;
-		}
-		else if (rVariable == SHELL_ORTHOTROPIC_STRESS_TOP_SURFACE)
-		{
-			ijob = 9;
-		}
-		else if (rVariable == SHELL_ORTHOTROPIC_STRESS_TOP_SURFACE_GLOBAL)
-		{
-			ijob = 9;
-			bGlobal = true;
-		}
+		CheckGeneralizedStressOrStrainOutput(rVariable, ijob, bGlobal);
 
 		// quick return
-
 		if (ijob == 0) return false;
 
 		// resize output
-
 		size_t size = 4;
 		if (rValues.size() != size)
 			rValues.resize(size);
@@ -2411,7 +2409,6 @@ namespace Kratos
 		// Compute the local coordinate system.
 		ShellQ4_LocalCoordinateSystem localCoordinateSystem(
 			mpCoordinateTransformation->CreateLocalCoordinateSystem());
-
 		ShellQ4_LocalCoordinateSystem referenceCoordinateSystem(
 			mpCoordinateTransformation->CreateReferenceCoordinateSystem());
 
@@ -2421,24 +2418,24 @@ namespace Kratos
 
 		// Initialize common calculation variables
 		CalculationData data(localCoordinateSystem, referenceCoordinateSystem,
-			rCurrentProcessInfo);
-		data.CalculateLHS = false; //TODO p1 check out if this kills composites
+								rCurrentProcessInfo);
+		data.CalculateLHS = true; //TODO p1 check out if this kills composites
 		data.CalculateRHS = true;
 		InitializeCalculationData(data);
-		//this covers: B,D, jacOp, stresses/strains, local + global disps
 
-		//TODO p1 added for testing
-		// Get the current displacements in global coordinate system
-		Vector globalDisplacements(24);
-		GetValuesVector(globalDisplacements, 0);
-		// Get the current displacements in local coordinate system
-		Vector localDisplacements(
-			mpCoordinateTransformation->CalculateLocalDisplacements(localCoordinateSystem, globalDisplacements));
-
-
+		// Get the current displacements in global coordinate system and 
+		// transform to reference local system
+		MatrixType Rdisp(24, 24);
+		referenceCoordinateSystem.ComputeTotalRotationMatrix(Rdisp);
+		if (referenceCoordinateSystem.IsWarped()) {
+			MatrixType W(24, 24);
+			referenceCoordinateSystem.ComputeTotalWarpageMatrix(W);
+			Rdisp = prod(W, Rdisp);
+		}
+		data.localDisplacements = prod(Rdisp, data.globalDisplacements);
+		
 
 		// Gauss Loop
-
 		for (unsigned int i = 0; i < size; i++)
 		{
 			// Compute all strain-displacement matrices
@@ -2446,10 +2443,7 @@ namespace Kratos
 			CalculateBMatrix(data);
 
 			// Calculate strain vectors in local coordinate system
-			noalias(data.generalizedStrains) =
-				prod(data.B, data.localDisplacements); 
-			//noalias(data.generalizedStrains) =
-			//	prod(data.B, data.globalDisplacements); //TODO p1 remove after testing
+			noalias(data.generalizedStrains) = prod(data.B, data.localDisplacements); 
 
 			// Calculate the response of the Cross Section
 			ShellCrossSection::Pointer & section = mSections[i];
@@ -2542,14 +2536,12 @@ namespace Kratos
 
 			if (ijob == 1) // strains
 			{
-				//std::cout << data.generalizedStrains << std::endl;
 				iValue(0, 0) = data.generalizedStrains(0);
 				iValue(1, 1) = data.generalizedStrains(1);
 				iValue(2, 2) = 0.0;
 				iValue(0, 1) = iValue(1, 0) = 0.5 * data.generalizedStrains(2);
 				iValue(0, 2) = iValue(2, 0) = 0;
 				iValue(1, 2) = iValue(2, 1) = 0;
-				//std::cout << iValue << std::endl;
 			}
 			else if (ijob == 2) // curvatures
 			{
@@ -2560,7 +2552,7 @@ namespace Kratos
 				iValue(0, 2) = iValue(2, 0) = 0.0;
 				iValue(1, 2) = iValue(2, 1) = 0.0;
 
-				bool bTesting = true;
+				bool bTesting = false;
 				if (bTesting)
 				{
 					const GeometryType & geom = GetGeometry();
@@ -2584,11 +2576,13 @@ namespace Kratos
 									BendingDisps[3 * k+2] = data.localDisplacements[3 * k + 5];
 								}
 								//printVector(BendingDisps, "Bending disp");
-								//printVector(localDisplacements, "new local disps");
-								//printVector(globalDisplacements, "new global disp");
+
+								
+								printVector(data.globalDisplacements, "new global disp");
+								printVector(data.localDisplacements, "localDisplacements");								
 							}
 
-							std::cout << "Kappa X (GP" << i <<") = \t\t" << data.generalizedStrains(3) << std::endl;
+							//std::cout << "Kappa X (GP" << i <<") = \t\t" << data.generalizedStrains(3) << std::endl;
 							//printMatrix(data.B, "B mat");
 						}
 						
@@ -2697,7 +2691,7 @@ namespace Kratos
 			// if requested, rotate the results in the global coordinate system
 			if (bGlobal)
 			{
-				const Matrix& RG = localCoordinateSystem.Orientation();
+				const Matrix& RG = referenceCoordinateSystem.Orientation();
 				noalias(aux33) = prod(trans(RG), iValue);
 				noalias(iValue) = prod(aux33, RG);
 			}
