@@ -7,6 +7,7 @@
 //					 license: structural_mechanics_application/license.txt
 //
 //  Main authors:    Peter Wilson
+//
 
 #include "shell_thick_element_3D3N.hpp"
 #include "custom_utilities/shellt3_corotational_coordinate_transformation.hpp"
@@ -1024,6 +1025,91 @@ namespace Kratos
 		}
 	}
 
+	void ShellThickElement3D3N::CheckGeneralizedStressOrStrainOutput(const Variable<Matrix>& rVariable, int & ijob, bool & bGlobal)
+	{
+		if (rVariable == SHELL_STRAIN)
+		{
+			ijob = 1;
+		}
+		else if (rVariable == SHELL_STRAIN_GLOBAL)
+		{
+			ijob = 1;
+			bGlobal = true;
+		}
+		else if (rVariable == SHELL_CURVATURE)
+		{
+			ijob = 2;
+		}
+		else if (rVariable == SHELL_CURVATURE_GLOBAL)
+		{
+			ijob = 2;
+			bGlobal = true;
+		}
+		else if (rVariable == SHELL_FORCE)
+		{
+			ijob = 3;
+		}
+		else if (rVariable == SHELL_FORCE_GLOBAL)
+		{
+			ijob = 3;
+			bGlobal = true;
+		}
+		else if (rVariable == SHELL_MOMENT)
+		{
+			ijob = 4;
+		}
+		else if (rVariable == SHELL_MOMENT_GLOBAL)
+		{
+			ijob = 4;
+			bGlobal = true;
+		}
+		else if (rVariable == SHELL_STRESS_TOP_SURFACE)
+		{
+			ijob = 5;
+		}
+		else if (rVariable == SHELL_STRESS_TOP_SURFACE_GLOBAL)
+		{
+			ijob = 5;
+			bGlobal = true;
+		}
+		else if (rVariable == SHELL_STRESS_MIDDLE_SURFACE)
+		{
+			ijob = 6;
+		}
+		else if (rVariable == SHELL_STRESS_MIDDLE_SURFACE_GLOBAL)
+		{
+			ijob = 6;
+			bGlobal = true;
+		}
+		else if (rVariable == SHELL_STRESS_BOTTOM_SURFACE)
+		{
+			ijob = 7;
+		}
+		else if (rVariable == SHELL_STRESS_BOTTOM_SURFACE_GLOBAL)
+		{
+			ijob = 7;
+			bGlobal = true;
+		}
+		else if (rVariable == SHELL_ORTHOTROPIC_STRESS_BOTTOM_SURFACE)
+		{
+			ijob = 8;
+		}
+		else if (rVariable == SHELL_ORTHOTROPIC_STRESS_BOTTOM_SURFACE_GLOBAL)
+		{
+			ijob = 8;
+			bGlobal = true;
+		}
+		else if (rVariable == SHELL_ORTHOTROPIC_STRESS_TOP_SURFACE)
+		{
+			ijob = 9;
+		}
+		else if (rVariable == SHELL_ORTHOTROPIC_STRESS_TOP_SURFACE_GLOBAL)
+		{
+			ijob = 9;
+			bGlobal = true;
+		}
+	}
+
 	void ShellThickElement3D3N::DecimalCorrection(Vector& a)
 	{
 		double norm = norm_2(a);
@@ -1567,111 +1653,41 @@ namespace Kratos
 		const ProcessInfo& rCurrentProcessInfo)
 	{
 		// Check the required output
-
 		int ijob = 0;
 		bool bGlobal = false;
-		if (rVariable == SHELL_STRAIN)
-		{
-			ijob = 1;
-		}
-		else if (rVariable == SHELL_STRAIN_GLOBAL)
-		{
-			ijob = 1;
-			bGlobal = true;
-		}
-		else if (rVariable == SHELL_CURVATURE)
-		{
-			ijob = 2;
-		}
-		else if (rVariable == SHELL_CURVATURE_GLOBAL)
-		{
-			ijob = 2;
-			bGlobal = true;
-		}
-		else if (rVariable == SHELL_FORCE)
-		{
-			ijob = 3;
-		}
-		else if (rVariable == SHELL_FORCE_GLOBAL)
-		{
-			ijob = 3;
-			bGlobal = true;
-		}
-		else if (rVariable == SHELL_MOMENT)
-		{
-			ijob = 4;
-		}
-		else if (rVariable == SHELL_MOMENT_GLOBAL)
-		{
-			ijob = 4;
-			bGlobal = true;
-		}
-		else if (rVariable == SHELL_STRESS_TOP_SURFACE)
-		{
-			ijob = 5;
-		}
-		else if (rVariable == SHELL_STRESS_TOP_SURFACE_GLOBAL)
-		{
-			ijob = 5;
-			bGlobal = true;
-		}
-		else if (rVariable == SHELL_STRESS_MIDDLE_SURFACE)
-		{
-			ijob = 6;
-		}
-		else if (rVariable == SHELL_STRESS_MIDDLE_SURFACE_GLOBAL)
-		{
-			ijob = 6;
-			bGlobal = true;
-		}
-		else if (rVariable == SHELL_STRESS_BOTTOM_SURFACE)
-		{
-			ijob = 7;
-		}
-		else if (rVariable == SHELL_STRESS_BOTTOM_SURFACE_GLOBAL)
-		{
-			ijob = 7;
-			bGlobal = true;
-		}
-		else if (rVariable == SHELL_ORTHOTROPIC_STRESS_BOTTOM_SURFACE)
-		{
-			ijob = 8;
-		}
-		else if (rVariable == SHELL_ORTHOTROPIC_STRESS_BOTTOM_SURFACE_GLOBAL)
-		{
-			ijob = 8;
-			bGlobal = true;
-		}
-		else if (rVariable == SHELL_ORTHOTROPIC_STRESS_TOP_SURFACE)
-		{
-			ijob = 9;
-		}
-		else if (rVariable == SHELL_ORTHOTROPIC_STRESS_TOP_SURFACE_GLOBAL)
-		{
-			ijob = 9;
-			bGlobal = true;
-		}
+		CheckGeneralizedStressOrStrainOutput(rVariable, ijob, bGlobal);
 
 		// quick return
-
 		if (ijob == 0) return false;
 
 		// resize output
-
 		if (rValues.size() != OPT_NUM_GP)
 			rValues.resize(OPT_NUM_GP);
 
 		// Just to store the rotation matrix for visualization purposes
-
 		Matrix R(8, 8);
 		Matrix aux33(3, 3);
 
 		// Initialize common calculation variables
-
 		CalculationData data(mpCoordinateTransformation, rCurrentProcessInfo);
-		data.CalculateLHS = true;
+		if (ijob > 7)
+		{
+			data.CalculateLHS = true; // calc constitutive mat for composites
+		}
+		else
+		{
+			data.CalculateLHS = false;
+		}
 		data.CalculateRHS = true;
 		InitializeCalculationData(data);
+
+		// Get the current displacements in global coordinate system and 
+		// transform to reference local system
+		ShellT3_LocalCoordinateSystem referenceCoordinateSystem(
+			mpCoordinateTransformation->CreateReferenceCoordinateSystem());
+		MatrixType Rdisp(18, 18);
+		referenceCoordinateSystem.ComputeTotalRotationMatrix(Rdisp);
+		//data.localDisplacements = prod(Rdisp, data.globalDisplacements);
 
 		// set the current integration point index
 		data.gpIndex = 0;
@@ -1729,7 +1745,7 @@ namespace Kratos
 		}
 
 		// adjust output
-		//DecimalCorrection(data.generalizedStrains);
+		DecimalCorrection(data.generalizedStrains);
 
 		// store the results, but first rotate them back to the section
 		// coordinate system. we want to visualize the results in that system not
@@ -1789,7 +1805,6 @@ namespace Kratos
 				iValue(0, 1) = iValue(1, 0) = 0.5 * data.generalizedStrains(5);
 				iValue(0, 2) = iValue(2, 0) = 0.0;
 				iValue(1, 2) = iValue(2, 1) = 0.0;
-				std::cout << data.generalizedStrains << std::endl;
 			}
 			else if (ijob == 3) // forces
 			{
@@ -1811,8 +1826,6 @@ namespace Kratos
 			}
 			else if (ijob == 5) // SHELL_STRESS_TOP_SURFACE
 			{
-				//std::cout << data.generalizedStresses << std::endl;
-
 				iValue(0, 0) = data.generalizedStresses(0) -
 					data.generalizedStresses(3);
 				iValue(1, 1) = data.generalizedStresses(1) -

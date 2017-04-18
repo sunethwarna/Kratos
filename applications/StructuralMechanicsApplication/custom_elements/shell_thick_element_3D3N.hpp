@@ -318,6 +318,8 @@ namespace Kratos
 
 		void CalculateLaminaStresses(CalculationData& data);
 
+		void CheckGeneralizedStressOrStrainOutput(const Variable<Matrix>& rVariable, int& iJob, bool& bGlobal);
+
 		void DecimalCorrection(Vector& a);
 
 		void SetupOrientationAngles();

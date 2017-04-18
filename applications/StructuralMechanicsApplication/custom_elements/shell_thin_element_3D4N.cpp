@@ -2419,7 +2419,14 @@ namespace Kratos
 		// Initialize common calculation variables
 		CalculationData data(localCoordinateSystem, referenceCoordinateSystem,
 								rCurrentProcessInfo);
-		data.CalculateLHS = true; //TODO p1 check out if this kills composites
+		if (ijob > 7)
+		{
+			data.CalculateLHS = true; // calc constitutive mat for composites
+		}
+		else
+		{
+			data.CalculateLHS = false;
+		}
 		data.CalculateRHS = true;
 		InitializeCalculationData(data);
 
@@ -2433,7 +2440,6 @@ namespace Kratos
 			Rdisp = prod(W, Rdisp);
 		}
 		data.localDisplacements = prod(Rdisp, data.globalDisplacements);
-		
 
 		// Gauss Loop
 		for (unsigned int i = 0; i < size; i++)
