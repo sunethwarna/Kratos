@@ -866,6 +866,7 @@ namespace Kratos
 				data.gpIndex = gauss_point;
 				CalculateBMatrix(data);
 
+				//TODO p0 Fix up local disp recovery here!
 				// Calculate strain vectors in local coordinate system
 				noalias(data.generalizedStrains) =
 					prod(data.B, data.localDisplacements);
@@ -2419,7 +2420,7 @@ namespace Kratos
 		// Initialize common calculation variables
 		CalculationData data(localCoordinateSystem, referenceCoordinateSystem,
 								rCurrentProcessInfo);
-		if (ijob > 7)
+		if (ijob > 2)
 		{
 			data.CalculateLHS = true; // calc constitutive mat for composites
 		}

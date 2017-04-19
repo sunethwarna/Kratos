@@ -716,65 +716,71 @@ namespace Kratos
 			InitializeCalculationData(data);
 			double von_mises_top, von_mises_mid, von_mises_bottom;
 
-			// loop over gauss points
+			// Get the current displacements in global coordinate system and 
+			// transform to reference local system
+			ShellT3_LocalCoordinateSystem referenceCoordinateSystem(
+				mpCoordinateTransformation->CreateReferenceCoordinateSystem());
+			MatrixType Rdisp(18, 18);
+			referenceCoordinateSystem.ComputeTotalRotationMatrix(Rdisp);
+			data.localDisplacements = prod(Rdisp, data.globalDisplacements);
+			
+			// Get strains
+			noalias(data.generalizedStrains) = prod(data.B, data.localDisplacements);
+
+			// Calculate the response of the Cross Section - setup for 1 GP
+			data.gpIndex = 0;
+			ShellCrossSection::Pointer & section = mSections[0];
+			CalculateSectionResponse(data);
+			data.generalizedStresses = prod(data.D, data.generalizedStrains);
+			// (perform the calculation manually (outside material law) to
+			// ensure stabilization is used on the transverse shear part
+			// of the material matrix
+
+			// recover stresses
+			CalculateStressesFromForceResultants(data.generalizedStresses,
+				section->GetThickness());
+
+			// account for orientation
+			if (section->GetOrientationAngle() != 0.0)
+			{
+				Matrix R(8, 8);
+				section->GetRotationMatrixForGeneralizedStresses
+				(-(section->GetOrientationAngle()), R);
+				data.generalizedStresses = prod(R, data.generalizedStresses);
+			}
+
+			// calc von mises stresses at top, mid and bottom surfaces for
+			// thick shell
+			double sxx, syy, sxy, sxz, syz;
+
+			// top surface: membrane and +bending contributions
+			//				(no transverse shear)
+			sxx = data.generalizedStresses[0] + data.generalizedStresses[3];
+			syy = data.generalizedStresses[1] + data.generalizedStresses[4];
+			sxy = data.generalizedStresses[2] + data.generalizedStresses[5];
+			von_mises_top = sxx*sxx - sxx*syy + syy*syy + 3.0*sxy*sxy;
+
+			// mid surface: membrane and transverse shear contributions
+			//				(no bending)
+			sxx = data.generalizedStresses[0];
+			syy = data.generalizedStresses[1];
+			sxy = data.generalizedStresses[2];
+			sxz = data.generalizedStresses[6];
+			syz = data.generalizedStresses[7];
+			von_mises_mid = sxx*sxx - sxx*syy + syy*syy +
+				3.0*(sxy*sxy + sxz*sxz + syz*syz);
+
+			// bottom surface:	membrane and -bending contributions
+			//					(no transverse shear)
+			sxx = data.generalizedStresses[0] - data.generalizedStresses[3];
+			syy = data.generalizedStresses[1] - data.generalizedStresses[4];
+			sxy = data.generalizedStresses[2] - data.generalizedStresses[5];
+			von_mises_bottom = sxx*sxx - sxx*syy + syy*syy + 3.0*sxy*sxy;
+
+
+			// loop over gauss points - for output only
 			for (unsigned int gauss_point = 0; gauss_point < OPT_NUM_GP; ++gauss_point)
 			{
-				// Compute all strain-displacement matrices
-				data.gpIndex = gauss_point;
-
-				// Calculate strain vectors in local coordinate system
-				noalias(data.generalizedStrains) =
-					prod(data.B, data.localDisplacements);
-
-				// Calculate the response of the Cross Section
-				ShellCrossSection::Pointer & section = mSections[gauss_point];
-				CalculateSectionResponse(data);
-				data.generalizedStresses = prod(data.D, data.generalizedStrains);
-				// (perform the calculation manually (outside material law) to
-				// ensure stabilization is used on the transverse shear part
-				// of the material matrix
-
-				// recover stresses
-				CalculateStressesFromForceResultants(data.generalizedStresses,
-					section->GetThickness());
-
-				// account for orientation
-				if (section->GetOrientationAngle() != 0.0)
-				{
-					Matrix R(8, 8);
-					section->GetRotationMatrixForGeneralizedStresses
-					(-(section->GetOrientationAngle()), R);
-					data.generalizedStresses = prod(R, data.generalizedStresses);
-				}
-
-				// calc von mises stresses at top, mid and bottom surfaces for
-				// thick shell
-				double sxx, syy, sxy, sxz, syz;
-
-				// top surface: membrane and +bending contributions
-				//				(no transverse shear)
-				sxx = data.generalizedStresses[0] + data.generalizedStresses[3];
-				syy = data.generalizedStresses[1] + data.generalizedStresses[4];
-				sxy = data.generalizedStresses[2] + data.generalizedStresses[5];
-				von_mises_top = sxx*sxx - sxx*syy + syy*syy + 3.0*sxy*sxy;
-
-				// mid surface: membrane and transverse shear contributions
-				//				(no bending)
-				sxx = data.generalizedStresses[0];
-				syy = data.generalizedStresses[1];
-				sxy = data.generalizedStresses[2];
-				sxz = data.generalizedStresses[6];
-				syz = data.generalizedStresses[7];
-				von_mises_mid = sxx*sxx - sxx*syy + syy*syy +
-					3.0*(sxy*sxy + sxz*sxz + syz*syz);
-
-				// bottom surface:	membrane and -bending contributions
-				//					(no transverse shear)
-				sxx = data.generalizedStresses[0] - data.generalizedStresses[3];
-				syy = data.generalizedStresses[1] - data.generalizedStresses[4];
-				sxy = data.generalizedStresses[2] - data.generalizedStresses[5];
-				von_mises_bottom = sxx*sxx - sxx*syy + syy*syy + 3.0*sxy*sxy;
-
 				// Output requested quantity
 				if (rVariable == VON_MISES_STRESS_TOP_SURFACE)
 				{
@@ -1670,9 +1676,9 @@ namespace Kratos
 
 		// Initialize common calculation variables
 		CalculationData data(mpCoordinateTransformation, rCurrentProcessInfo);
-		if (ijob > 7)
+		if (ijob > 2)
 		{
-			data.CalculateLHS = true; // calc constitutive mat for composites
+			data.CalculateLHS = true; // calc constitutive mat for forces/moments
 		}
 		else
 		{
@@ -1687,7 +1693,7 @@ namespace Kratos
 			mpCoordinateTransformation->CreateReferenceCoordinateSystem());
 		MatrixType Rdisp(18, 18);
 		referenceCoordinateSystem.ComputeTotalRotationMatrix(Rdisp);
-		//data.localDisplacements = prod(Rdisp, data.globalDisplacements);
+		data.localDisplacements = prod(Rdisp, data.globalDisplacements);
 
 		// set the current integration point index
 		data.gpIndex = 0;
@@ -1823,15 +1829,16 @@ namespace Kratos
 				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses(5);
 				iValue(0, 2) = iValue(2, 0) = 0.0;
 				iValue(1, 2) = iValue(2, 1) = 0.0;
+				//std::cout << iValue << std::endl;
 			}
 			else if (ijob == 5) // SHELL_STRESS_TOP_SURFACE
 			{
-				iValue(0, 0) = data.generalizedStresses(0) -
+				iValue(0, 0) = data.generalizedStresses(0) +
 					data.generalizedStresses(3);
-				iValue(1, 1) = data.generalizedStresses(1) -
+				iValue(1, 1) = data.generalizedStresses(1) +
 					data.generalizedStresses(4);
 				iValue(2, 2) = 0.0;
-				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses[2] -
+				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses[2] +
 					data.generalizedStresses[5];
 				iValue(0, 2) = iValue(2, 0) = 0.0;
 				iValue(1, 2) = iValue(2, 1) = 0.0;
