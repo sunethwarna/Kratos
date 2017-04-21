@@ -28,7 +28,7 @@
 #include <sstream>
 
 #include <boost/functional/hash.hpp> //TODO: remove this dependence when Kratos has en internal one
-#include <boost/unordered_map.hpp> //TODO: remove this dependence when Kratos has en internal one
+#include <unordered_map>
 #include <utility>
 
 namespace Kratos
@@ -139,7 +139,7 @@ public:
         if(mrModelPart.Conditions().size() == 0 && mrModelPart.Elements().size() != 0)
             KRATOS_THROW_ERROR(std::invalid_argument, "the number of conditions is zero and the number of elements is not, hence the skin can not envelope the domain","")
 
-        typedef boost::unordered_map<vector<unsigned int>, unsigned int, KeyHasher, KeyComparor > hashmap;
+        typedef std::unordered_map<vector<unsigned int>, unsigned int, KeyHasher, KeyComparor > hashmap;
         hashmap edge_map;
 
         vector<unsigned int> ids(2);

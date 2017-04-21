@@ -12,7 +12,7 @@
 #include "utilities/math_utils.h"
 
 #include <boost/functional/hash.hpp> //TODO: remove this dependence when Kratos has en internal one
-#include <boost/unordered_map.hpp> //TODO: remove this dependence when Kratos has en internal one
+#include <unordered_map>
 #include <utility>
 
 namespace Kratos
@@ -187,7 +187,7 @@ public:
 
         //to do so begin by putting all of the conditions in a map
 
-        typedef boost::unordered_map<vector<int>, Condition::Pointer, KeyHasher, KeyComparor > hashmap;
+        typedef std::unordered_map<vector<int>, Condition::Pointer, KeyHasher, KeyComparor > hashmap;
         hashmap faces_map;
 
         for (ModelPart::ConditionIterator itCond = mrModelPart.ConditionsBegin(); itCond != mrModelPart.ConditionsEnd(); itCond++)

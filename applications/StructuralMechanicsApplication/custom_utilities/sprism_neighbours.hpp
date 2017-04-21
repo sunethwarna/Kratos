@@ -28,7 +28,7 @@
 #include "utilities/math_utils.h"
 
 #include <boost/functional/hash.hpp>
-#include <boost/unordered_map.hpp> 
+#include <unordered_map> 
 #include <utility>
 
 #include "structural_mechanics_application.h"
@@ -153,7 +153,7 @@ public:
 
         /* NEIGHBOUR ELEMENTS */
         // Create the hashmap_el
-        typedef boost::unordered_map<vector<int>, Element::Pointer, KeyHasher, KeyComparor > hashmap_el;
+        typedef std::unordered_map<vector<int>, Element::Pointer, KeyHasher, KeyComparor > hashmap_el;
         hashmap_el face_map;
         
         for (ModelPart::ElementIterator itElem = mr_model_part.ElementsBegin(); itElem != mr_model_part.ElementsEnd(); itElem++)
@@ -252,7 +252,7 @@ public:
 
         /* NEIGHBOURS NODES */
         // Create the hashmap_no
-        typedef boost::unordered_map<vector<int>, int, KeyHasher, KeyComparor > hashmap_no;
+        typedef std::unordered_map<vector<int>, int, KeyHasher, KeyComparor > hashmap_no;
 
         // Create the ids and aux vectors
         vector<int> ids(2);

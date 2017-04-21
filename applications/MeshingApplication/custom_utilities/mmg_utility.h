@@ -20,6 +20,7 @@
 #include "input_output/logger.h"
 #include <set>
 #include <map>
+#include <unordered_map>
 // The includes related with the MMG library
 #include "mmg/libmmg.h"
 #include "mmg/mmg2d/libmmg2d.h" 
@@ -949,7 +950,7 @@ protected:
     
     std::vector<unsigned int> CheckNodes()
     {
-        typedef boost::unordered_map<vector<double>, unsigned int, KeyHasher, KeyComparor > hashmap;
+        typedef std::unordered_map<vector<double>, unsigned int, KeyHasher, KeyComparor > hashmap;
         hashmap node_map;
         
         std::vector<unsigned int> nodes_to_remove_ids;
@@ -1883,7 +1884,7 @@ protected:
     template<>  
     std::vector<unsigned int> MmgUtility<2>::CheckConditions0()
     {
-        typedef boost::unordered_map<vector<unsigned int>, unsigned int, KeyHasher, KeyComparor > hashmap;
+        typedef std::unordered_map<vector<unsigned int>, unsigned int, KeyHasher, KeyComparor > hashmap;
         hashmap edge_map;
 
         vector<unsigned int> ids(2);
@@ -1923,7 +1924,7 @@ protected:
     template<>  
     std::vector<unsigned int> MmgUtility<3>::CheckConditions0()
     {
-        typedef boost::unordered_map<vector<unsigned int>, unsigned int, KeyHasher, KeyComparor > hashmap;
+        typedef std::unordered_map<vector<unsigned int>, unsigned int, KeyHasher, KeyComparor > hashmap;
         hashmap triangle_map;
 
         vector<unsigned int> ids_triangles(3);
@@ -1963,7 +1964,7 @@ protected:
     template<>  
     std::vector<unsigned int> MmgUtility<3>::CheckConditions1()
     {
-        typedef boost::unordered_map<vector<unsigned int>, unsigned int, KeyHasher, KeyComparor > hashmap;
+        typedef std::unordered_map<vector<unsigned int>, unsigned int, KeyHasher, KeyComparor > hashmap;
         hashmap quadrilateral_map;
 
         vector<unsigned int> ids_quadrilaterals(4);
@@ -2004,7 +2005,7 @@ protected:
     template<>  
     std::vector<unsigned int> MmgUtility<2>::CheckElements0()
     {
-        typedef boost::unordered_map<vector<unsigned int>, unsigned int, KeyHasher, KeyComparor > hashmap;
+        typedef std::unordered_map<vector<unsigned int>, unsigned int, KeyHasher, KeyComparor > hashmap;
         hashmap triangle_map;
 
         vector<unsigned int> ids_triangles(3);
@@ -2045,7 +2046,7 @@ protected:
     template<>  
     std::vector<unsigned int> MmgUtility<3>::CheckElements0()
     {
-        typedef boost::unordered_map<vector<unsigned int>, unsigned int, KeyHasher, KeyComparor > hashmap;
+        typedef std::unordered_map<vector<unsigned int>, unsigned int, KeyHasher, KeyComparor > hashmap;
         hashmap triangle_map;
 
         vector<unsigned int> ids_tetrahedron(4);
@@ -2086,7 +2087,7 @@ protected:
     template<>  
     std::vector<unsigned int> MmgUtility<3>::CheckElements1()
     {
-        typedef boost::unordered_map<vector<unsigned int>, unsigned int, KeyHasher, KeyComparor > hashmap;
+        typedef std::unordered_map<vector<unsigned int>, unsigned int, KeyHasher, KeyComparor > hashmap;
         hashmap prism_map;
 
         vector<unsigned int> ids_prisms(6);
