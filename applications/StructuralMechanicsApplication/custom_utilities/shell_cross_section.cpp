@@ -840,13 +840,18 @@ void ShellCrossSection::ParseOrthotropicPropertyMatrix(Properties& props, Elemen
 
 	// figure out the format of material properties based on it's width
 	int myFormat = (props)[SHELL_ORTHOTROPIC_LAYERS].size2();
-	//std::cout << (props)[SHELL_ORTHOTROPIC_LAYERS] << std::endl;
+	bool bhas_lamina_strengths = false;
+	if (myFormat == 16 || myFormat == 17)
+	{
+		bhas_lamina_strengths = true;
+		myFormat -= 7;
+	}
 
 	double plyThickness, angleRz, elementThickness;
 	elementThickness = 0.0;
 
 	// add ply for each orthotropic layer defined
-	for (int currentPly = 0; currentPly < plies; currentPly++)
+	for (unsigned int currentPly = 0; currentPly < plies; currentPly++)
 	{
 		switch (myFormat)
 		{
@@ -880,6 +885,12 @@ void ShellCrossSection::ParseOrthotropicPropertyMatrix(Properties& props, Elemen
 			props.SetValue(SHEAR_MODULUS_YZ,
 				(props)[SHELL_ORTHOTROPIC_LAYERS](currentPly, 8));	//G23
 
+			if (bhas_lamina_strengths)
+			{
+				// Parse lamina strengths too
+				ParseOrthotropicLaminaStrengths(props, currentPly, myFormat);
+			}
+
 			if (printLayers)
 			{
 				std::cout << "\n===============================================================" << std::endl;
@@ -890,8 +901,6 @@ void ShellCrossSection::ParseOrthotropicPropertyMatrix(Properties& props, Elemen
 				std::cout << "E2 = " << props.GetValue(YOUNG_MODULUS_Y) << std::endl;
 				std::cout << "G12 = " << props.GetValue(SHEAR_MODULUS_XY) << std::endl;
 			}
-
-			
 
 			break;
 
@@ -939,10 +948,15 @@ void ShellCrossSection::ParseOrthotropicPropertyMatrix(Properties& props, Elemen
 			props.SetValue(DENSITY,
 				(density_fiber*VolumeFraction_fiber + density_matrix*VolumeFraction_matrix));			//DENSITY
 
-			// TEMPORARY!!!!
+			// TEMPORARY - ESTIMATE OF UNKNOWN SHEAR MODULI
 			props.SetValue(SHEAR_MODULUS_XZ, props.GetValue(SHEAR_MODULUS_XY));							//G13
 			props.SetValue(SHEAR_MODULUS_YZ, 0.2*props[YOUNG_MODULUS_Y]);								//G23
 
+			if (bhas_lamina_strengths)
+			{
+				// Parse lamina strengths too
+				ParseOrthotropicLaminaStrengths(props, currentPly, myFormat);
+			}
 			
 			if (printLayers)
 			{
@@ -970,6 +984,66 @@ void ShellCrossSection::ParseOrthotropicPropertyMatrix(Properties& props, Elemen
 	this->EndStack();
 	//std::cout << this->GetInfo() << std::endl;
 	props.SetValue(THICKNESS, elementThickness);
+}
+
+void ShellCrossSection::GetLaminaeOrientation(Vector & rOrientation_Vector)
+{
+	if (mStack.size() != rOrientation_Vector.size())
+	{
+		//TODO p1 add some error checking here
+	}
+	unsigned int counter = 0;
+	for (PlyCollection::iterator ply_it = mStack.begin(); ply_it != mStack.end(); ++ply_it)
+	{
+		Ply& iPly = *ply_it;
+		rOrientation_Vector[counter] = iPly.GetOrientationAngle();
+		counter++;
+	}
+}
+
+void ShellCrossSection::GetLaminaeStrengths(std::vector<Matrix> & rLaminae_Strengths)
+{
+	if (mStack.size() != rLaminae_Strengths.size())
+	{
+		//TODO p1 add some error checking here
+	}
+	unsigned int counter = 0;
+	for (PlyCollection::iterator ply_it = mStack.begin(); ply_it != mStack.end(); ++ply_it)
+	{
+		Ply& iPly = *ply_it;
+		const Properties& iPlyProps = iPly.GetProperties();
+		rLaminae_Strengths[counter] = iPlyProps.GetValue(SHELL_ORTHOTROPIC_LAYERS);
+		counter++;
+	}
+}
+
+void ShellCrossSection::ParseOrthotropicLaminaStrengths(Properties & rProps, 
+	const unsigned int & rlamina_number, const unsigned int & property_column)
+{
+	// Parse orthotropic lamina strengths
+	//
+	// Considers (T)ension, (C)ompression and (S)hear strengths along 
+	// local (1,2,3) lamina material coordinates.
+	//
+	// Plane stress assumption: T3 and C3 are neglected.
+	//
+	// Input arranged as: T1, T2, C1, C2, S12, S13, S23
+
+	// Store results sequentially, row by row
+	Matrix lamina_strengths = Matrix(3, 3, 0.0);
+
+	lamina_strengths(0, 0) = (rProps)[SHELL_ORTHOTROPIC_LAYERS](rlamina_number, property_column);		// T1
+	lamina_strengths(0, 1) = (rProps)[SHELL_ORTHOTROPIC_LAYERS](rlamina_number, property_column+1);		// T2
+	lamina_strengths(0, 2) = (rProps)[SHELL_ORTHOTROPIC_LAYERS](rlamina_number, property_column+2);		// C1
+
+	lamina_strengths(1, 0) = (rProps)[SHELL_ORTHOTROPIC_LAYERS](rlamina_number, property_column + 3);	// C2
+	lamina_strengths(1, 1) = (rProps)[SHELL_ORTHOTROPIC_LAYERS](rlamina_number, property_column + 4);	// S12
+	lamina_strengths(1, 2) = (rProps)[SHELL_ORTHOTROPIC_LAYERS](rlamina_number, property_column+5);		// S13
+
+	lamina_strengths(2, 0) = (rProps)[SHELL_ORTHOTROPIC_LAYERS](rlamina_number, property_column + 6);	// S23
+
+	// Transfer matrix to lamina property
+	rProps.SetValue(SHELL_ORTHOTROPIC_LAMINA_STRENGTHS, lamina_strengths);
 }
 
 void ShellCrossSection::InitializeParameters(Parameters& rValues, ConstitutiveLaw::Parameters& rMaterialValues, GeneralVariables& rVariables)

@@ -407,6 +407,10 @@ namespace Kratos
 
 		void CalculateLaminaStresses(CalculationData& data);
 
+		CalculationData& SetupStressOrStrainCalculation(const ProcessInfo& rCurrentProcessInfo);
+
+		double CalculateTsaiWuPlaneStress(CalculationData& data, Matrix& rLamina_Strengths);
+
 		void CheckGeneralizedStressOrStrainOutput(const Variable<Matrix>& rVariable, int& iJob, bool& bGlobal);
 
 		void DecimalCorrection(Vector& a);

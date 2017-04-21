@@ -1280,12 +1280,24 @@ public:
 	* Parses the shell orthotropic material data from properties
 	*/
 	void ParseOrthotropicPropertyMatrix(Properties& rProps, Element* myElement);
+
+	/**
+	* Get orientation of laminae
+	*/
+	void GetLaminaeOrientation(Vector& rOrientation_Vector);
+
+	/**
+	* Get strengths of laminae
+	*/
+	void GetLaminaeStrengths(std::vector<Matrix>& rLamina_Strengths);
     ///@}
 
 private:
 
     ///@name Private Methods
     ///@{
+	void ParseOrthotropicLaminaStrengths(Properties& rProps, 
+		const unsigned int& rlamina_number, const unsigned int & property_column);
 
     void InitializeParameters(Parameters& rValues, ConstitutiveLaw::Parameters& rMaterialValues, GeneralVariables& rVariables);
 
