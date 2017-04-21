@@ -959,10 +959,10 @@ namespace Kratos
 			data.rlaminateStrains[2 * plyNumber][1] = e_y + z_current*kap_y;
 			data.rlaminateStrains[2 * plyNumber][2] = e_xy + z_current*kap_xy;
 			data.rlaminateStrains[2 * plyNumber][6] =
-				1.5*(1.0 - 4 * z_current*z_current / thickness / thickness)*
+				1.5*(1.0 - 4.0 * z_current*z_current / thickness / thickness)*
 				data.generalizedStrains[6];
 			data.rlaminateStrains[2 * plyNumber][7] =
-				1.5*(1.0 - 4 * z_current*z_current / thickness / thickness)*
+				1.5*(1.0 - 4.0 * z_current*z_current / thickness / thickness)*
 				data.generalizedStrains[7];
 
 			// Move to bottom surface of current layer
@@ -974,10 +974,10 @@ namespace Kratos
 			data.rlaminateStrains[2 * plyNumber + 1][1] = e_y + z_current*kap_y;
 			data.rlaminateStrains[2 * plyNumber + 1][2] = e_xy + z_current*kap_xy;
 			data.rlaminateStrains[2 * plyNumber + 1][6] =
-				1.5*(1.0 - 4 * z_current*z_current / thickness / thickness)*
+				1.5*(1.0 - 4.0 * z_current*z_current / thickness / thickness)*
 				data.generalizedStrains[6];
 			data.rlaminateStrains[2 * plyNumber + 1][7] =
-				1.5*(1.0 - 4 * z_current*z_current / thickness / thickness)*
+				1.5*(1.0 - 4.0 * z_current*z_current / thickness / thickness)*
 				data.generalizedStrains[7];
 		}
 	}
@@ -1113,6 +1113,12 @@ namespace Kratos
 		{
 			ijob = 9;
 			bGlobal = true;
+		}
+		else if (rVariable == SHELL_ORTHOTROPIC_4PLY_THROUGH_THICKNESS)
+		{
+			// TESTING VARIABLE
+			ijob = 99;
+			//bGlobal = true;
 		}
 	}
 
@@ -1707,29 +1713,6 @@ namespace Kratos
 		{
 			if (ijob > 7)
 			{
-				bool nasaTest6 = false;
-				bool nasaTest7 = false;
-
-				if (nasaTest6)
-				{
-					std::cout << "Running test case for nasa paper ex 6" << std::endl;
-					data.generalizedStrains.clear();
-					data.generalizedStrains[3] = 0.418;
-					data.generalizedStrains[4] = -0.165;
-					data.generalizedStrains[5] = -0.0975;
-				}
-				else if (nasaTest7)
-				{
-					std::cout << "Running test case for nasa paper ex 7" << std::endl;
-					data.generalizedStrains.clear();
-					data.generalizedStrains[0] = 0.00425;
-					data.generalizedStrains[1] = -0.00077;
-					data.generalizedStrains[2] = -0.0029;
-					data.generalizedStrains[3] = -1.02;
-					data.generalizedStrains[4] = 0.088;
-					data.generalizedStrains[5] = 0.92;
-				}
-
 				//Calculate lamina stresses
 				CalculateLaminaStrains(data);
 				CalculateLaminaStresses(data);
@@ -1862,7 +1845,7 @@ namespace Kratos
 				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses[2] -
 					data.generalizedStresses[5];
 				iValue(0, 2) = iValue(2, 0) = 0.0;
-				iValue(1, 2) = iValue(2, 1) = 0.0;
+				iValue(1, 2) = iValue(2, 1) = 0.0;				
 			}
 			else if (ijob == 8) // SHELL_ORTHOTROPIC_STRESS_BOTTOM_SURFACE
 			{
@@ -1886,6 +1869,30 @@ namespace Kratos
 				iValue(0, 1) = iValue(1, 0) = data.rlaminateStresses[0][2];
 				iValue(0, 2) = iValue(2, 0) = data.rlaminateStresses[0][6];
 				iValue(1, 2) = iValue(2, 1) = data.rlaminateStresses[0][7];
+			}
+			else if (ijob == 99) // SHELL_ORTHOTROPIC_4PLY_THROUGH_THICKNESS
+			{
+				// Testing variable to get lamina stress/strain values
+				// on each surface of a 4 ply laminate
+
+				int surface = 0; // start from top ply top surface
+								 // Output global results sequentially
+				for (size_t row = 0; row < 3; row++)
+				{
+					for (size_t col = 0; col < 3; col++)
+					{
+						if (surface > 7)
+						{
+							iValue(row, col) = 0.0;
+						}
+						else
+						{
+							//std::cout << data.rlaminateStresses[surface][3] << std::endl;
+							iValue(row, col) = data.rlaminateStrains[surface][6];
+						}
+						surface++;
+					}
+				}
 			}
 
 			// if requested, rotate the results in the global coordinate system

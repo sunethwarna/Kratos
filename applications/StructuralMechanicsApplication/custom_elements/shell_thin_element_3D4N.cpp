@@ -829,21 +829,13 @@ namespace Kratos
 			rVariable == VON_MISES_STRESS_BOTTOM_SURFACE)
 		{
 			// resize output
-			//size_t size = 4;
-			//if (rValues.size() != size)
-			//	rValues.resize(size);
-
-			const unsigned int& integration_point_number = GetGeometry().IntegrationPointsNumber(mThisIntegrationMethod);
-
-			if (rValues.size() != integration_point_number)
-			{
-				rValues.resize(integration_point_number, false);
-			}
+			size_t size = 4;
+			if (rValues.size() != size)
+				rValues.resize(size);
 
 			// Compute the local coordinate system.
 			ShellQ4_LocalCoordinateSystem localCoordinateSystem(
 				mpCoordinateTransformation->CreateLocalCoordinateSystem());
-
 			ShellQ4_LocalCoordinateSystem referenceCoordinateSystem(
 				mpCoordinateTransformation->CreateReferenceCoordinateSystem());
 
@@ -855,18 +847,25 @@ namespace Kratos
 			InitializeCalculationData(data);
 			double von_mises_top, von_mises_mid, von_mises_bottom;
 
-			/* Reading integration points */
-			const GeometryType::IntegrationPointsArrayType& integration_points = GetGeometry().IntegrationPoints(mThisIntegrationMethod);
-			//std::cout << "number of integation points  = " << integration_point_number << std::endl;
+
+			// Get the current displacements in global coordinate system and 
+			// transform to reference local system
+			MatrixType Rdisp(24, 24);
+			referenceCoordinateSystem.ComputeTotalRotationMatrix(Rdisp);
+			if (referenceCoordinateSystem.IsWarped()) {
+				MatrixType W(24, 24);
+				referenceCoordinateSystem.ComputeTotalWarpageMatrix(W);
+				Rdisp = prod(W, Rdisp);
+			}
+			data.localDisplacements = prod(Rdisp, data.globalDisplacements);
 
 			// loop over gauss points
-			for (unsigned int gauss_point = 0; gauss_point < integration_points.size(); ++gauss_point)
+			for (unsigned int gauss_point = 0; gauss_point < size; ++gauss_point)
 			{
 				// Compute all strain-displacement matrices
 				data.gpIndex = gauss_point;
 				CalculateBMatrix(data);
 
-				//TODO p0 Fix up local disp recovery here!
 				// Calculate strain vectors in local coordinate system
 				noalias(data.generalizedStrains) =
 					prod(data.B, data.localDisplacements);
@@ -934,7 +933,6 @@ namespace Kratos
 						sqrt(std::max(von_mises_top,
 							std::max(von_mises_mid, von_mises_bottom)));
 				}
-				//std::cout << rValues[gauss_point] << std::endl;
 			}
 		}
 		else
@@ -1235,6 +1233,12 @@ namespace Kratos
 		{
 			ijob = 9;
 			bGlobal = true;
+		}
+		else if (rVariable == SHELL_ORTHOTROPIC_4PLY_THROUGH_THICKNESS)
+		{
+			// TESTING VARIABLE
+			ijob = 99;
+			//bGlobal = true;
 		}
 	}
 
@@ -2687,12 +2691,36 @@ namespace Kratos
 			}
 			else if (ijob == 9) // SHELL_ORTHOTROPIC_STRESS_TOP_SURFACE
 			{
+				//std::cout << "2nd ply output in top surface!" << std::endl;
 				iValue(0, 0) = data.rlaminateStresses[0][0];
 				iValue(1, 1) = data.rlaminateStresses[0][1];
 				iValue(2, 2) = 0.0;
 				iValue(0, 1) = iValue(1, 0) = data.rlaminateStresses[0][2];
 				iValue(0, 2) = iValue(2, 0) = 0.0;
 				iValue(1, 2) = iValue(2, 1) = 0.0;
+			}
+			else if (ijob == 99) // SHELL_ORTHOTROPIC_4PLY_THROUGH_THICKNESS
+			{
+				// Testing variable to get lamina stress/strain values
+				// on each surface of a 4 ply laminate
+							
+				int surface = 0; // start from top ply top surface
+				// Output global results sequentially
+				for (size_t row = 0; row < 3; row++)
+				{
+					for (size_t col = 0; col < 3; col++)
+					{
+						if (surface > 7)
+						{
+							iValue(row, col) = 0.0;
+						}
+						else
+						{
+							iValue(row, col) = data.rlaminateStrains[surface][1];
+						}
+						surface++;
+					}
+				}
 			}
 
 			// if requested, rotate the results in the global coordinate system
