@@ -1289,16 +1289,13 @@ public:
 	/**
 	* Get strengths of laminae
 	*/
-	void GetLaminaeStrengths(std::vector<Matrix>& rLamina_Strengths);
+	void GetLaminaeStrengths(std::vector<Matrix>& rLamina_Strengths, Properties& rProps);
     ///@}
 
 private:
 
     ///@name Private Methods
     ///@{
-	void ParseOrthotropicLaminaStrengths(Properties& rProps, 
-		const unsigned int& rlamina_number, const unsigned int & property_column);
-
     void InitializeParameters(Parameters& rValues, ConstitutiveLaw::Parameters& rMaterialValues, GeneralVariables& rVariables);
 
     void UpdateIntegrationPointParameters(IntegrationPoint& rPoint, ConstitutiveLaw::Parameters& rMaterialValues, GeneralVariables& rVariables);

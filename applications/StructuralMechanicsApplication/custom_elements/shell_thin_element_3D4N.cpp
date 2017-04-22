@@ -941,7 +941,6 @@ namespace Kratos
 			if (rValues.size() != size)
 				rValues.resize(size);
 
-			// Setup calc data
 			//CalculationData data = SetupStressOrStrainCalculation(rCurrentProcessInfo);
 			// Compute the local coordinate system.
 			ShellQ4_LocalCoordinateSystem localCoordinateSystem(
@@ -968,6 +967,18 @@ namespace Kratos
 			data.localDisplacements = prod(Rdisp, data.globalDisplacements);
 
 
+			// Get all laminae strengths
+			PropertiesType & props = GetProperties();
+			ShellCrossSection::Pointer & section = mSections[0];
+			std::vector<Matrix> Laminae_Strengths = 
+								std::vector<Matrix>(section->NumberOfPlies());
+			for (unsigned int ply = 0; ply < section->NumberOfPlies(); ply++)
+			{
+				Laminae_Strengths[ply].resize(3, 3, 0.0);
+				Laminae_Strengths[ply].clear();
+			}
+			section->GetLaminaeStrengths(Laminae_Strengths,props);
+
 			// Define variables
 			Matrix R(6, 6);	// change for thick plate
 
@@ -982,20 +993,9 @@ namespace Kratos
 				noalias(data.generalizedStrains) = prod(data.B, data.localDisplacements);
 
 				// Retrieve ply orientations
-				ShellCrossSection::Pointer & section = mSections[gauss_point];
+				section = mSections[gauss_point];
 				Vector ply_orientation(section->NumberOfPlies());
 				section->GetLaminaeOrientation(ply_orientation);
-
-				// Get all laminae strengths
-				std::vector<Matrix> Laminae_Strengths = std::vector<Matrix>(section->NumberOfPlies());
-				for (unsigned int ply = 0; ply < section->NumberOfPlies(); ply++)
-				{
-					Laminae_Strengths[ply].resize(3, 3, 0.0);
-				}
-				section->GetLaminaeStrengths(Laminae_Strengths);
-
-				printMatrix(Laminae_Strengths[0], "1st laminae strengths");
-				printMatrix(Laminae_Strengths[1], "2nd laminae strengths");
 				
 				//Calculate lamina stresses
 				CalculateLaminaStrains(data);
@@ -1022,7 +1022,7 @@ namespace Kratos
 						max_tsai_wu = temp_tsai_wu;
 					}
 				}
-				std::cout << "max tsai = " << max_tsai_wu*1000 << std::endl;
+
 				// Output max Tsai-Wu result
 				rValues[gauss_point] = max_tsai_wu;
 
@@ -1244,35 +1244,6 @@ namespace Kratos
 		}
 	}
 
-	ShellThinElement3D4N::CalculationData& ShellThinElement3D4N::SetupStressOrStrainCalculation(const ProcessInfo& rCurrentProcessInfo)
-	{
-		// Compute the local coordinate system.
-		ShellQ4_LocalCoordinateSystem localCoordinateSystem(
-			mpCoordinateTransformation->CreateLocalCoordinateSystem());
-		ShellQ4_LocalCoordinateSystem referenceCoordinateSystem(
-			mpCoordinateTransformation->CreateReferenceCoordinateSystem());
-
-		// Initialize common calculation variables
-		CalculationData data(localCoordinateSystem,
-			referenceCoordinateSystem, rCurrentProcessInfo);
-		data.CalculateLHS = false;
-		data.CalculateRHS = true;
-		InitializeCalculationData(data);
-
-		// Get the current displacements in global coordinate system and 
-		// transform to reference local system
-		MatrixType Rdisp(24, 24);
-		referenceCoordinateSystem.ComputeTotalRotationMatrix(Rdisp);
-		if (referenceCoordinateSystem.IsWarped()) {
-			MatrixType W(24, 24);
-			referenceCoordinateSystem.ComputeTotalWarpageMatrix(W);
-			Rdisp = prod(W, Rdisp);
-		}
-		data.localDisplacements = prod(Rdisp, data.globalDisplacements);
-
-		return data;
-	}
-
 	double ShellThinElement3D4N::CalculateTsaiWuPlaneStress(const CalculationData & data, const Matrix& rLamina_Strengths, const unsigned int& rPly)
 	{
 		// Incoming lamina strengths are organized as follows:
@@ -1298,15 +1269,12 @@ namespace Kratos
 		F_ij(2, 2) = 1.0 / rLamina_Strengths(1, 1) / rLamina_Strengths(1, 1);	// 12
 		F_ij(0, 1) = F_ij(1, 0) = -0.5 / std::sqrt(rLamina_Strengths(0, 0)*rLamina_Strengths(0, 2)*rLamina_Strengths(0, 1)*rLamina_Strengths(1, 0));
 
-		printMatrix(rLamina_Strengths, "lamina strengths");
-
 		// Evaluate Tsai-Wu @ top surface of current layer
 		// Tsai_Wu = F_i Sigma_i + F_ij Sigma_i Sigma_j
 		double tsai_index_top_surface = 0.0;
 		for (size_t i = 0; i < 3; i++)
 		{
 			tsai_index_top_surface += F_i[i] * data.rlaminateStresses[2 * rPly][i];
-			std::cout << F_i[i] * data.rlaminateStresses[2 * rPly][i] << std::endl;
 			for (size_t j = 0; j < 3; j++)
 			{
 				tsai_index_top_surface += F_ij(i, j)*data.rlaminateStresses[2 * rPly][i] * data.rlaminateStresses[2 * rPly][j];
