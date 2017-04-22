@@ -241,6 +241,8 @@ namespace Kratos
 
 		///@}
 
+		std::vector<Properties> mPly_Properties;
+
 		///@name Public specialized Access - Temporary
 		///@{
 		///@}
@@ -409,7 +411,7 @@ namespace Kratos
 
 		CalculationData& SetupStressOrStrainCalculation(const ProcessInfo& rCurrentProcessInfo);
 
-		double CalculateTsaiWuPlaneStress(CalculationData& data, Matrix& rLamina_Strengths);
+		double CalculateTsaiWuPlaneStress(const CalculationData& data, const Matrix& rLamina_Strengths, const unsigned int& rCurrent_Ply);
 
 		void CheckGeneralizedStressOrStrainOutput(const Variable<Matrix>& rVariable, int& iJob, bool& bGlobal);
 

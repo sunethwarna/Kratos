@@ -240,7 +240,7 @@ namespace Kratos
 	{
 		KRATOS_TRY
 
-			const GeometryType & geom = GetGeometry();
+		const GeometryType & geom = GetGeometry();
 		PropertiesType & props = GetProperties();
 
 		if (geom.PointsNumber() != OPT_NUM_NODES)
@@ -942,23 +942,47 @@ namespace Kratos
 				rValues.resize(size);
 
 			// Setup calc data
-			CalculationData data = SetupStressOrStrainCalculation(rCurrentProcessInfo);
+			//CalculationData data = SetupStressOrStrainCalculation(rCurrentProcessInfo);
+			// Compute the local coordinate system.
+			ShellQ4_LocalCoordinateSystem localCoordinateSystem(
+				mpCoordinateTransformation->CreateLocalCoordinateSystem());
+			ShellQ4_LocalCoordinateSystem referenceCoordinateSystem(
+				mpCoordinateTransformation->CreateReferenceCoordinateSystem());
+
+			// Initialize common calculation variables
+			CalculationData data(localCoordinateSystem,
+				referenceCoordinateSystem, rCurrentProcessInfo);
+			data.CalculateLHS = true;
+			data.CalculateRHS = true;
+			InitializeCalculationData(data);
+
+			// Get the current displacements in global coordinate system and 
+			// transform to reference local system
+			MatrixType Rdisp(24, 24);
+			referenceCoordinateSystem.ComputeTotalRotationMatrix(Rdisp);
+			if (referenceCoordinateSystem.IsWarped()) {
+				MatrixType W(24, 24);
+				referenceCoordinateSystem.ComputeTotalWarpageMatrix(W);
+				Rdisp = prod(W, Rdisp);
+			}
+			data.localDisplacements = prod(Rdisp, data.globalDisplacements);
+
 
 			// Define variables
 			Matrix R(6, 6);	// change for thick plate
 
 			// Gauss Loop
-			for (unsigned int i = 0; i < size; i++)
+			for (unsigned int gauss_point = 0; gauss_point < size; gauss_point++)
 			{
 				// Compute all strain-displacement matrices
-				data.gpIndex = i;
+				data.gpIndex = gauss_point;
 				CalculateBMatrix(data);
 
 				// Calculate strain vectors in local coordinate system
 				noalias(data.generalizedStrains) = prod(data.B, data.localDisplacements);
 
 				// Retrieve ply orientations
-				ShellCrossSection::Pointer & section = mSections[i];
+				ShellCrossSection::Pointer & section = mSections[gauss_point];
 				Vector ply_orientation(section->NumberOfPlies());
 				section->GetLaminaeOrientation(ply_orientation);
 
@@ -969,6 +993,9 @@ namespace Kratos
 					Laminae_Strengths[ply].resize(3, 3, 0.0);
 				}
 				section->GetLaminaeStrengths(Laminae_Strengths);
+
+				printMatrix(Laminae_Strengths[0], "1st laminae strengths");
+				printMatrix(Laminae_Strengths[1], "2nd laminae strengths");
 				
 				//Calculate lamina stresses
 				CalculateLaminaStrains(data);
@@ -977,21 +1004,29 @@ namespace Kratos
 				// Rotate lamina stress to lamina material principal directions
 				for (unsigned int ply = 0; ply < section->NumberOfPlies(); ply++)
 				{
-					section->GetRotationMatrixForGeneralizedStresses(ply_orientation[ply], R);
+					section->GetRotationMatrixForGeneralizedStresses(ply_orientation[ply] - (section->GetOrientationAngle()), R);
 					//top surface of current ply
 					data.rlaminateStresses[2*ply] = prod(R, data.rlaminateStresses[2*ply]);	
 					//bottom surface of current ply
 					data.rlaminateStresses[2 * ply +1] = prod(R, data.rlaminateStresses[2 * ply +1]);	
 				}
 
-				// Calculate Tsai-Wu criterion for each lamina surface, take max
+				// Calculate Tsai-Wu criterion for each ply, take max of all plies
 				double max_tsai_wu = 0.0;
 				double temp_tsai_wu = 0.0;
 				for (unsigned int ply = 0; ply < section->NumberOfPlies(); ply++)
 				{
-					temp_tsai_wu = CalculateTsaiWuPlaneStress(data, Laminae_Strengths[ply]);
+					temp_tsai_wu = CalculateTsaiWuPlaneStress(data, Laminae_Strengths[ply],ply);
+					if (temp_tsai_wu > max_tsai_wu)
+					{
+						max_tsai_wu = temp_tsai_wu;
+					}
 				}
-			}
+				std::cout << "max tsai = " << max_tsai_wu*1000 << std::endl;
+				// Output max Tsai-Wu result
+				rValues[gauss_point] = max_tsai_wu;
+
+			}// Gauss loop
 		}
 		else
 		{
@@ -1238,15 +1273,60 @@ namespace Kratos
 		return data;
 	}
 
-	double ShellThinElement3D4N::CalculateTsaiWuPlaneStress(CalculationData & data, Matrix& rLamina_Strengths)
+	double ShellThinElement3D4N::CalculateTsaiWuPlaneStress(const CalculationData & data, const Matrix& rLamina_Strengths, const unsigned int& rPly)
 	{
-		// Organize lamina material strengths
-		Matrix lamina_strengths(3, 3, 0.0);
+		// Incoming lamina strengths are organized as follows:
+		// Refer to 'shell_cross_section.cpp' for details.
+		//
+		//	|	T1,		T2,		C1	|
+		//	|	C2,		S12,	S13	|
+		//	|   S23		0		0	|
 
+		// Convert raw lamina strengths into tsai strengths F_i and F_ij.
+		// Refer Reddy (2003) Section 10.9.4 (re-ordered for kratos DOFs).
+		// All F_i3 components ignored - thin shell theory.
+		//
+		// First, F_i
+		Vector F_i = Vector(2, 0.0);
+		F_i[0] = 1.0 / rLamina_Strengths(0, 0) - 1.0 / rLamina_Strengths(0, 2);
+		F_i[1] = 1.0 / rLamina_Strengths(0, 1) - 1.0 / rLamina_Strengths(1, 0);
 
-		// Top surface of current layer
+		// Second, F_ij
+		Matrix F_ij = Matrix(3, 3, 0.0);
+		F_ij(0, 0) = 1.0 / rLamina_Strengths(0, 0) / rLamina_Strengths(0, 2);	// 11
+		F_ij(1,1) = 1.0 / rLamina_Strengths(0, 1) / rLamina_Strengths(1, 0);	// 22
+		F_ij(2, 2) = 1.0 / rLamina_Strengths(1, 1) / rLamina_Strengths(1, 1);	// 12
+		F_ij(0, 1) = F_ij(1, 0) = -0.5 / std::sqrt(rLamina_Strengths(0, 0)*rLamina_Strengths(0, 2)*rLamina_Strengths(0, 1)*rLamina_Strengths(1, 0));
 
-		return 0.0;
+		printMatrix(rLamina_Strengths, "lamina strengths");
+
+		// Evaluate Tsai-Wu @ top surface of current layer
+		// Tsai_Wu = F_i Sigma_i + F_ij Sigma_i Sigma_j
+		double tsai_index_top_surface = 0.0;
+		for (size_t i = 0; i < 3; i++)
+		{
+			tsai_index_top_surface += F_i[i] * data.rlaminateStresses[2 * rPly][i];
+			std::cout << F_i[i] * data.rlaminateStresses[2 * rPly][i] << std::endl;
+			for (size_t j = 0; j < 3; j++)
+			{
+				tsai_index_top_surface += F_ij(i, j)*data.rlaminateStresses[2 * rPly][i] * data.rlaminateStresses[2 * rPly][j];
+			}
+		}
+
+		// Evaluate Tsai-Wu @ bottom surface of current layer
+		// Tsai_Wu = F_i Sigma_i + F_ij Sigma_i Sigma_j
+		double tsai_index_bottom_surface = 0.0;
+		for (size_t i = 0; i < 3; i++)
+		{
+			tsai_index_bottom_surface += F_i[i] * data.rlaminateStresses[2 * rPly+1][i];
+			for (size_t j = 0; j < 3; j++)
+			{
+				tsai_index_bottom_surface += F_ij(i, j)*data.rlaminateStresses[2 * rPly+1][i] * data.rlaminateStresses[2 * rPly+1][j];
+			}
+		}
+
+		// Return max of both surfaces as the result for the whole ply
+		return std::max(tsai_index_top_surface, tsai_index_bottom_surface);
 	}
 
 	void ShellThinElement3D4N::CheckGeneralizedStressOrStrainOutput(const Variable<Matrix>& rVariable, int & ijob, bool & bGlobal)

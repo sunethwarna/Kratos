@@ -889,6 +889,7 @@ void ShellCrossSection::ParseOrthotropicPropertyMatrix(Properties& props, Elemen
 			{
 				// Parse lamina strengths too
 				ParseOrthotropicLaminaStrengths(props, currentPly, myFormat);
+				std::cout << props.GetValue(SHELL_ORTHOTROPIC_LAMINA_STRENGTHS) << std::endl;
 			}
 
 			if (printLayers)
@@ -1012,7 +1013,8 @@ void ShellCrossSection::GetLaminaeStrengths(std::vector<Matrix> & rLaminae_Stren
 	{
 		Ply& iPly = *ply_it;
 		const Properties& iPlyProps = iPly.GetProperties();
-		rLaminae_Strengths[counter] = iPlyProps.GetValue(SHELL_ORTHOTROPIC_LAYERS);
+		rLaminae_Strengths[counter] = iPlyProps.GetValue(SHELL_ORTHOTROPIC_LAMINA_STRENGTHS);
+		std::cout << "LS @ ply " << counter << ":\n" << iPlyProps.GetValue(SHELL_ORTHOTROPIC_LAMINA_STRENGTHS) << std::endl;
 		counter++;
 	}
 }
@@ -1041,6 +1043,18 @@ void ShellCrossSection::ParseOrthotropicLaminaStrengths(Properties & rProps,
 	lamina_strengths(1, 2) = (rProps)[SHELL_ORTHOTROPIC_LAYERS](rlamina_number, property_column+5);		// S13
 
 	lamina_strengths(2, 0) = (rProps)[SHELL_ORTHOTROPIC_LAYERS](rlamina_number, property_column + 6);	// S23
+
+	// Check all values are positive!
+	for (size_t i = 0; i < 3; i++)
+	{
+		for (size_t j = 0; j < 3; j++)
+		{
+			if (lamina_strengths(i,j) < 0.0)
+			{
+				KRATOS_THROW_ERROR(std::logic_error, "A negative lamina strength has been defined. All lamina strengths must be positive.", "")
+			}
+		}
+	}
 
 	// Transfer matrix to lamina property
 	rProps.SetValue(SHELL_ORTHOTROPIC_LAMINA_STRENGTHS, lamina_strengths);
