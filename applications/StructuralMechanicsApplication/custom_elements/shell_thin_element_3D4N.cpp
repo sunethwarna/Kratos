@@ -934,7 +934,7 @@ namespace Kratos
 				}
 			}
 		}
-		else if (rVariable == TSAI_WU_PLANE_STRESS)
+		else if (rVariable == TSAI_WU_RESERVE_FACTOR)
 		{
 			// resize output
 			size_t size = 4;
@@ -980,7 +980,8 @@ namespace Kratos
 			section->GetLaminaeStrengths(Laminae_Strengths,props);
 
 			// Define variables
-			Matrix R(6, 6);	// change for thick plate
+			Matrix R(6, 6);
+			double total_rotation = 0.0;
 
 			// Gauss Loop
 			for (unsigned int gauss_point = 0; gauss_point < size; gauss_point++)
@@ -1001,30 +1002,36 @@ namespace Kratos
 				CalculateLaminaStrains(data);
 				CalculateLaminaStresses(data);
 				
-				// Rotate lamina stress to lamina material principal directions
+				// Rotate lamina stress from element CS to section CS, and then
+				// to lamina angle to lamina material principal directions
 				for (unsigned int ply = 0; ply < section->NumberOfPlies(); ply++)
 				{
-					section->GetRotationMatrixForGeneralizedStresses(ply_orientation[ply] - (section->GetOrientationAngle()), R);
+					total_rotation = -ply_orientation[ply] - (section->GetOrientationAngle());
+					section->GetRotationMatrixForGeneralizedStresses(total_rotation, R);
 					//top surface of current ply
 					data.rlaminateStresses[2*ply] = prod(R, data.rlaminateStresses[2*ply]);	
 					//bottom surface of current ply
 					data.rlaminateStresses[2 * ply +1] = prod(R, data.rlaminateStresses[2 * ply +1]);	
 				}
 
-				// Calculate Tsai-Wu criterion for each ply, take max of all plies
-				double max_tsai_wu = 0.0;
+				// Calculate Tsai-Wu criterion for each ply, take min of all plies
+				double min_tsai_wu = 0.0;
 				double temp_tsai_wu = 0.0;
 				for (unsigned int ply = 0; ply < section->NumberOfPlies(); ply++)
 				{
 					temp_tsai_wu = CalculateTsaiWuPlaneStress(data, Laminae_Strengths[ply],ply);
-					if (temp_tsai_wu > max_tsai_wu)
+					if (ply == 0)
 					{
-						max_tsai_wu = temp_tsai_wu;
+						min_tsai_wu = temp_tsai_wu;
+					}
+					else if (temp_tsai_wu < min_tsai_wu)
+					{
+						min_tsai_wu = temp_tsai_wu;
 					}
 				}
 
-				// Output max Tsai-Wu result
-				rValues[gauss_point] = max_tsai_wu;
+				// Output min Tsai-Wu result
+				rValues[gauss_point] = min_tsai_wu;
 
 			}// Gauss loop
 		}
@@ -1249,7 +1256,7 @@ namespace Kratos
 		// Incoming lamina strengths are organized as follows:
 		// Refer to 'shell_cross_section.cpp' for details.
 		//
-		//	|	T1,		T2,		C1	|
+		//	|	T1,		C1,		T2	|
 		//	|	C2,		S12,	S13	|
 		//	|   S23		0		0	|
 
@@ -1257,44 +1264,96 @@ namespace Kratos
 		// Refer Reddy (2003) Section 10.9.4 (re-ordered for kratos DOFs).
 		// All F_i3 components ignored - thin shell theory.
 		//
+
+		
+
 		// First, F_i
-		Vector F_i = Vector(2, 0.0);
-		F_i[0] = 1.0 / rLamina_Strengths(0, 0) - 1.0 / rLamina_Strengths(0, 2);
-		F_i[1] = 1.0 / rLamina_Strengths(0, 1) - 1.0 / rLamina_Strengths(1, 0);
+		Vector F_i = Vector(3, 0.0);
+		F_i[0] = 1.0 / rLamina_Strengths(0, 0) - 1.0 / rLamina_Strengths(0, 1);
+		F_i[1] = 1.0 / rLamina_Strengths(0, 2) - 1.0 / rLamina_Strengths(1, 0);
+		F_i[2] = 0.0;
 
 		// Second, F_ij
 		Matrix F_ij = Matrix(3, 3, 0.0);
-		F_ij(0, 0) = 1.0 / rLamina_Strengths(0, 0) / rLamina_Strengths(0, 2);	// 11
-		F_ij(1,1) = 1.0 / rLamina_Strengths(0, 1) / rLamina_Strengths(1, 0);	// 22
+		F_ij.clear();
+		F_ij(0, 0) = 1.0 / rLamina_Strengths(0, 0) / rLamina_Strengths(0, 1);	// 11
+		F_ij(1,1) = 1.0 / rLamina_Strengths(0, 2) / rLamina_Strengths(1, 0);	// 22
 		F_ij(2, 2) = 1.0 / rLamina_Strengths(1, 1) / rLamina_Strengths(1, 1);	// 12
-		F_ij(0, 1) = F_ij(1, 0) = -0.5 / std::sqrt(rLamina_Strengths(0, 0)*rLamina_Strengths(0, 2)*rLamina_Strengths(0, 1)*rLamina_Strengths(1, 0));
+		F_ij(0, 1) = F_ij(1, 0) = -0.5 / std::sqrt(rLamina_Strengths(0, 0)*rLamina_Strengths(0, 1)*rLamina_Strengths(0, 2)*rLamina_Strengths(1, 0));
+
 
 		// Evaluate Tsai-Wu @ top surface of current layer
-		// Tsai_Wu = F_i Sigma_i + F_ij Sigma_i Sigma_j
-		double tsai_index_top_surface = 0.0;
+		double var_a = 0.0;
+		double var_b = 0.0;
 		for (size_t i = 0; i < 3; i++)
 		{
-			tsai_index_top_surface += F_i[i] * data.rlaminateStresses[2 * rPly][i];
+			var_b += F_i[i] * data.rlaminateStresses[2 * rPly][i];
 			for (size_t j = 0; j < 3; j++)
 			{
-				tsai_index_top_surface += F_ij(i, j)*data.rlaminateStresses[2 * rPly][i] * data.rlaminateStresses[2 * rPly][j];
+				var_a += F_ij(i, j)*data.rlaminateStresses[2 * rPly][i] * data.rlaminateStresses[2 * rPly][j];
 			}
 		}
+		double tsai_reserve_factor_top = (-1.0*var_b + std::sqrt(var_b*var_b + 4.0 * var_a)) / 2.0 / var_a;
 
 		// Evaluate Tsai-Wu @ bottom surface of current layer
-		// Tsai_Wu = F_i Sigma_i + F_ij Sigma_i Sigma_j
-		double tsai_index_bottom_surface = 0.0;
+		var_a = 0.0;
+		var_b = 0.0;
 		for (size_t i = 0; i < 3; i++)
 		{
-			tsai_index_bottom_surface += F_i[i] * data.rlaminateStresses[2 * rPly+1][i];
+			var_b += F_i[i] * data.rlaminateStresses[2 * rPly + 1][i];
 			for (size_t j = 0; j < 3; j++)
 			{
-				tsai_index_bottom_surface += F_ij(i, j)*data.rlaminateStresses[2 * rPly+1][i] * data.rlaminateStresses[2 * rPly+1][j];
+				var_a += F_ij(i, j)*data.rlaminateStresses[2 * rPly + 1][i] * data.rlaminateStresses[2 * rPly + 1][j];
+			}
+		}
+		double tsai_reserve_factor_bottom = (-1.0*var_b + std::sqrt(var_b*var_b + 4.0 * var_a)) / 2.0 / var_a;
+
+		bool tsai_testing = false;
+		if (tsai_testing)
+		{
+			if (data.gpIndex == 0)
+			{
+				std::cout << "\n" << std::endl;
+				std::cout << "tsai_reserve_factor_top =\t\t" << tsai_reserve_factor_top << std::endl;
+				std::cout << "a =\t\t\t" << var_a << std::endl;
+				std::cout << "b =\t\t\t" << var_b << std::endl;
+				for (size_t i = 0; i < 3; i++)
+				{
+					//std::cout << "b_" << i << "=\t\t" << F_i[i] * data.rlaminateStresses[2 * rPly + 1][i] << std::endl;
+				}
+				std::cout << "stresses =\t\t" << data.rlaminateStresses[2 * rPly] << std::endl;
+				//std::cout << "F_i =\t\t" << F_i << std::endl;
+				//printMatrix(F_ij, "F_ij");
+			}
+		}
+		
+
+		bool bTesting = false;
+		if (bTesting)
+		{
+			const GeometryType & geom = GetGeometry();
+
+			for (int node = 0; node < 4; node++)
+			{
+				const NodeType & iNode = geom[node];
+				if (iNode.Y() > 99.9 && iNode.X() > 99.9)
+				{
+					if (data.gpIndex != 9)
+					{
+						std::cout << "\nNode @ X,Y [" << iNode.X() << ", " << iNode.Y() << "]" << std::endl;
+						std::cout << "Tsai @ GP " << data.gpIndex << " and ply " << rPly << " = " << tsai_reserve_factor_top << std::endl;
+						//std::cout << "Z Disp = \t\t\t" << data.globalDisplacements[6 * node + 2] << std::endl;
+						//printMatrix(data.B_bend_test, "B bending");
+
+
+					}
+				}
 			}
 		}
 
-		// Return max of both surfaces as the result for the whole ply
-		return std::max(tsai_index_top_surface, tsai_index_bottom_surface);
+
+		// Return min of both surfaces as the result for the whole ply
+		return std::min(tsai_reserve_factor_bottom, tsai_reserve_factor_top);
 	}
 
 	void ShellThinElement3D4N::CheckGeneralizedStressOrStrainOutput(const Variable<Matrix>& rVariable, int & ijob, bool & bGlobal)
@@ -2837,7 +2896,6 @@ namespace Kratos
 			}
 			else if (ijob == 9) // SHELL_ORTHOTROPIC_STRESS_TOP_SURFACE
 			{
-				//std::cout << "2nd ply output in top surface!" << std::endl;
 				iValue(0, 0) = data.rlaminateStresses[0][0];
 				iValue(1, 1) = data.rlaminateStresses[0][1];
 				iValue(2, 2) = 0.0;
@@ -2848,7 +2906,7 @@ namespace Kratos
 			else if (ijob == 99) // SHELL_ORTHOTROPIC_4PLY_THROUGH_THICKNESS
 			{
 				// Testing variable to get lamina stress/strain values
-				// on each surface of a 4 ply laminate
+				// on the 8 surfaces of a 4 ply laminate
 							
 				int surface = 0; // start from top ply top surface
 				// Output global results sequentially
@@ -2862,11 +2920,101 @@ namespace Kratos
 						}
 						else
 						{
-							iValue(row, col) = data.rlaminateStrains[surface][1];
+							iValue(row, col) = data.rlaminateStresses[surface][2];
 						}
 						surface++;
 					}
 				}
+
+				bool testing_rotation = false;
+				if (testing_rotation)
+				{
+					// Test to rotate local stresses to lamina principal directions
+					iValue.clear();
+					R.clear();
+					Vector ply_orientations = Vector(section->NumberOfPlies(), 0.0);
+					section->GetLaminaeOrientation(ply_orientations);
+					section->GetRotationMatrixForGeneralizedStresses(-ply_orientations[1], R);
+					data.rlaminateStresses[2] = prod(R, data.rlaminateStresses[2]);
+
+
+					iValue(0, 0) = data.rlaminateStresses[2][0];
+					iValue(1, 1) = data.rlaminateStresses[2][1];
+					iValue(2, 2) = 0.0;
+					iValue(0, 1) = iValue(1, 0) = data.rlaminateStresses[2][2];
+					iValue(0, 2) = iValue(2, 0) = 0.0;
+					iValue(1, 2) = iValue(2, 1) = 0.0;
+				}
+
+				bool tsai_wu_thru_output = true;
+				if (tsai_wu_thru_output)
+				{
+					// Must use non-global stresses for this!!!
+					std::vector<Matrix> Laminae_Strengths =
+						std::vector<Matrix>(section->NumberOfPlies());
+					for (unsigned int ply = 0; ply < section->NumberOfPlies(); ply++)
+					{
+						Laminae_Strengths[ply].resize(3, 3, 0.0);
+						Laminae_Strengths[ply].clear();
+					}
+					PropertiesType & props = GetProperties();
+					section->GetLaminaeStrengths(Laminae_Strengths, props);
+					Vector ply_orientation(section->NumberOfPlies());
+					section->GetLaminaeOrientation(ply_orientation);
+
+					// Rotate lamina stress from section CS 
+					// to lamina angle to lamina material principal directions
+					for (unsigned int ply = 0; ply < section->NumberOfPlies(); ply++)
+					{
+						double total_rotation = -ply_orientation[ply]; // already rotated to section CS
+						section->GetRotationMatrixForGeneralizedStresses(total_rotation, R);
+						//top surface of current ply
+						data.rlaminateStresses[2 * ply] = prod(R, data.rlaminateStresses[2 * ply]);
+						//bottom surface of current ply
+						data.rlaminateStresses[2 * ply + 1] = prod(R, data.rlaminateStresses[2 * ply + 1]);
+					}
+
+					// Calculate Tsai-Wu criterion for each ply, take min of all plies
+					Vector tsai_output = Vector(9, 0.0);
+					tsai_output.clear();
+					double min_tsai_wu = 0.0;
+					double temp_tsai_wu = 0.0;
+					for (unsigned int ply = 0; ply < section->NumberOfPlies(); ply++)
+					{
+						temp_tsai_wu = CalculateTsaiWuPlaneStress(data, Laminae_Strengths[ply], ply);
+						if (ply == 0)
+						{
+							min_tsai_wu = temp_tsai_wu;
+						}
+						else if (temp_tsai_wu < min_tsai_wu)
+						{
+							min_tsai_wu = temp_tsai_wu;
+						}
+						tsai_output[2 * ply] = temp_tsai_wu;
+						tsai_output[2 * ply+1] = temp_tsai_wu;
+					}
+
+					//dump into results
+
+					int surface = 0; // start from top ply top surface
+									 // Output global results sequentially
+					for (size_t row = 0; row < 3; row++)
+					{
+						for (size_t col = 0; col < 3; col++)
+						{
+							if (surface > 7)
+							{
+								iValue(row, col) = 0.0;
+							}
+							else
+							{
+								iValue(row, col) = tsai_output[surface];
+							}
+							surface++;
+						}
+					}
+				}
+
 			}
 
 			// if requested, rotate the results in the global coordinate system

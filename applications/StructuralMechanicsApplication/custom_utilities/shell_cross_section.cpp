@@ -976,7 +976,7 @@ namespace Kratos
 		for (PlyCollection::iterator ply_it = mStack.begin(); ply_it != mStack.end(); ++ply_it)
 		{
 			Ply& iPly = *ply_it;
-			rOrientation_Vector[counter] = iPly.GetOrientationAngle();
+			rOrientation_Vector[counter] = iPly.GetOrientationAngle()/180.0*KRATOS_M_PI;
 			counter++;
 		}
 	}
@@ -1003,7 +1003,7 @@ namespace Kratos
 			// local (1,2,3) lamina material coordinates.
 
 			// Plane stress assumption: T3 and C3 are neglected.
-			// Input arranged as: T1, T2, C1, C2, S12, S13, S23
+			// Input arranged as: T1, C1, T2, C2, S12, S13, S23
 
 
 			// Store results sequentially, row by row
@@ -1011,11 +1011,11 @@ namespace Kratos
 			rLaminae_Strengths[currentPly](0, 0) = 
 				(rProps)[SHELL_ORTHOTROPIC_LAYERS](currentPly, offset);	
 
-			// T2
+			// C1
 			rLaminae_Strengths[currentPly](0, 1) = 
 				(rProps)[SHELL_ORTHOTROPIC_LAYERS](currentPly, offset + 1);	
 
-			// C1
+			// T2
 			rLaminae_Strengths[currentPly](0, 2) = 
 				(rProps)[SHELL_ORTHOTROPIC_LAYERS](currentPly, offset + 2);
 
