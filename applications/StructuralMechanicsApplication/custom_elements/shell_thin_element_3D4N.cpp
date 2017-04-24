@@ -1265,7 +1265,8 @@ namespace Kratos
 		// All F_i3 components ignored - thin shell theory.
 		//
 
-		
+		// Should be FALSE unless testing against other programs that ignore it.
+		bool disable_in_plane_interaction = false;	
 
 		// First, F_i
 		Vector F_i = Vector(3, 0.0);
@@ -1280,7 +1281,12 @@ namespace Kratos
 		F_ij(1,1) = 1.0 / rLamina_Strengths(0, 2) / rLamina_Strengths(1, 0);	// 22
 		F_ij(2, 2) = 1.0 / rLamina_Strengths(1, 1) / rLamina_Strengths(1, 1);	// 12
 		F_ij(0, 1) = F_ij(1, 0) = -0.5 / std::sqrt(rLamina_Strengths(0, 0)*rLamina_Strengths(0, 1)*rLamina_Strengths(0, 2)*rLamina_Strengths(1, 0));
-
+		
+		if (disable_in_plane_interaction)
+		{
+			F_ij(0, 1) = F_ij(1, 0) = 0.0;
+		}
+		
 
 		// Evaluate Tsai-Wu @ top surface of current layer
 		double var_a = 0.0;
@@ -1328,7 +1334,7 @@ namespace Kratos
 		}
 		
 
-		bool bTesting = false;
+		bool bTesting = true;
 		if (bTesting)
 		{
 			const GeometryType & geom = GetGeometry();
@@ -1338,10 +1344,11 @@ namespace Kratos
 				const NodeType & iNode = geom[node];
 				if (iNode.Y() > 99.9 && iNode.X() > 99.9)
 				{
-					if (data.gpIndex != 9)
+					if (rPly == 0)
 					{
 						std::cout << "\nNode @ X,Y [" << iNode.X() << ", " << iNode.Y() << "]" << std::endl;
 						std::cout << "Tsai @ GP " << data.gpIndex << " and ply " << rPly << " = " << tsai_reserve_factor_top << std::endl;
+						std::cout << "Top surface Stresses = " << data.rlaminateStresses[2 * rPly] << std::endl;
 						//std::cout << "Z Disp = \t\t\t" << data.globalDisplacements[6 * node + 2] << std::endl;
 						//printMatrix(data.B_bend_test, "B bending");
 
@@ -2974,23 +2981,26 @@ namespace Kratos
 						data.rlaminateStresses[2 * ply + 1] = prod(R, data.rlaminateStresses[2 * ply + 1]);
 					}
 
-					// Calculate Tsai-Wu criterion for each ply, take min of all plies
+					// Calculate Tsai-Wu criterion for each ply, some bad tricks here
 					Vector tsai_output = Vector(9, 0.0);
 					tsai_output.clear();
 					double min_tsai_wu = 0.0;
 					double temp_tsai_wu = 0.0;
 					for (unsigned int ply = 0; ply < section->NumberOfPlies(); ply++)
 					{
+						Vector lamina_stress_top = Vector(data.rlaminateStresses[2 * ply]);
+						Vector lamina_stress_bottom = Vector(data.rlaminateStresses[2 * ply + 1]);
+						// for testing, we want both top and bottom results, so trick the function
+
+						// top surface
+						data.rlaminateStresses[2 * ply + 1] = Vector(lamina_stress_top);
 						temp_tsai_wu = CalculateTsaiWuPlaneStress(data, Laminae_Strengths[ply], ply);
-						if (ply == 0)
-						{
-							min_tsai_wu = temp_tsai_wu;
-						}
-						else if (temp_tsai_wu < min_tsai_wu)
-						{
-							min_tsai_wu = temp_tsai_wu;
-						}
 						tsai_output[2 * ply] = temp_tsai_wu;
+
+						// bottom surface
+						data.rlaminateStresses[2 * ply] = Vector(lamina_stress_bottom);
+						data.rlaminateStresses[2 * ply + 1] = Vector(lamina_stress_bottom);
+						temp_tsai_wu = CalculateTsaiWuPlaneStress(data, Laminae_Strengths[ply], ply);
 						tsai_output[2 * ply+1] = temp_tsai_wu;
 					}
 
