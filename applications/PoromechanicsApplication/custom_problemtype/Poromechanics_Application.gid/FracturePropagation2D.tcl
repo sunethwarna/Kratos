@@ -163,7 +163,15 @@ proc GenerateNewFractures { dir problemtypedir PropagationData } {
     }
     set InterfaceGroupsOld [string trimright $InterfaceGroupsOld ,]
     append InterfaceGroupsOld \]
-    
+
+    ### TODO
+    # if {[GiD_Groups exists PropagationCounter] eq 0} {
+    #     GiD_Groups create PropagationCounter
+    # }    
+    # set NumProp [llength [GiD_Groups list PropagationCounter]]
+    # GiD_Groups create PropagationCounter//SG$NumProp
+    ### TODO
+
     # create link interface group if bifurcation occurs and it does not exist
     if {[dict size $BifurcationDict] > 0} {
         set LinkInterfaceGroup 0
@@ -260,6 +268,19 @@ proc GenerateNewFractures { dir problemtypedir PropagationData } {
         #     [expr { [GiD_Info Geometry MaxNumLines]-3 }] [expr { [GiD_Info Geometry MaxNumLines]-2 }] \
         #     [expr { [GiD_Info Geometry MaxNumLines]-1 }] [GiD_Info Geometry MaxNumLines] escape escape
 
+        ### TODO
+        # if {[llength [GiD_Groups list PropagationCounter]] eq 1} {
+        # GiD_Process Mescape Meshing Structured Lines 16 \
+        #     [expr { [GiD_Info Geometry MaxNumLines]-3 }] [expr { [GiD_Info Geometry MaxNumLines]-2 }] escape escape
+        # GiD_Process Mescape Meshing Structured Lines 4 \
+        #     [expr { [GiD_Info Geometry MaxNumLines]-1 }] [GiD_Info Geometry MaxNumLines] escape escape
+        # } else {
+        # GiD_Process Mescape Meshing Structured Lines 4 \
+        #     [expr { [GiD_Info Geometry MaxNumLines]-3 }] [expr { [GiD_Info Geometry MaxNumLines]-2 }] \
+        #     [expr { [GiD_Info Geometry MaxNumLines]-1 }] [GiD_Info Geometry MaxNumLines] escape escape
+        # }
+        ### TODO
+
         ## Replace $FracturesDict $MotherFractureId by the new fracture
         dict set FracturesDict $MotherFractureId TopPoint Id [expr { [GiD_Info Geometry MaxNumPoints]-2 }]
         dict set FracturesDict $MotherFractureId TopPoint Coordinates [dict get $Propagation TopInitCoordinates]
@@ -272,6 +293,11 @@ proc GenerateNewFractures { dir problemtypedir PropagationData } {
         dict set FracturesDict $MotherFractureId InterfaceSurface Id [GiD_Info Geometry MaxNumSurfaces]
 
         dict set BodySurfacesDict $BodySurfaceId Lines $BodySurfaceLines
+
+        ### TODO
+        GiD_EntitiesGroups assign Tip_Node points [GiD_Info Geometry MaxNumPoints]
+        ### TODO
+
     }
 
     # Loop through all Bifurcation Fractures
@@ -430,7 +456,7 @@ proc GenerateNewFractures { dir problemtypedir PropagationData } {
         }
         dict set FracturesDict $Id BodySurfaces $BodySurfaces
     }
-    
+
     # Generate New Mesh
     GiD_Process Mescape Meshing Generate Yes [GiD_Info Project LastElementSize] MeshingParametersFrom=Preferences
 
