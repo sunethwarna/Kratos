@@ -22,6 +22,7 @@
 
 //strategies
 #include "solving_strategies/strategies/solving_strategy.h"
+#include "custom_strategies/strategies/dam_newton_raphson_global_damage_strategy.hpp"
 
 //builders and solvers
 
@@ -31,8 +32,6 @@
 #include "custom_strategies/schemes/bossak_displacement_smoothing_scheme.hpp"
 #include "custom_strategies/schemes/dam_UP_scheme.hpp"
 #include "custom_strategies/schemes/dam_P_scheme.hpp"
-
-//strategies
 
 
 namespace Kratos
@@ -47,7 +46,12 @@ void  AddCustomStrategiesToPython()
 {
     typedef UblasSpace<double, CompressedMatrix, Vector> SparseSpaceType;
     typedef UblasSpace<double, Matrix, Vector> LocalSpaceType;
+
+    typedef LinearSolver<SparseSpaceType, LocalSpaceType > LinearSolverType;
+    typedef SolvingStrategy< SparseSpaceType, LocalSpaceType, LinearSolverType > BaseSolvingStrategyType;
     typedef Scheme< SparseSpaceType, LocalSpaceType > BaseSchemeType;
+    typedef BuilderAndSolver< SparseSpaceType, LocalSpaceType, LinearSolverType > BuilderAndSolverType;
+    typedef ConvergenceCriteria< SparseSpaceType, LocalSpaceType > ConvergenceCriteriaType;
 
     //custom scheme types
     typedef IncrementalUpdateStaticSmoothingScheme< SparseSpaceType, LocalSpaceType >  IncrementalUpdateStaticSmoothingSchemeType; 
@@ -55,6 +59,10 @@ void  AddCustomStrategiesToPython()
     typedef BossakDisplacementSmoothingScheme< SparseSpaceType, LocalSpaceType >  BossakDisplacementSmoothingSchemeType;
     typedef DamUPScheme< SparseSpaceType, LocalSpaceType >  DamUPSchemeType;
     typedef DamPScheme< SparseSpaceType, LocalSpaceType >  DamPSchemeType;
+
+    //custom strategy types
+    typedef DamNewtonRaphsonGlobalDamageStrategy< SparseSpaceType, LocalSpaceType, LinearSolverType > DamNewtonRaphsonGlobalDamageStrategyType;
+
 
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -73,6 +81,11 @@ void  AddCustomStrategiesToPython()
     
     class_< DamPSchemeType, bases< BaseSchemeType >,  boost::noncopyable >("DamPScheme",
         init< double, double >());
+
+	// Strategies
+    class_< DamNewtonRaphsonGlobalDamageStrategyType, bases< BaseSolvingStrategyType >, boost::noncopyable >("DamNewtonRaphsonGlobalDamageStrategy", 
+        init < ModelPart&, BaseSchemeType::Pointer, LinearSolverType::Pointer, ConvergenceCriteriaType::Pointer,
+                BuilderAndSolverType::Pointer, int, bool, bool, bool >());
 }
 
 }  // namespace Python.

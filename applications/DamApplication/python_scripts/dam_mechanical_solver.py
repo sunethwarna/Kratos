@@ -346,15 +346,31 @@ class DamMechanicalSolver(object):
                                                                                move_mesh_flag)
             else:
                 self.main_model_part.ProcessInfo.SetValue(KratosPoro.IS_CONVERGED, True)
-                solver = KratosMultiphysics.ResidualBasedNewtonRaphsonStrategy(self.main_model_part,
-                                                                               scheme,
-                                                                               self.linear_solver,
-                                                                               convergence_criterion,
-                                                                               builder_and_solver,
-                                                                               max_iters,
-                                                                               compute_reactions,
-                                                                               reform_step_dofs,
-                                                                               move_mesh_flag)
+                
+                global_damage = True
+
+                if global_damage:
+                    print("Estamos entrando dentro de la nueva estrategia")
+                    solver = KratosDam.DamNewtonRaphsonGlobalDamageStrategy(self.main_model_part,
+                                                                                scheme,
+                                                                                self.linear_solver,
+                                                                                convergence_criterion,
+                                                                                builder_and_solver,
+                                                                                max_iters,
+                                                                                compute_reactions,
+                                                                                reform_step_dofs,
+                                                                                move_mesh_flag)
+
+                else:
+                    solver = KratosMultiphysics.ResidualBasedNewtonRaphsonStrategy(self.main_model_part,
+                                                                                scheme,
+                                                                                self.linear_solver,
+                                                                                convergence_criterion,
+                                                                                builder_and_solver,
+                                                                                max_iters,
+                                                                                compute_reactions,
+                                                                                reform_step_dofs,
+                                                                                move_mesh_flag)
         else:
             # Arc-Length strategy
             self.strategy_params = KratosMultiphysics.Parameters("{}")
