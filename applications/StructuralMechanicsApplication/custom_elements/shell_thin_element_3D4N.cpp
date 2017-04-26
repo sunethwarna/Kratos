@@ -635,7 +635,7 @@ namespace Kratos
 		double av_mass_per_unit_area = 0.0;
 
 		// Flag for consistent or lumped mass matrix
-		bool bconsistent_matrix = true;
+		bool bconsistent_matrix = false;
 
 		// Consistent mass matrix
 		if (bconsistent_matrix)

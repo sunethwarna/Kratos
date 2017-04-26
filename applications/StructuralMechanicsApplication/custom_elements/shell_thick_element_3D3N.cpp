@@ -1033,12 +1033,25 @@ namespace Kratos
 			data.rlaminateStrains[2 * plyNumber][0] = e_x + z_current*kap_x;
 			data.rlaminateStrains[2 * plyNumber][1] = e_y + z_current*kap_y;
 			data.rlaminateStrains[2 * plyNumber][2] = e_xy + z_current*kap_xy;
-			data.rlaminateStrains[2 * plyNumber][6] =
-				1.5*(1.0 - 4.0 * z_current*z_current / thickness / thickness)*
-				data.generalizedStrains[6];
-			data.rlaminateStrains[2 * plyNumber][7] =
-				1.5*(1.0 - 4.0 * z_current*z_current / thickness / thickness)*
-				data.generalizedStrains[7];
+
+			if (data.parabolic_composite_transverse_shear_strains)
+			{
+				// assume parabolic transverse shear strain dist across whole
+				// laminate
+				data.rlaminateStrains[2 * plyNumber][6] =
+					1.5*(1.0 - 4.0 * z_current*z_current / thickness / thickness)*
+					data.generalizedStrains[6];
+				data.rlaminateStrains[2 * plyNumber][7] =
+					1.5*(1.0 - 4.0 * z_current*z_current / thickness / thickness)*
+					data.generalizedStrains[7];
+			}
+			else
+			{
+				// constant transverse shear strain dist
+				data.rlaminateStrains[2 * plyNumber][6] = data.generalizedStrains[6];
+				data.rlaminateStrains[2 * plyNumber][7] = data.generalizedStrains[7];
+			}
+			
 
 			// Move to bottom surface of current layer
 			z_current += ply_thicknesses[plyNumber];
@@ -1048,12 +1061,21 @@ namespace Kratos
 			data.rlaminateStrains[2 * plyNumber + 1][0] = e_x + z_current*kap_x;
 			data.rlaminateStrains[2 * plyNumber + 1][1] = e_y + z_current*kap_y;
 			data.rlaminateStrains[2 * plyNumber + 1][2] = e_xy + z_current*kap_xy;
-			data.rlaminateStrains[2 * plyNumber + 1][6] =
-				1.5*(1.0 - 4.0 * z_current*z_current / thickness / thickness)*
-				data.generalizedStrains[6];
-			data.rlaminateStrains[2 * plyNumber + 1][7] =
-				1.5*(1.0 - 4.0 * z_current*z_current / thickness / thickness)*
-				data.generalizedStrains[7];
+
+			if (data.parabolic_composite_transverse_shear_strains)
+			{
+				data.rlaminateStrains[2 * plyNumber + 1][6] =
+					1.5*(1.0 - 4.0 * z_current*z_current / thickness / thickness)*
+					data.generalizedStrains[6];
+				data.rlaminateStrains[2 * plyNumber + 1][7] =
+					1.5*(1.0 - 4.0 * z_current*z_current / thickness / thickness)*
+					data.generalizedStrains[7];
+			}
+			else
+			{
+				data.rlaminateStrains[2 * plyNumber+1][6] = data.generalizedStrains[6];
+				data.rlaminateStrains[2 * plyNumber+1][7] = data.generalizedStrains[7];
+			}
 		}
 	}
 
@@ -2039,14 +2061,14 @@ namespace Kratos
 						else
 						{
 							//std::cout << data.rlaminateStresses[surface][3] << std::endl;
-							iValue(row, col) = data.rlaminateStresses[surface][2];
+							iValue(row, col) = data.rlaminateStresses[surface][7];
 						}
 						surface++;
 					}
 				}
 
 
-				bool tsai_wu_thru_output = true;
+				bool tsai_wu_thru_output = false;
 				if (tsai_wu_thru_output)
 				{
 					// Must use non-global stresses for this!!!

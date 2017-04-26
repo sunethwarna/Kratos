@@ -245,6 +245,8 @@ namespace Kratos
 			bool CalculateRHS; /*!< flag for the calculation of the right-hand-side vector */
 			bool CalculateLHS; /*!< flag for the calculation of the left-hand-side vector */
 
+			const bool parabolic_composite_transverse_shear_strains = false;
+
 			// ---------------------------------------
 			// Testing flags
 			// ---------------------------------------
