@@ -59,7 +59,7 @@ public:
         bool ReformDofSetAtEachStep = false,
         bool MoveMeshFlag = false
         ) : ResidualBasedNewtonRaphsonStrategy<TSparseSpace, TDenseSpace, TLinearSolver>(model_part, pScheme, pNewLinearSolver,
-                pNewConvergenceCriteria, pNewBuilderAndSolver, MaxIterations, CalculateReactions, ReformDofSetAtEachStep, MoveMeshFlag)
+                pNewConvergenceCriteria, pNewBuilderAndSolver, MaxIterations, CalculateReactions, ReformDofSetAtEachStep, MoveMeshFlag) , mr_model_part(model_part)
         {
 
         }
@@ -78,35 +78,67 @@ public:
         MotherType::FinalizeSolutionStep();
         
         TSystemVectorType& mDx = *mpDx;
-        TSystemVectorType& mb = *mpb;
-        KRATOS_WATCH(mDx)
+        TSystemVectorType& mb1 = *mpb;
+        TSystemVectorType& mb2 = *mpb;
 
-        mpBuilderAndSolver->BuildRHS(mpScheme, BaseType::GetModelPart(), mb);
-        KRATOS_WATCH(mb)
-
+        TSparseSpace::SetToZero(mb1);
         double NonLinearPotencialEnergy;
         double LinearPotencialEnergy;
 
-        // Computing the potential energy using the damage stress
+        BaseType::GetModelPart().GetProcessInfo()[COMPUTE_GLOBAL_DAMAGE] = 1;
 
-        NonLinearPotencialEnergy = 1.0;
-        KRATOS_WATCH(NonLinearPotencialEnergy)
+        // Computing the potential energy using the damage stress
+        if (BaseType::GetModelPart().GetProcessInfo()[COMPUTE_GLOBAL_DAMAGE] == 1) 
+        {
+
+            const int nconditions = static_cast<int>(mr_model_part.Conditions().size());
+            ModelPart::ConditionsContainerType::iterator cond_begin = mr_model_part.ConditionsBegin();
+
+            for (int k = 0; k < nconditions; k++)
+            {
+                ModelPart::ConditionsContainerType::iterator it = cond_begin + k;
+                it->Set(ACTIVE,false);
+            }
+
+            mr_model_part.GetProcessInfo()[COMPUTE_GLOBAL_DAMAGE] = 1;
+            mpBuilderAndSolver->BuildRHS(mpScheme, mr_model_part, mb1);
+            NonLinearPotencialEnergy = TSparseSpace::Dot(mDx, mb1);
+  
+            BaseType::GetModelPart().GetProcessInfo()[COMPUTE_GLOBAL_DAMAGE] = 2;
+        } 
 
         // Computing the potential energy using effective stress (linear)
-        LinearPotencialEnergy = 1.0;
-        KRATOS_WATCH(LinearPotencialEnergy)
+        TSparseSpace::SetToZero(mb2);
+        if (BaseType::GetModelPart().GetProcessInfo()[COMPUTE_GLOBAL_DAMAGE] == 2) 
+        {
+            mr_model_part.GetProcessInfo()[COMPUTE_GLOBAL_DAMAGE] = 2;
+            mpBuilderAndSolver->BuildRHS(mpScheme, mr_model_part, mb2);
+            LinearPotencialEnergy = TSparseSpace::Dot(mDx, mb2);
+        } 
 
         // Compùting the global damage of the structure according to potential Energy (Hanganu, Onate...)
         double global_damage = 1.0 - (NonLinearPotencialEnergy/LinearPotencialEnergy);
         KRATOS_WATCH(global_damage)
+
+        // Reactivation of all conditions for the next step and setting the flag to 0
+        const int nconditions = static_cast<int>(mr_model_part.Conditions().size());
+        ModelPart::ConditionsContainerType::iterator cond_begin = mr_model_part.ConditionsBegin();
+        for (int k = 0; k < nconditions; k++)
+        {
+            ModelPart::ConditionsContainerType::iterator it = cond_begin + k;
+            it->Set(ACTIVE,true);
+        }
+
+        BaseType::GetModelPart().GetProcessInfo()[COMPUTE_GLOBAL_DAMAGE] = 0;
 
 		KRATOS_CATCH("")
 	}
 
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-
 protected:
+
+    ModelPart& mr_model_part;
     
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 

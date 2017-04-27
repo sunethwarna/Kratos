@@ -28,6 +28,7 @@ if(${USE_DAM_MPI} MATCHES ON)
         ${CMAKE_CURRENT_SOURCE_DIR}/custom_python/add_custom_utilities_to_python.cpp
 
         ${CMAKE_CURRENT_SOURCE_DIR}/custom_elements/small_displacement_thermo_mechanic_element.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/custom_elements/small_displacement_thermo_mechanic_global_damage_element.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/custom_elements/small_displacement_interface_element.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/custom_elements/wave_equation_element.cpp
         
@@ -80,6 +81,7 @@ else()
         ${CMAKE_CURRENT_SOURCE_DIR}/custom_python/add_custom_utilities_to_python.cpp
 
         ${CMAKE_CURRENT_SOURCE_DIR}/custom_elements/small_displacement_thermo_mechanic_element.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/custom_elements/small_displacement_thermo_mechanic_global_damage_element.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/custom_elements/small_displacement_interface_element.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/custom_elements/wave_equation_element.cpp
         

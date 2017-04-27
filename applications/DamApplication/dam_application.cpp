@@ -66,6 +66,18 @@ KratosDamApplication::KratosDamApplication():
     mSmallDisplacementThermoMechanicElement3D20N( 0, Element::GeometryType::Pointer( new Hexahedra3D20 <Node<3> >( Element::GeometryType::PointsArrayType(20)))),
     mSmallDisplacementThermoMechanicElement3D27N( 0, Element::GeometryType::Pointer( new Hexahedra3D27 <Node<3> >( Element::GeometryType::PointsArrayType(27)))),
 
+    mSmallDisplacementThermoMechanicGlobalDamageElement2D3N( 0, Element::GeometryType::Pointer( new Triangle2D3 <Node<3> >( Element::GeometryType::PointsArrayType(3)))),
+    mSmallDisplacementThermoMechanicGlobalDamageElement2D6N( 0, Element::GeometryType::Pointer( new Triangle2D6 <Node<3> >( Element::GeometryType::PointsArrayType(6)))),
+    mSmallDisplacementThermoMechanicGlobalDamageElement2D4N( 0, Element::GeometryType::Pointer( new Quadrilateral2D4 <Node<3> >( Element::GeometryType::PointsArrayType(4)))),
+    mSmallDisplacementThermoMechanicGlobalDamageElement2D8N( 0, Element::GeometryType::Pointer( new Quadrilateral2D8 <Node<3> >( Element::GeometryType::PointsArrayType(8)))),
+    mSmallDisplacementThermoMechanicGlobalDamageElement2D9N( 0, Element::GeometryType::Pointer( new Quadrilateral2D9 <Node<3> >( Element::GeometryType::PointsArrayType(9)))),
+    
+    mSmallDisplacementThermoMechanicGlobalDamageElement3D4N( 0, Element::GeometryType::Pointer( new Tetrahedra3D4 <Node<3> >( Element::GeometryType::PointsArrayType(4)))),
+    mSmallDisplacementThermoMechanicGlobalDamageElement3D10N( 0, Element::GeometryType::Pointer( new Tetrahedra3D10 <Node<3> >( Element::GeometryType::PointsArrayType(10)))),
+    mSmallDisplacementThermoMechanicGlobalDamageElement3D8N( 0, Element::GeometryType::Pointer( new Hexahedra3D8 <Node<3> >( Element::GeometryType::PointsArrayType(8)))),
+    mSmallDisplacementThermoMechanicGlobalDamageElement3D20N( 0, Element::GeometryType::Pointer( new Hexahedra3D20 <Node<3> >( Element::GeometryType::PointsArrayType(20)))),
+    mSmallDisplacementThermoMechanicGlobalDamageElement3D27N( 0, Element::GeometryType::Pointer( new Hexahedra3D27 <Node<3> >( Element::GeometryType::PointsArrayType(27)))),
+
 	mFreeSurfaceCondition2D2N( 0, Condition::GeometryType::Pointer( new Line2D2<Node<3> >( Condition::GeometryType::PointsArrayType(2)))),
     mFreeSurfaceCondition3D3N( 0, Condition::GeometryType::Pointer( new Triangle3D3 <Node<3> >( Condition::GeometryType::PointsArrayType(3)))),
     mFreeSurfaceCondition3D4N( 0, Condition::GeometryType::Pointer( new Quadrilateral3D4 <Node<3> >( Condition::GeometryType::PointsArrayType(4)))),
@@ -108,6 +120,18 @@ void KratosDamApplication::Register()
     KRATOS_REGISTER_ELEMENT( "SmallDisplacementThermoMechanicElement3D10N", mSmallDisplacementThermoMechanicElement3D10N )
     KRATOS_REGISTER_ELEMENT( "SmallDisplacementThermoMechanicElement3D20N", mSmallDisplacementThermoMechanicElement3D20N )
     KRATOS_REGISTER_ELEMENT( "SmallDisplacementThermoMechanicElement3D27N", mSmallDisplacementThermoMechanicElement3D27N )
+
+    KRATOS_REGISTER_ELEMENT( "SmallDisplacementThermoMechanicGlobalDamageElement2D3N", mSmallDisplacementThermoMechanicGlobalDamageElement2D3N )
+    KRATOS_REGISTER_ELEMENT( "SmallDisplacementThermoMechanicGlobalDamageElement2D4N", mSmallDisplacementThermoMechanicGlobalDamageElement2D4N )
+    KRATOS_REGISTER_ELEMENT( "SmallDisplacementThermoMechanicGlobalDamageElement3D4N", mSmallDisplacementThermoMechanicGlobalDamageElement3D4N )
+    KRATOS_REGISTER_ELEMENT( "SmallDisplacementThermoMechanicGlobalDamageElement3D8N", mSmallDisplacementThermoMechanicGlobalDamageElement3D8N )
+
+    KRATOS_REGISTER_ELEMENT( "SmallDisplacementThermoMechanicGlobalDamageElement2D6N", mSmallDisplacementThermoMechanicGlobalDamageElement2D6N )
+    KRATOS_REGISTER_ELEMENT( "SmallDisplacementThermoMechanicGlobalDamageElement2D8N", mSmallDisplacementThermoMechanicGlobalDamageElement2D8N )
+    KRATOS_REGISTER_ELEMENT( "SmallDisplacementThermoMechanicGlobalDamageElement2D9N", mSmallDisplacementThermoMechanicGlobalDamageElement2D9N )
+    KRATOS_REGISTER_ELEMENT( "SmallDisplacementThermoMechanicGlobalDamageElement3D10N", mSmallDisplacementThermoMechanicGlobalDamageElement3D10N )
+    KRATOS_REGISTER_ELEMENT( "SmallDisplacementThermoMechanicGlobalDamageElement3D20N", mSmallDisplacementThermoMechanicGlobalDamageElement3D20N )
+    KRATOS_REGISTER_ELEMENT( "SmallDisplacementThermoMechanicGlobalDamageElement3D27N", mSmallDisplacementThermoMechanicGlobalDamageElement3D27N )
 
     //Register Conditions
     KRATOS_REGISTER_CONDITION( "FreeSurfaceCondition2D2N", mFreeSurfaceCondition2D2N )
@@ -185,6 +209,7 @@ void KratosDamApplication::Register()
     KRATOS_REGISTER_VARIABLE( ACCELERATION_PRESSURE_COEFFICIENT )  
 
     KRATOS_REGISTER_VARIABLE( NODAL_YOUNG_MODULUS ) 
+    KRATOS_REGISTER_VARIABLE( COMPUTE_GLOBAL_DAMAGE ) 
     
 }
 
