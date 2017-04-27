@@ -360,7 +360,8 @@ private:
     virtual void ConductSearchIteration(const bool LastIteration)
     {
         InterfaceObjectConfigure::ContainerType interface_objects;
-        mpInterfaceObjectManager->GetInterfaceObjectsSerialSearch(interface_objects);
+        std::vector<int> interface_objects_indices;
+        mpInterfaceObjectManager->GetInterfaceObjectsSerialSearch(interface_objects, interface_objects_indices);
 
         int num_objects = interface_objects.size();
 
@@ -373,7 +374,7 @@ private:
                            min_distances, shape_function_values, pairing_indices);
 
         mpInterfaceObjectManagerBins->StoreSearchResults(min_distances, interface_object_results, shape_function_values);
-        mpInterfaceObjectManager->PostProcessReceivedResults(interface_objects, min_distances,
+        mpInterfaceObjectManager->PostProcessResults(interface_objects, interface_objects_indices, min_distances,
                 pairing_indices);
     }
 

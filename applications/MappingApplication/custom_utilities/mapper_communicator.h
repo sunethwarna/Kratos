@@ -181,10 +181,16 @@ public:
     }
 
     virtual void TransferVariableData(std::function<array_1d<double, 3>(InterfaceObject*, const std::vector<double>&)> FunctionPointerOrigin,
-                              std::function<void(InterfaceObject*, array_1d<double, 3>)> FunctionPointerDestination,
-                              const Variable< array_1d<double, 3> >& rOriginVariable) 
+                                      std::function<void(InterfaceObject*, array_1d<double, 3>)> FunctionPointerDestination,
+                                      const Variable< array_1d<double, 3> >& rOriginVariable) 
     {
         ExchangeDataLocal(FunctionPointerOrigin, FunctionPointerDestination);
+    }
+
+    virtual void TransferData(std::function<double(InterfaceObject*, const std::vector<double>&)> FunctionPointerOrigin,
+                              std::vector<double>& rData) 
+    {
+        GetExchangedDataLocal(FunctionPointerOrigin, rData);
     }
 
     virtual int MyPID() // Copy from "kratos/includes/communicator.h"
@@ -291,6 +297,16 @@ protected:
 
         mpInterfaceObjectManagerOrigin->FillBufferWithValues(FunctionPointerOrigin, values);
         mpInterfaceObjectManagerDestination->ProcessValues(FunctionPointerDestination, values);
+    }
+
+    template <typename T>
+    void GetExchangedDataLocal(std::function<T(InterfaceObject*, const std::vector<double>&)> FunctionPointerOrigin,
+                               std::vector<T>& rData)
+    {
+        std::vector< T > values;
+
+        mpInterfaceObjectManagerOrigin->FillBufferWithValues(FunctionPointerOrigin, values);
+        mpInterfaceObjectManagerDestination->ExtractValues(values, rData);
     }
 
     // Function used for Debugging

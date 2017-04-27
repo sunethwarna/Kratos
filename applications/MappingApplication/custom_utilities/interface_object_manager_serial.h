@@ -88,21 +88,26 @@ public:
     // **********************************************************************
     // Side we want to find neighbors for aka destination *******************
     // **********************************************************************
-    void GetInterfaceObjectsSerialSearch(InterfaceObjectConfigure::ContainerType& rCandidateSendObjects) override
+    void GetInterfaceObjectsSerialSearch(InterfaceObjectConfigure::ContainerType& rCandidateSendObjects,
+                                         std::vector<int>& rCandidateSendObjectsIndices) override
     {
         InitializeSizes();
+        int i = 0;
         for (auto interface_obj : mInterfaceObjects)
         {
             if (!interface_obj->NeighborOrApproximationFound())   // check if the interface object already found a neighbor
             {
                 rCandidateSendObjects.push_back(interface_obj);
+                rCandidateSendObjectsIndices.push_back(i);
             }
+            ++i;
         }
     }
 
-    void PostProcessReceivedResults(const InterfaceObjectConfigure::ContainerType& rCandidateSendObjects,
-                                    const std::vector<double>& rDistances,
-                                    const std::vector<int>& rPairingIndices) override
+    void PostProcessResults(const InterfaceObjectConfigure::ContainerType& rCandidateSendObjects,
+                            const std::vector<int>& rCandidateSendObjectsIndices,
+                            const std::vector<double>& rDistances,
+                            const std::vector<int>& rPairingIndices) override
     {
         int i = 0;
         for (auto interface_obj : rCandidateSendObjects)
@@ -111,6 +116,7 @@ public:
             {
                 interface_obj->ProcessSearchResult(rDistances[i], rPairingIndices[i], mCommRank);
                 mSendObjects[mCommRank].push_back(interface_obj);
+                mSendObjectsIndices[mCommRank].push_back(rCandidateSendObjectsIndices[i]);
             }
             ++i;
         }
@@ -232,6 +238,7 @@ private:
     {
         int size = mInterfaceObjects.size();
         mSendObjects[mCommRank].reserve(size);
+        mSendObjectsIndices[mCommRank].reserve(size);
         mReceiveObjects[mCommRank].reserve(size);
         mShapeFunctionValues[mCommRank].reserve(size);
     }

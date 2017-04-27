@@ -95,6 +95,7 @@ public:
     {
         double* bounding_box[6];
         std::vector<int> partition_list; // For debugging
+        int i = 0;
         for (auto& interface_obj : mInterfaceObjects)
         {
             for (int partition_index = 0; partition_index < mCommSize; ++partition_index)   // loop over partitions
@@ -108,6 +109,7 @@ public:
                     if (interface_obj->IsInBoundingBox(bounding_box))
                     {
                         rCandidateManager.mCandidateSendObjects[partition_index].push_back(interface_obj);
+                        rCandidateManager.mCandidateSendObjectsIndices[partition_index].push_back(i);
                         pLocalCommList[partition_index] = 1;
                         ++pLocalMemorySizeArray[partition_index];
                         interface_obj->SetIsBeingSent();
@@ -141,11 +143,13 @@ public:
                     for (int partition_index = 0; partition_index < mCommSize; ++partition_index)
                     {
                         rCandidateManager.mCandidateSendObjects[partition_index].push_back(interface_obj);
+                        rCandidateManager.mCandidateSendObjectsIndices[partition_index].push_back(i);
                         pLocalCommList[partition_index] = 1;
                         ++pLocalMemorySizeArray[partition_index];
                     }
                 }
             }
+            ++i;
         }
     }
 
@@ -174,11 +178,13 @@ public:
             if (rCandidateManager.mCandidateSendObjects.count(partition_index) > 0)
             {
                 rCandidateManager.mMatchingInformation.reserve(rCandidateManager.mCandidateSendObjects.at(partition_index).size());
+                int i = 0;
                 for (auto interface_obj : rCandidateManager.mCandidateSendObjects.at(partition_index))
                 {
                     if (interface_obj->HasNeighborOrApproximationInPartition(partition_index))
                     {
                         mSendObjects[partition_index].push_back(interface_obj);
+                        mSendObjectsIndices[partition_index].push_back(rCandidateManager.mCandidateSendObjectsIndices.at(partition_index)[i]);
                         rCandidateManager.mMatchingInformation[partition_index].push_back(1);
                         pLocalCommList[partition_index] = 1;
                         ++pLocalMemorySizeArray[partition_index];
@@ -187,6 +193,7 @@ public:
                     {
                         rCandidateManager.mMatchingInformation[partition_index].push_back(0);
                     }
+                    ++i;
                 }
             }
         }
@@ -488,6 +495,29 @@ public:
             value[2] = pBuffer[(i * 3) + 2];
 
             FunctionPointer(boost::get_pointer(interface_objects[i]), value);
+        }
+    }
+
+    void ExtractValues(const double* pBuffer, const int BufferSize, const int CommPartner,
+                       std::vector<double>& rData)
+    {
+        std::vector<InterfaceObject::Pointer> interface_objects;
+        if (mSendObjects.count(CommPartner) > 0)
+        {
+            interface_objects = mSendObjects.at(CommPartner);
+        }
+
+        // Debug Check
+        if (static_cast<int>(interface_objects.size()) != BufferSize)
+        {
+            KRATOS_ERROR << "Wrong number of results received!; "
+                         << "interface_objects.size() = " << interface_objects.size()
+                         << ", BufferSize = " << BufferSize << std::endl;
+        }
+
+        for (int i = 0; i < BufferSize; ++i)
+        {
+            rData[i] = pBuffer[i];
         }
     }
 

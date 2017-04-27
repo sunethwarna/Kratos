@@ -60,6 +60,7 @@ typedef matrix<int> GraphType; // GraphColoringProcess
 struct CandidateManager
 {
     std::unordered_map<int, std::vector<InterfaceObject::Pointer> > mCandidateSendObjects;
+    std::unordered_map<int, std::vector<int> >mCandidateSendObjectsIndices;
     std::unordered_map<int, std::vector<InterfaceObject::Pointer> > mCandidateReceiveObjects;
     std::unordered_map<int, std::vector<std::vector<double> > > mCandidateShapeFunctionValues;
 
@@ -176,14 +177,16 @@ public:
     }
 
     // ***** InterfaceObjectManagerSerial *****
-    virtual void GetInterfaceObjectsSerialSearch(InterfaceObjectConfigure::ContainerType& rCandidateSendObjects)
+    virtual void GetInterfaceObjectsSerialSearch(InterfaceObjectConfigure::ContainerType& rCandidateSendObjects,
+                                         std::vector<int>& rCandidateSendObjectsIndices)
     {
         KRATOS_ERROR << "Base class function called!" << std::endl;
     }
 
-    virtual void PostProcessReceivedResults(const InterfaceObjectConfigure::ContainerType& rCandidateSendObjects,
-                                            const std::vector<double>& rDistances,
-                                            const std::vector<int>& rPairingIndices)
+    virtual void PostProcessResults(const InterfaceObjectConfigure::ContainerType& rCandidateSendObjects,
+                            const std::vector<int>& rCandidateSendObjectsIndices,
+                            const std::vector<double>& rDistances,
+                            const std::vector<int>& rPairingIndices)
     {
         KRATOS_ERROR << "Base class function called!" << std::endl;
     }
@@ -294,23 +297,22 @@ public:
     }
 
     // **********************************************************************
-    // Functions for Mapping ************************************************
+    // Functions for Data Exchange*******************************************
     // **********************************************************************
     // ** InterfaceObjectManagerSerial and InterfaceObjectManagerParallel **
     template <typename T>
     void FillBufferWithValues(std::function<T(InterfaceObject*, const std::vector<double>&)> FunctionPointer, 
                               std::vector< T >& rBuffer)
     {
-        int i = 0;
-
         std::vector<InterfaceObject::Pointer> interface_objects;
         if (mReceiveObjects.count(mCommRank) > 0)
         {
             interface_objects = mReceiveObjects.at(mCommRank);
         }
-        // bind shape function values // TODO
+        
         rBuffer.resize(interface_objects.size());
-
+        
+        int i = 0;
         for (auto interface_obj : interface_objects)
         {
             rBuffer[i] = FunctionPointer(boost::get_pointer(interface_obj), mShapeFunctionValues.at(mCommRank)[i]);
@@ -343,6 +345,21 @@ public:
         }
     }
 
+    template <typename T>
+    void ExtractValues(std::vector< T >& rBuffer, std::vector< T >& rData)
+    {
+        std::vector<int> interface_objects_indices;
+        if (mSendObjectsIndices.count(mCommRank) > 0)
+        {
+            interface_objects_indices = mSendObjectsIndices.at(mCommRank);
+        }
+        
+        for (std::size_t i = 0; i < interface_objects_indices.size(); ++i)
+        {
+            rData[interface_objects_indices[i]] = rBuffer[i];
+        }
+    }
+
     // ***** InterfaceObjectManagerParallel *****
     virtual void ComputeBufferSizesAndCommunicationGraph(int& rMaxSendBufferSize,
             int& rMaxReceiveBufferSize,
@@ -372,6 +389,12 @@ public:
 
     virtual void ProcessValues(const double* pBuffer, const int BufferSize, const int CommPartner,
                        std::function<void(InterfaceObject*, array_1d<double, 3>)> FunctionPointer)
+    {
+        KRATOS_ERROR << "Base class function called!" << std::endl;
+    }
+
+    virtual void ExtractValues(const double* pBuffer, const int BufferSize, const int CommPartner,
+                       std::vector<double>& rData)
     {
         KRATOS_ERROR << "Base class function called!" << std::endl;
     }
@@ -490,6 +513,8 @@ protected:
 
     // point-sending interface (destination)
     std::unordered_map<int, std::vector<InterfaceObject::Pointer> > mSendObjects;
+    // storing the indices of the objects in the input modelpart
+    std::unordered_map<int, std::vector<int> > mSendObjectsIndices;
 
     // point-receiving interface
     std::unordered_map<int, std::vector<InterfaceObject::Pointer> > mReceiveObjects;

@@ -152,6 +152,15 @@ public:
         MPI_Barrier(MPI_COMM_WORLD);
     }
 
+    void TransferData(std::function<double(InterfaceObject*, const std::vector<double>&)> FunctionPointerOrigin,
+                              std::vector<double>& rData) override
+    {
+        GetExchangedDataLocal(FunctionPointerOrigin, rData);
+        GetExchangedDataRemote(FunctionPointerOrigin, rData);
+
+        MPI_Barrier(MPI_COMM_WORLD);
+    }
+
     int MyPID () override   // Copy from "kratos/includes/mpi_communicator.h"
     {
         int rank;
@@ -321,6 +330,45 @@ private:
 
                 mpInterfaceObjectManagerDestination->ProcessValues(receive_buffer, receive_buffer_size, 
                                                                    comm_partner, FunctionPointerDestination);
+
+            } // if I am communicating in this loop (comm_partner != -1)
+        } // loop colors
+
+        delete [] send_buffer;
+        delete [] receive_buffer;
+    }
+
+    template <typename T>
+    void GetExchangedDataRemote(std::function<T(InterfaceObject*, const std::vector<double>&)> FunctionPointerOrigin,
+                                std::vector<T>& rData)
+    {
+        int send_buffer_size = 0;
+        int receive_buffer_size = 0;
+
+        int max_send_buffer_size = mMaxSendBufferSize;
+        int max_receive_buffer_size = mMaxReceiveBufferSize;
+
+        int buffer_size_factor = MapperUtilitiesMPI::SizeOfVariable(T());
+
+        max_send_buffer_size *= buffer_size_factor;
+        max_receive_buffer_size *= buffer_size_factor;
+
+        double* send_buffer = new double[max_send_buffer_size];
+        double* receive_buffer = new double[max_receive_buffer_size];
+
+        for (int i = 0; i < mMaxColors; ++i)   // loop over communication steps (aka. colour)
+        {
+            int comm_partner = mColoredGraph(MyPID(), i); // get the partner rank
+            if (comm_partner != -1)   // check if rank is communicating in this communication step (aka. colour)
+            {
+                mpInterfaceObjectManagerOrigin->FillBufferWithValues(send_buffer, send_buffer_size, 
+                                                                     comm_partner, FunctionPointerOrigin);
+
+                MapperUtilitiesMPI::MpiSendRecv(send_buffer, receive_buffer, send_buffer_size, receive_buffer_size,
+                                                max_send_buffer_size, max_receive_buffer_size, comm_partner);
+                
+                mpInterfaceObjectManagerDestination->ExtractValues(receive_buffer, receive_buffer_size, 
+                                                                   comm_partner, rData);
 
             } // if I am communicating in this loop (comm_partner != -1)
         } // loop colors
