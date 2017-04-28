@@ -1519,6 +1519,121 @@ class CADMapper
 		std::cout << "\n> Fished writing displacements of control points..." << std::endl;
 	}
 
+    // --------------------------------------------------------------------------
+	void output_surface_border_points(std::string output_filename, const unsigned int u_resolution, int specific_patch)
+    {
+		std::cout << "\n> Starting writing points on surface border of given CAD geometry to file..." << std::endl;
+	
+		// Set a max value for the coordinte output to avoid clutter through points that are plotted outside the trimmed surface
+		double max_coordinate = 1000;
+
+	    // Open file to write all points in
+		std::ofstream file_to_write(output_filename);
+
+		// If no specific patch defined, output boundary loop of all patches
+		if(specific_patch<0)
+		{
+			//Loop over all patches
+			for (unsigned int patch_itr = 0; patch_itr < m_patches.size(); patch_itr++)
+			{
+				BoundaryLoopVector boundary_loops = m_patches[patch_itr].GetBoundaryLoops();
+
+				// Loop over all boundary loops of current patch
+				for(BoundaryLoopVector::iterator loop_i =  boundary_loops.begin(); loop_i!=boundary_loops.end(); loop_i++)
+				{
+					BoundaryEdgeVector boundary_edges = loop_i->GetBoundaryEdges();
+
+					// Loop over all edges
+					for (BoundaryEdgeVector::iterator edge_i = boundary_edges.begin(); edge_i!=boundary_edges.end(); edge_i++)
+					{
+						DoubleVector& knot_vec_u_i = edge_i->GetKnotVectorU();
+						unsigned int knot_vector_u_dimension = knot_vec_u_i.size();
+
+						double u_min = knot_vec_u_i[0];
+						double u_max = knot_vec_u_i[knot_vector_u_dimension-1];
+
+						double delta_u = (u_max-u_min) / u_resolution;
+
+						for(unsigned int i=0; i<=u_resolution; i++)
+						{
+							double u_i = u_min + i*delta_u;
+
+							// Evaluate point in the parameter space
+							Point<3> edge_point;
+							edge_i->EvaluateCurvePoint(edge_point, u_i);
+
+							// Check if u_i and v_j represent a point inside the closed boundary loop
+							array_1d<double, 2> point_of_interest;
+							point_of_interest[0] = edge_point[0];
+							point_of_interest[1] = edge_point[1];
+							bool point_is_inside = m_patches[patch_itr].CheckIfPointIsInside(point_of_interest);
+
+							if(point_is_inside)
+							{
+								// compute point in CAD-model for given u&v				
+								Point<3> cad_point;
+								m_patches[patch_itr].GetSurface().EvaluateSurfacePoint(cad_point, edge_point[0], edge_point[1]);
+
+								// Check and set a max value for irrelevant points outside the trimmed surface
+								if(std::abs(cad_point.X())>max_coordinate)
+									cad_point.X() = MathUtils<int>::Sign(cad_point.X()) * max_coordinate;
+								if(std::abs(cad_point.Y())>max_coordinate)
+									cad_point.Y() = MathUtils<int>::Sign(cad_point.Y()) * max_coordinate;
+								if(std::abs(cad_point.Z())>max_coordinate)
+									cad_point.Z() = MathUtils<int>::Sign(cad_point.Z()) * max_coordinate;														
+
+								// Output point
+								file_to_write << cad_point.X() << " " << cad_point.Y() << " " << cad_point.Z() << std::endl;
+							}
+
+						}
+					}
+				}
+			}
+		}
+		else // if specific_patch defined
+		{}
+		// {
+		// 	BoundaryLoopVector boundary_loops = m_patches[specific_patch].GetBoundaryLoops();
+
+		// 	// Loop over all boundary loops of current patch
+		// 	for(BoundaryLoopVector::iterator loop_i =  boundary_loops.begin(); loop_i!=boundary_loops.end(); loop_i++)
+		// 	{
+		// 		BoundaryEdgeVector boundary_edges = loop_i->GetBoundaryEdges();
+
+		// 		// Loop over all edges
+		// 		for (BoundaryEdgeVector::iterator edge_i = boundary_edges.begin(); edge_i!=boundary_edges.end(); edge_i++)
+		// 		{
+		// 			DoubleVector& knot_vec_u_i = edge_i->GetKnotVectorU();
+		// 			unsigned int knot_vector_u_dimension = knot_vec_u_i.size();
+
+		// 			double u_min = knot_vec_u_i[0];
+		// 			double u_max = knot_vec_u_i[knot_vector_u_dimension-1];
+
+		// 			double delta_u = (u_max-u_min) / u_resolution;
+
+		// 			for(unsigned int i=0; i<=u_resolution; i++)
+		// 			{
+		// 				double u_i = u_min + i*delta_u;
+
+		// 				// Evaluate point
+		// 				Point<3> edge_point;
+		// 				edge_i->EvaluateCurvePoint(edge_point, u_i);
+
+		// 				// Output point
+		// 				file_to_write << edge_point[0] << " " << edge_point[1] << " " << edge_point[2] << std::endl;
+		// 			}
+		// 		}
+		// 	}
+		// }
+
+		// Close file
+		file_to_write.close();
+
+		std::cout << "\n> Finished writing points on surface border of given CAD geometry to file..." << std::endl;
+    }	
+
+
     // ==============================================================================
 
     /// Turn back information as a string.
