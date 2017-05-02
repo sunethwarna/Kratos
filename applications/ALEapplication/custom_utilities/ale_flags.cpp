@@ -1,13 +1,18 @@
-//    |  /           |
-//    ' /   __| _` | __|  _ \   __|
-//    . \  |   (   | |   (   |\__ `
-//   _|\_\_|  \__,_|\__|\___/ ____/
-//                   Multi-Physics
+// ==============================================================================
+//      ___   __   ____             
+//     / _ | / /  / __/             
+//    / __ |/ /__/ _/               
+//   /_/ |_/____/___/  application  
 //
-//  License:		 BSD License
-//					 Kratos default license: kratos/license.txt
-//
-//  Main authors:    Andreas Winterstein
+// License:		     BSD License
+//					 license: ALEApplication/license.txt
+//==============================================================================
+
+/* ****************************************************************************
+ *  Projectname:         $KratosALEApplication
+ *  Last Modified by:    $Author: A.Winterstein@tum.de $
+ *  Date:                $Date: April 2017 $
+ * ***************************************************************************/
 
 #if !defined(KRATOS_ALE_FLAGS_CPP_INCLUDED )
 #define  KRATOS_ALE_FLAGS_CPP_INCLUDED

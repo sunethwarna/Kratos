@@ -1,6 +1,6 @@
 {
     "problem_data"                     : {
-        "problem_name"    : "rectangle_2D3N_test",
+        "problem_name"    : "triangle_2D3N_test",
         "model_part_name" : "MainModelPart",
         "domain_size"     : 2,
         "parallel_type"   : "OpenMP",
@@ -39,7 +39,7 @@
         "ale_solver_type"              : "mesh_solver_structural_similarity",
         "model_import_settings"        : {
             "input_type"     : "mdpa",
-            "input_filename" : "test_structural_mesh_motion_2d/rectangle_2D3N_test"
+            "input_filename" : "test_structural_mesh_motion_2d/triangle_2D3N_test"
         },
         "volume_model_part_name"       : "Parts_Fluid",
         "skin_parts"                   : ["NoSlip2D_FixedBoundary","NoSlip2D_MovingBoundary"],
@@ -64,9 +64,9 @@
             "value"           : [0.0, 0.0, 0.0]
         }
     },{
-        "python_module" : "impose_ale_rectangle_test_motion_process",
+        "python_module" : "impose_ale_triangle_test_motion_process",
         "kratos_module" : "KratosMultiphysics",
-        "process_name"  : "ImposeALERectangleTestMotionProcess",
+        "process_name"  : "ImposeALETriangleTestMotionProcess",
         "Parameters"    : {
             "mesh_id"         : 0,
             "model_part_name" : "NoSlip2D_MovingBoundary"
@@ -92,7 +92,7 @@
         "Parameters" :{
             "position"         : [0.2284, 0.1777, 0.0],
             "model_part_name"  : "Parts_Fluid",
-            "output_file_name" : "test_structural_mesh_motion_2d/rectangle_2D3N_test_probe1.dat",
+            "output_file_name" : "test_structural_mesh_motion_2d/triangle_2D3N_test_probe1.dat",
             "output_variables" : [
                 "MESH_DISPLACEMENT_X",
                 "MESH_DISPLACEMENT_Y",
@@ -107,7 +107,7 @@
         "Parameters" :{
             "position"         : [0.6454, 0.3105, 0.0],
             "model_part_name"  : "Parts_Fluid",
-            "output_file_name" : "test_structural_mesh_motion_2d/rectangle_2D3N_test_probe2.dat",
+            "output_file_name" : "test_structural_mesh_motion_2d/triangle_2D3N_test_probe2.dat",
             "output_variables" : [
                 "MESH_DISPLACEMENT_X",
                 "MESH_DISPLACEMENT_Y",
@@ -120,8 +120,8 @@
         "help"            : "",
         "process_name"    : "CompareTwoPointOutputFilesProcess",
         "Parameters" :{
-            "file_name_1"         : "test_structural_mesh_motion_2d/rectangle_2D3N_test_probe1.dat",
-            "file_name_2"         : "test_structural_mesh_motion_2d/rectangle_2D3N_test_probe1_ref.dat",
+            "file_name_1"         : "test_structural_mesh_motion_2d/triangle_2D3N_test_probe1.dat",
+            "file_name_2"         : "test_structural_mesh_motion_2d/triangle_2D3N_test_probe1_ref.dat",
 	    "decimal_places" : 5
         }
     },{
@@ -130,8 +130,8 @@
         "help"            : "",
         "process_name"    : "CompareTwoPointOutputFilesProcess",
         "Parameters" :{
-            "file_name_1"         : "test_structural_mesh_motion_2d/rectangle_2D3N_test_probe2.dat",
-            "file_name_2"         : "test_structural_mesh_motion_2d/rectangle_2D3N_test_probe2_ref.dat",
+            "file_name_1"         : "test_structural_mesh_motion_2d/triangle_2D3N_test_probe2.dat",
+            "file_name_2"         : "test_structural_mesh_motion_2d/triangle_2D3N_test_probe2_ref.dat",
 	    "decimal_places" : 5
         }
     }]

@@ -61,5 +61,4 @@ class MeshSolverBase:
 
 
     def GetComputingModelPart(self):
-        #return self.main_model_part.GetSubModelPart(self.computing_model_part_name)
         return self.model_part

@@ -23,7 +23,7 @@ def AssembleTestSuites():
 
     # Create a test suite with the selected tests (Small tests):
     smallSuite = suites['small']
-    smallSuite.addTest(test_structural_mesh_motion_2d.TestCase('test_Rectangle_2D3N'))
+    smallSuite.addTest(test_structural_mesh_motion_2d.TestCase('test_Triangle_2D3N'))
 
     # Create a test suite with the selected tests plus all small tests
     nightSuite = suites['nightly']

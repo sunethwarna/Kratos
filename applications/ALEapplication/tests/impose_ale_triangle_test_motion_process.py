@@ -6,9 +6,9 @@ from math import cos, sin
 def Factory(settings, Model):
     if(type(settings) != Parameters):
         raise Exception("expected input shall be a Parameters object, encapsulating a json string")
-    return ImposeALERectangleTestMotionProcess(Model, settings["Parameters"])
+    return ImposeALETriangleTestMotionProcess(Model, settings["Parameters"])
 
-class ImposeALERectangleTestMotionProcess(Process):
+class ImposeALETriangleTestMotionProcess(Process):
     def __init__(self, Model, settings):
         Process.__init__(self)
         
