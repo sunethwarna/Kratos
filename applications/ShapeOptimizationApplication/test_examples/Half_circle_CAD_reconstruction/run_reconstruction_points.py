@@ -1,6 +1,5 @@
 # Making KratosMultiphysics backward compatible with python 2.6 and 2.7
 from __future__ import print_function, absolute_import, division 
-
 # importing the Kratos Library
 from KratosMultiphysics import *
 from KratosMultiphysics.SolidMechanicsApplication import *
@@ -67,7 +66,7 @@ mapper.output_surface_points(file_to_write, u_resolution, v_resolution, -1)
 # Output some boundary nodes of cad geometry
 file_to_write = "boundary_nodes_of_cad_geometry.txt"
 u_resolution = 10
-mapper.output_surface_border_points(file_to_write, u_resolution, -1)
+mapper.output_surface_border_points_two(file_to_write)
 # ------------------------------------------------- new section -------------------------------------------------
 # ===============================================================================================================
 
@@ -112,7 +111,8 @@ mapper.output_surface_points(file_to_write, u_resolution, v_resolution, -1)
 # Output some boundary nodes of cad geometry
 file_to_write = "boundary_nodes_of_cad_geometry_updated.txt"
 u_resolution = 10
-mapper.output_surface_border_points(file_to_write, u_resolution, -1)
+mapper.output_surface_border_points_two(file_to_write)
+
 # ------------------------------------------------- new section -------------------------------------------------
 # ===============================================================================================================
 

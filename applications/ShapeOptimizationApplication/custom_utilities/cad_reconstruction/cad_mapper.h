@@ -117,6 +117,9 @@ class CADMapper
     typedef boost::python::extract<bool> extractBool;
 	typedef boost::python::extract<unsigned int> extractUnsignedInt;
 
+	// For convenience
+	typedef std::vector <Point <3>> VectorPoint; 
+
     /// Pointer definition of CADMapper
     KRATOS_CLASS_POINTER_DEFINITION(CADMapper);
 
@@ -1633,7 +1636,175 @@ class CADMapper
 		std::cout << "\n> Finished writing points on surface border of given CAD geometry to file..." << std::endl;
     }	
 
+	// --------------------------------------------------------------------------
+	void output_surface_border_points_two( std::string output_filename )
+	{
+		// std::ofstream file_to_write(output_filename);
+		int patch = 0;
+		VectorPoint SlavePointVector;
+		VectorPoint MasterPointVector; 
+		DoubleVector CosineVector;
+		for (BREPElementVector::iterator brep_elem_i = m_brep_elements.begin(); brep_elem_i != m_brep_elements.end(); ++brep_elem_i)
+		{
+			
 
+			if(brep_elem_i->HasCouplingCondition())
+			{
+				patch++;
+				// Get Gauss points of current brep element
+				BREPGaussPointVector brep_gps = brep_elem_i->GetGaussPoints();
+
+				// Loop over all Gauss points of current brep element 
+				for (BREPGaussPointVector::iterator brep_gp_i = brep_gps.begin(); brep_gp_i != brep_gps.end(); ++brep_gp_i)
+				{
+					// Read information from Gauss point
+					unsigned int master_patch_id = brep_gp_i->GetPatchId();
+					unsigned int slave_patch_id = brep_gp_i->GetSlavePatchId();
+					Patch& master_patch = m_patches[m_patch_position_in_patch_vector[master_patch_id]];
+					Patch& slave_patch = m_patches[m_patch_position_in_patch_vector[slave_patch_id]];
+					// double gp_i_weight = brep_gp_i->GetWeight();
+					Vector location_on_master_patch = brep_gp_i->GetLocation();
+					Vector location_on_slave_patch = brep_gp_i->GetSlaveLocation();
+					// Vector tangent_on_master_patch = brep_gp_i->GetTangent();
+					// Vector tangent_on_slave_patch = brep_gp_i->GetSlaveTangent();
+
+					// Evaluate NURBS basis function for Gauss point on both patches and get the corresponding ids of control points in the mapping matrix
+					matrix<double> R_gpi_master;
+					double u_m = location_on_master_patch(0);
+					double v_m = location_on_master_patch(1);
+					// master_patch.GetSurface().EvaluateNURBSFunctions(-1,-1,u_m, v_m, R_gpi_master);
+					// matrix<unsigned int> mapping_matrix_ids_gpi_master = master_patch.GetSurface().GetMappingMatrixIds(-1,-1,u_m, v_m);
+
+					matrix<double> R_gpi_slave;
+					double u_s = location_on_slave_patch(0);
+					double v_s = location_on_slave_patch(1);
+
+					Point<3> cad_point_master;
+					master_patch.GetSurface().EvaluateSurfacePoint(cad_point_master, u_m, v_m);
+
+					Point<3> cad_point_slave;
+					slave_patch.GetSurface().EvaluateSurfacePoint(cad_point_slave, u_s, v_s);
+
+					MasterPointVector.push_back( cad_point_master );
+					SlavePointVector.push_back( cad_point_slave );
+					slave_patch.GetSurface().EvaluateNURBSFunctions(-1,-1,u_s, v_s, R_gpi_slave);	
+					// // matrix<unsigned int> mapping_matrix_ids_gpi_slave = slave_patch.GetSurface().GetMappingMatrixIds(-1,-1,u_s, v_s);							
+
+
+					// file_to_write << cad_point_master.X() << " " << cad_point_master.Y() << " " << cad_point_master.Z() << std::endl;
+					// Compute Jacobian J1
+					matrix<double> g_master = master_patch.GetSurface().GetBaseVectors(-1,-1,u_m,v_m);
+					Vector g1_m = ZeroVector(3);
+					g1_m(0) = g_master(0,0);
+					g1_m(1) = g_master(1,0);
+					g1_m(2) = g_master(2,0);
+					Vector g2_m = ZeroVector(3);
+					g2_m(0) = g_master(0,1);
+					g2_m(1) = g_master(1,1);
+					g2_m(2) = g_master(2,1);
+
+					matrix<double> g_slave = slave_patch.GetSurface().GetBaseVectors(-1,-1,u_s,v_s);
+					Vector g1_s = ZeroVector(3);
+					g1_s(0) = g_slave(0,0);
+					g1_s(1) = g_slave(1,0);
+					g1_s(2) = g_slave(2,0);
+					Vector g2_s = ZeroVector(3);
+					g2_s(0) = g_slave(0,1);
+					g2_s(1) = g_slave(1,1);
+					g2_s(2) = g_slave(2,1);
+
+					auto normal_m = MathUtils<double>::CrossProduct(g1_m, g2_m);
+					auto normal_s = MathUtils<double>::CrossProduct(g1_s, g2_s);
+
+					auto inner_ms = inner_prod( normal_m, normal_s);
+
+					auto cosine_theta = inner_ms/ ( norm_2(normal_m) * norm_2(normal_s) );
+
+					CosineVector.push_back( cosine_theta );
+
+					// double J1 = norm_2( g1* tangent_on_master_patch(0) + g2* tangent_on_master_patch(1) );
+					// std::cout << "inner loop" << std::endl;
+				}
+			}
+			// std::cout << "outer loop" << std::endl;
+		}
+		double average, max;
+		check_c0_continuity( MasterPointVector, SlavePointVector, average, max);
+
+		KRATOS_WATCH("C_Zero Continuity");
+		KRATOS_WATCH( max );
+		KRATOS_WATCH( average );
+		average = std::accumulate( CosineVector.begin(), CosineVector.end(), 0.0)/CosineVector.size();
+
+		auto it_max = std::max_element( CosineVector.begin(), CosineVector.end() );
+		auto position = std::distance(CosineVector.begin(), it_max) - 1;
+		KRATOS_WATCH("C_One Continuity");
+		std::cout<< " Max is " << CosineVector[position] << std::endl;
+		KRATOS_WATCH( average );
+		
+		// file_to_write.close();
+	}
+
+	// --------------------------------------------------------------------------
+	void check_c0_continuity( VectorPoint myMaster, VectorPoint mySlave, double &average, double &max )
+	{
+		if( myMaster.size() != mySlave.size() )
+		{
+			KRATOS_WATCH(" Size different ");
+			average = NAN;
+			max = NAN;
+		}else
+		{
+			DoubleVector distance;
+			for( size_t i = 0; i < myMaster.size(); i++)
+			{
+				double X = myMaster[i].X() - mySlave[i].X();
+				double Y = myMaster[i].Y() - mySlave[i].Y();
+				double Z = myMaster[i].Z() - mySlave[i].Z();
+				double eulerian_distance = sqrt( X*X + Y*Y + Z*Z );
+
+				distance.push_back( eulerian_distance );
+			}
+
+			average = 0;
+			max = distance[0];
+			for( size_t i = 0; i < distance.size( ); i++)
+			{
+				average = average + distance[i];
+				if( distance[i] > max )
+				{
+					max = distance[i];
+				}
+			}
+
+			average = average / distance.size();
+		}
+	}
+
+	// --------------------------------------------------------------------------
+	// void check_c1_continuity( DoubleVector master_u, DoubleVector master_v, DoubleVector slave_u, DoubleVector slave_v )
+	// {
+	// 	if()
+	// 	{
+	// 		KRATOS_WATCH(" CentoDiciottoooooooo ");
+	// 		average = NAN;
+	// 		max = NAN;
+	// 	}else
+	// 	{
+	// 		for( size_t i = 0; i < master_u.size( ); i++)
+	// 		{
+	// 		matrix<double> g_master = master_patch.GetSurface().GetBaseVectors(-1,-1,master_u[i],master_v[i]);
+	// 		Vector g1 = ZeroVector(3);
+	// 		g1(0) = g_master(0,0);
+	// 		g1(1) = g_master(1,0);
+	// 		g1(2) = g_master(2,0);
+
+	// 		matrix<double> g_slave = slave_patch.GetSurface().GetBaseVectors(-1,-1,slave_u[i],slave_v[i]);
+				
+	// 		}
+			
+	// 	}
+	// }
     // ==============================================================================
 
     /// Turn back information as a string.

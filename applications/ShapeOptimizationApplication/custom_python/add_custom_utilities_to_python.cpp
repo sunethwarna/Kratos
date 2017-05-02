@@ -165,6 +165,8 @@ void  AddCustomUtilitiesToPython()
             .def("output_boundary_loop_points", &CADMapper::output_boundary_loop_points)
             .def("output_control_point_displacements", &CADMapper::output_control_point_displacements)
             .def("output_surface_border_points", &CADMapper::output_surface_border_points)
+            .def("output_surface_border_points_two", &CADMapper::output_surface_border_points_two)
+            
 
             ;                      
 }
