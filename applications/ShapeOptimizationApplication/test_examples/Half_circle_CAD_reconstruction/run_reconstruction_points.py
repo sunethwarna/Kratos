@@ -19,7 +19,7 @@ import json as json
 # Input parameters
 fem_input_filename = "optimized_shell_3418_elements"
 cad_geometry_input_filename = "Benchmark_halbkreis_32x16_multipatch_geometry.json" 
-cad_integration_input_filename = "Benchmark_halbkreis_32x16_multipatch_integration_data.json" 
+cad_integration_input_filename = "test.json" 
 
 # Output parameters
 cad_geometry_output_filename = cad_geometry_input_filename

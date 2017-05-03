@@ -1639,7 +1639,7 @@ class CADMapper
 	// --------------------------------------------------------------------------
 	void output_surface_border_points_two( std::string output_filename )
 	{
-		// std::ofstream file_to_write(output_filename);
+		std::ofstream file_to_write(output_filename);
 		int patch = 0;
 		VectorPoint SlavePointVector;
 		VectorPoint MasterPointVector; 
@@ -1691,7 +1691,7 @@ class CADMapper
 					// // matrix<unsigned int> mapping_matrix_ids_gpi_slave = slave_patch.GetSurface().GetMappingMatrixIds(-1,-1,u_s, v_s);							
 
 
-					// file_to_write << cad_point_master.X() << " " << cad_point_master.Y() << " " << cad_point_master.Z() << std::endl;
+					file_to_write << cad_point_master.X() << " " << cad_point_master.Y() << " " << cad_point_master.Z() << std::endl;
 					// Compute Jacobian J1
 					matrix<double> g_master = master_patch.GetSurface().GetBaseVectors(-1,-1,u_m,v_m);
 					Vector g1_m = ZeroVector(3);
@@ -1742,7 +1742,7 @@ class CADMapper
 		std::cout<< " Max is " << CosineVector[position] << std::endl;
 		KRATOS_WATCH( average );
 		
-		// file_to_write.close();
+		file_to_write.close();
 	}
 
 	// --------------------------------------------------------------------------
