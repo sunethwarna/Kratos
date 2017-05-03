@@ -60,6 +60,7 @@ class DamMechanicalSolver(object):
                 "max_radius_factor": 20.0,
                 "min_radius_factor": 0.5,
                 "block_builder": true,
+                "compute_global_damage": false,
                 "nonlocal_damage": false,
                 "characteristic_length": 0.05,
                 "search_neighbours_step": false,
@@ -346,8 +347,7 @@ class DamMechanicalSolver(object):
                                                                                move_mesh_flag)
             else:
                 self.main_model_part.ProcessInfo.SetValue(KratosPoro.IS_CONVERGED, True)
-                
-                global_damage = True
+                global_damage = self.settings["mechanical_solver_settings"]["compute_global_damage"].GetBool()
 
                 if global_damage:
                     print("Estamos entrando dentro de la nueva estrategia")

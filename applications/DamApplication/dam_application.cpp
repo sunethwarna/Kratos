@@ -169,6 +169,12 @@ void KratosDamApplication::Register()
     Serializer::Register("ThermalModifiedMisesNonlocalDamagePlaneStrain2DLaw",mThermalModifiedMisesNonlocalDamagePlaneStrain2DLaw);
     Serializer::Register("ThermalModifiedMisesNonlocalDamagePlaneStress2DLaw",mThermalModifiedMisesNonlocalDamagePlaneStress2DLaw);
 
+    Serializer::Register("IsotropicGlobalDamageSimoJu3DLaw",mIsotropicGlobalDamageSimoJu3DLaw);
+    Serializer::Register("IsotropicGlobalDamageSimoJuPlaneStrain2DLaw",mIsotropicGlobalDamageSimoJuPlaneStrain2DLaw);
+    Serializer::Register("IsotropicGlobalDamageSimoJuPlaneStress2DLaw",mIsotropicGlobalDamageSimoJuPlaneStress2DLaw);
+
+
+
     //Register Variables
     KRATOS_REGISTER_VARIABLE( THERMAL_EXPANSION )    
     

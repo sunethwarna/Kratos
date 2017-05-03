@@ -46,10 +46,6 @@ public:
     
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     
-    void CalculateRightHandSide(VectorType& rRightHandSideVector, ProcessInfo& rCurrentProcessInfo);
-
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 protected:
 
     void CalculateElementalSystem(LocalSystemComponents& rLocalSystem, ProcessInfo& rCurrentProcessInfo);

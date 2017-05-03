@@ -60,6 +60,11 @@ if(${USE_DAM_MPI} MATCHES ON)
         ${CMAKE_CURRENT_SOURCE_DIR}/custom_constitutive/thermal_modified_mises_nonlocal_damage_3D_law.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/custom_constitutive/thermal_modified_mises_nonlocal_damage_plane_strain_2D_law.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/custom_constitutive/thermal_modified_mises_nonlocal_damage_plane_stress_2D_law.cpp
+        
+        ${CMAKE_CURRENT_SOURCE_DIR}/custom_constitutive/isotropic_global_damage_simo_ju_3D_law.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/custom_constitutive/isotropic_global_damage_simo_ju_plane_strain_2D_law.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/custom_constitutive/isotropic_global_damage_simo_ju_plane_stress_2D_law.cpp
+
     )
 
     ## define library Kratos which defines the basic python interface
@@ -113,6 +118,12 @@ else()
         ${CMAKE_CURRENT_SOURCE_DIR}/custom_constitutive/thermal_modified_mises_nonlocal_damage_3D_law.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/custom_constitutive/thermal_modified_mises_nonlocal_damage_plane_strain_2D_law.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/custom_constitutive/thermal_modified_mises_nonlocal_damage_plane_stress_2D_law.cpp
+
+        ${CMAKE_CURRENT_SOURCE_DIR}/custom_constitutive/isotropic_global_damage_simo_ju_3D_law.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/custom_constitutive/isotropic_global_damage_simo_ju_plane_strain_2D_law.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/custom_constitutive/isotropic_global_damage_simo_ju_plane_stress_2D_law.cpp
+
+
     )
     
     ## define library Kratos which defines the basic python interface

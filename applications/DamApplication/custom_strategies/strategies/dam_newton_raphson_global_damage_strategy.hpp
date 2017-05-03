@@ -103,6 +103,10 @@ public:
             mr_model_part.GetProcessInfo()[COMPUTE_GLOBAL_DAMAGE] = 1;
             mpBuilderAndSolver->BuildRHS(mpScheme, mr_model_part, mb1);
             NonLinearPotencialEnergy = TSparseSpace::Dot(mDx, mb1);
+
+            KRATOS_WATCH(mb1)
+            KRATOS_WATCH(mDx)
+            KRATOS_WATCH(NonLinearPotencialEnergy)
   
             BaseType::GetModelPart().GetProcessInfo()[COMPUTE_GLOBAL_DAMAGE] = 2;
         } 
@@ -114,6 +118,10 @@ public:
             mr_model_part.GetProcessInfo()[COMPUTE_GLOBAL_DAMAGE] = 2;
             mpBuilderAndSolver->BuildRHS(mpScheme, mr_model_part, mb2);
             LinearPotencialEnergy = TSparseSpace::Dot(mDx, mb2);
+
+            KRATOS_WATCH(mb2)
+            KRATOS_WATCH(mDx)
+            KRATOS_WATCH(LinearPotencialEnergy)
         } 
 
         // Compùting the global damage of the structure according to potential Energy (Hanganu, Onate...)

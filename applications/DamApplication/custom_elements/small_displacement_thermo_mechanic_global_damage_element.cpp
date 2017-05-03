@@ -42,39 +42,10 @@ Element::Pointer SmallDisplacementThermoMechanicGlobalDamageElement::Create( Ind
 
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-void SmallDisplacementThermoMechanicGlobalDamageElement::CalculateRightHandSide( VectorType& rRightHandSideVector, ProcessInfo& rCurrentProcessInfo )
-{
-    KRATOS_WATCH("ENTRA EN EL NUEVO LOCAL")
-
-    //create local system components
-    LocalSystemComponents LocalSystem;
-
-    //calculation flags
-    LocalSystem.CalculationFlags.Set(SmallDisplacementElement::COMPUTE_RHS_VECTOR);
-
-    MatrixType LeftHandSideMatrix = Matrix();
-
-    //Initialize sizes for the system components:
-    this->InitializeSystemMatrices( LeftHandSideMatrix, rRightHandSideVector, LocalSystem.CalculationFlags );
-
-    //Set Variables to Local system components
-    LocalSystem.SetLeftHandSideMatrix(LeftHandSideMatrix);
-    LocalSystem.SetRightHandSideVector(rRightHandSideVector);
-
-    //Calculate elemental system
-    this->CalculateElementalSystem( LocalSystem, rCurrentProcessInfo );
-
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 void SmallDisplacementThermoMechanicGlobalDamageElement::CalculateElementalSystem( LocalSystemComponents& rLocalSystem,
 							 ProcessInfo& rCurrentProcessInfo)
 {
     KRATOS_TRY
-
-
-    KRATOS_WATCH("ENTRAMOS EN EL CALCULATE DEL NUEVO ELEMENTO")
 
     //create and initialize element variables:
     GeneralVariables Variables;
@@ -124,8 +95,12 @@ void SmallDisplacementThermoMechanicGlobalDamageElement::CalculateElementalSyste
 
         if ( rLocalSystem.CalculationFlags.Is(SmallDisplacementElement::COMPUTE_RHS_VECTOR) ) //calculation of the vector is required
         {
-            //contribution to external forces
-            VolumeForce  = this->CalculateVolumeForce( VolumeForce, Variables );
+            // For computing the global damage the contribution of volume forces are not needed but it is necessary for the normal calculus 
+            if (rCurrentProcessInfo[COMPUTE_GLOBAL_DAMAGE] == 0)
+            {
+                //contribution to external forces
+                VolumeForce  = this->CalculateVolumeForce( VolumeForce, Variables );
+            }
 
             this->CalculateAndAddRHS ( rLocalSystem, Variables, VolumeForce, IntegrationWeight );
 
