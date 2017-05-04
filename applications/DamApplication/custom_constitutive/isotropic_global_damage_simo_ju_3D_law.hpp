@@ -10,166 +10,82 @@
 #if !defined (KRATOS_ISOTROPIC_GLOBAL_DAMAGE_SIMO_JU_3D_LAW_H_INCLUDED)
 #define  KRATOS_ISOTROPIC_GLOBAL_DAMAGE_SIMO_JU_3D_LAW_H_INCLUDED
 
-// System includes
 
-// External includes
+// System includes
+#include <cmath>
 
 // Project includes
-#include "custom_constitutive/isotropic_damage_simo_ju_3D_law.hpp"
+#include "includes/serializer.h"
+
+// Application includes
+#include "custom_constitutive/simo_ju_local_damage_3D_law.hpp"
+#include "custom_constitutive/custom_hardening_laws/exponential_damage_hardening_law.hpp"
+#include "custom_constitutive/custom_yield_criteria/simo_ju_yield_criterion.hpp"
+#include "custom_constitutive/custom_flow_rules/local_damage_flow_rule.hpp"
+#include "poromechanics_application_variables.h"
+#include "dam_application_variables.h"
 
 
 namespace Kratos
 {
 
-
-class KRATOS_API(SOLID_MECHANICS_APPLICATION) IsotropicGlobalDamageSimoJu3DLaw : public IsotropicDamageSimoJu3DLaw
+class IsotropicGlobalDamageSimoJu3DLaw : public SimoJuLocalDamage3DLaw
 {
 public:
-    /**
-     * Type Definitions
-     */
-    typedef ProcessInfo      ProcessInfoType;
-    typedef ConstitutiveLaw         BaseType;
-    typedef std::size_t             SizeType;
 
-    typedef FlowRule::Pointer                FlowRulePointer;
-    typedef YieldCriterion::Pointer    YieldCriterionPointer;
-    typedef HardeningLaw::Pointer        HardeningLawPointer;
-    typedef Properties::Pointer            PropertiesPointer;
+    KRATOS_CLASS_POINTER_DEFINITION(IsotropicGlobalDamageSimoJu3DLaw);
 
-    /**
-     * Counted pointer of IsotropicGlobalDamageSimoJu3DLaw
-     */
+    typedef FlowRule::Pointer FlowRulePointer;
+    typedef YieldCriterion::Pointer YieldCriterionPointer;
+    typedef HardeningLaw::Pointer HardeningLawPointer;
 
-    KRATOS_CLASS_POINTER_DEFINITION( IsotropicGlobalDamageSimoJu3DLaw );
+///----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-    /**
-     * Life Cycle
-     */
-
-    /**
-     * Default constructor.
-     */
+    /// Default Constructor
     IsotropicGlobalDamageSimoJu3DLaw();
-
-
+    
+    /// Second Constructor
     IsotropicGlobalDamageSimoJu3DLaw(FlowRulePointer pFlowRule, YieldCriterionPointer pYieldCriterion, HardeningLawPointer pHardeningLaw); 
-
-    /**
-     * Copy constructor.
-     */
+    
+    /// Copy Constructor
     IsotropicGlobalDamageSimoJu3DLaw (const IsotropicGlobalDamageSimoJu3DLaw& rOther);
 
-
-    /**
-     * Assignment operator.
-     */
-
-    //IsotropicGlobalDamageSimoJu3DLaw& operator=(const IsotropicGlobalDamageSimoJu3DLaw& rOther);
-
-    /**
-     * Clone function (has to be implemented by any derived class)
-     * @return a pointer to a new instance of this constitutive law
-     */
-    ConstitutiveLaw::Pointer Clone() const;
-
-    /**
-     * Destructor.
-     */
+    /// Destructor
     virtual ~IsotropicGlobalDamageSimoJu3DLaw();
 
-    /**
-     * Operators
-     */
+///----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-    /**
-     * Operations needed by the base class:
-     */
+    ConstitutiveLaw::Pointer Clone() const;
 
-       /**
-     * Computes the material response:
-     * PK2 stresses and algorithmic ConstitutiveMatrix
-     * @param rValues
-     * @see   Parameters
-     */
-    void CalculateMaterialResponseKirchhoff (Parameters & rValues);
+///----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+    void CalculateMaterialResponseCauchy (Parameters & rValues);
+    
+    void FinalizeMaterialResponseCauchy (Parameters & rValues);
 
-    /**
-     * Input and output
-     */
-    /**
-     * Turn back information as a string.
-     */
-    //virtual String Info() const;
-    /**
-     * Print information about this object.
-     */
-    //virtual void PrintInfo(std::ostream& rOStream) const;
-    /**
-     * Print object's data.
-     */
-    //virtual void PrintData(std::ostream& rOStream) const;
+///----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 protected:
 
-    ///@name Protected static Member Variables
-    ///@{
-    ///@}
-    ///@name Protected member Variables
-    ///@{
-    ///@}
-    ///@name Protected Operators
-    ///@{
-    ///@}
-    ///@name Protected Operations
-    ///@{
-
-    ///@}
+    /// Member Variables
+        
+///----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 private:
 
-    ///@name Static Member Variables
-    ///@{
+    /// Serialization
 
-
-    ///@}
-    ///@name Member Variables
-    ///@{
-
-
-    ///@}
-    ///@name Private Operators
-    ///@{
-
-
-    ///@}
-    ///@name Private Operations
-    ///@{
-
-
-    ///@}
-    ///@name Private  Access
-    ///@{
-    ///@}
-
-
-    ///@}
-    ///@name Serialization
-    ///@{
     friend class Serializer;
 
     virtual void save(Serializer& rSerializer) const
     {
-        KRATOS_SERIALIZE_SAVE_BASE_CLASS( rSerializer, IsotropicDamageSimoJu3DLaw )
+        KRATOS_SERIALIZE_SAVE_BASE_CLASS( rSerializer, SimoJuLocalDamage3DLaw )
     }
 
     virtual void load(Serializer& rSerializer)
     {
-        KRATOS_SERIALIZE_LOAD_BASE_CLASS( rSerializer, IsotropicDamageSimoJu3DLaw )
+        KRATOS_SERIALIZE_LOAD_BASE_CLASS( rSerializer, SimoJuLocalDamage3DLaw )
     }
-
-
 
 }; // Class IsotropicGlobalDamageSimoJu3DLaw
 }  // namespace Kratos.

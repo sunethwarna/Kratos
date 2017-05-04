@@ -82,8 +82,8 @@ public:
         TSystemVectorType& mb2 = *mpb;
 
         TSparseSpace::SetToZero(mb1);
-        double NonLinearPotencialEnergy;
-        double LinearPotencialEnergy;
+        double NonLinearPotencialEnergy = 0.0;
+        double LinearPotencialEnergy = 0.0 ;
 
         BaseType::GetModelPart().GetProcessInfo()[COMPUTE_GLOBAL_DAMAGE] = 1;
 
@@ -104,8 +104,6 @@ public:
             mpBuilderAndSolver->BuildRHS(mpScheme, mr_model_part, mb1);
             NonLinearPotencialEnergy = TSparseSpace::Dot(mDx, mb1);
 
-            KRATOS_WATCH(mb1)
-            KRATOS_WATCH(mDx)
             KRATOS_WATCH(NonLinearPotencialEnergy)
   
             BaseType::GetModelPart().GetProcessInfo()[COMPUTE_GLOBAL_DAMAGE] = 2;
@@ -119,8 +117,6 @@ public:
             mpBuilderAndSolver->BuildRHS(mpScheme, mr_model_part, mb2);
             LinearPotencialEnergy = TSparseSpace::Dot(mDx, mb2);
 
-            KRATOS_WATCH(mb2)
-            KRATOS_WATCH(mDx)
             KRATOS_WATCH(LinearPotencialEnergy)
         } 
 
