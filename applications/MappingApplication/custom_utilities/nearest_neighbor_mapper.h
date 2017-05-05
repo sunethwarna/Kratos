@@ -97,6 +97,31 @@ public:
         {
             ComputeNumberOfNodesAndConditions();
         }
+
+        /////////////////////////////////////
+        std::cout << "Starting the general Data Exchange" << std::endl;
+        auto pMapperCommunicator2 = MapperCommunicator::Pointer (
+                                           new MapperMPICommunicator(mModelPartOrigin,
+                                                   mModelPartDestination,
+                                                   mJsonParameters) );
+        pMapperCommunicator2->InitializeOrigin(MapperUtilities::Condition_Center);
+        pMapperCommunicator2->InitializeDestination(MapperUtilities::Node_Coords);
+        pMapperCommunicator2->Initialize();
+
+
+    
+
+        std::vector<double> data_vector;
+        data_vector.resize(mModelPartDestination.GetCommunicator().LocalMesh().NumberOfNodes());
+
+        pMapperCommunicator2->TransferData(&TestExtractionFunction,
+                                           data_vector);
+        
+        for (std::size_t i = 0; i < data_vector.size(); ++i)
+        {
+            std::cout << "Data: " << data_vector[i] << std::endl;
+        }
+
     }
 
     /* This function maps from Origin to Destination */
@@ -317,6 +342,14 @@ private:
         {
             p_base_node->FastGetSolutionStepValue(rVariable) = rValue * Factor;
         }
+    }
+
+    static double TestExtractionFunction(InterfaceObject* pInterfaceObject,
+                                const std::vector<double>& rShapeFunctionValues)
+    {
+        Geometry<Node<3>>* p_base_geometry = static_cast<InterfaceGeometryObject*>(pInterfaceObject)->pGetBase();
+        // return static_cast<double>(p_base_geometry->GetPoint(0).FastGetSolutionStepValue(PRESSURE));
+        return static_cast<double>(p_base_geometry->PointsNumber());
     }
 
     ///@}

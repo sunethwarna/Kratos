@@ -501,23 +501,25 @@ public:
     void ExtractValues(const double* pBuffer, const int BufferSize, const int CommPartner,
                        std::vector<double>& rData)
     {
-        std::vector<InterfaceObject::Pointer> interface_objects;
-        if (mSendObjects.count(CommPartner) > 0)
+
+
+        std::vector<int> interface_objects_indices;
+        if (mSendObjectsIndices.count(mCommRank) > 0)
         {
-            interface_objects = mSendObjects.at(CommPartner);
+            interface_objects_indices = mSendObjectsIndices.at(mCommRank);
         }
 
         // Debug Check
-        if (static_cast<int>(interface_objects.size()) != BufferSize)
+        if (static_cast<int>(interface_objects_indices.size()) != BufferSize)
         {
             KRATOS_ERROR << "Wrong number of results received!; "
-                         << "interface_objects.size() = " << interface_objects.size()
+                         << "interface_objects_indices.size() = " << interface_objects_indices.size()
                          << ", BufferSize = " << BufferSize << std::endl;
         }
 
         for (int i = 0; i < BufferSize; ++i)
         {
-            rData[i] = pBuffer[i];
+            rData[interface_objects_indices[i]] = pBuffer[i];
         }
     }
 
