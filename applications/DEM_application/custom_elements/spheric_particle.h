@@ -134,7 +134,7 @@ virtual void CalculateMaxBallToFaceIndentation(double& rCurrentMaxIndentation);
 virtual double CalculateLocalMaxPeriod(const bool has_mpi, const ProcessInfo& r_process_info);
 
 virtual void Move(const double delta_t, const bool rotation_option, const double force_reduction_factor, const int StepFlag);
-virtual void SetIntegrationScheme(DEMIntegrationScheme::Pointer& integration_scheme); 
+virtual void SetIntegrationScheme(DEMIntegrationScheme::Pointer& integration_scheme);
 virtual DEMIntegrationScheme& GetIntegrationScheme() { return *mpIntegrationScheme; }
 
 virtual void ComputeConditionRelativeData(int rigid_neighbour_index,
@@ -302,7 +302,7 @@ virtual void EvaluateDeltaDisplacement(double DeltDisp[3],
 virtual void RelativeDisplacementAndVelocityOfContactPointDueToRotation(const double indentation,
                                                                         double DeltDesp[3],
                                                                         double RelVel[3],
-                                                                        double OldLocalCoordSystem[3][3],
+                                                                        const double OldLocalCoordSystem[3][3],
                                                                         const double &other_radius,
                                                                         const double &dt,
                                                                         const array_1d<double, 3> &angl_vel,
@@ -317,7 +317,7 @@ virtual void RelativeDisplacementAndVelocityOfContactPointDueToOtherReasons(cons
 
 virtual void RelativeDisplacementAndVelocityOfContactPointDueToRotationMatrix(double DeltDisp[3],
                                                                               double RelVel[3],
-                                                                              double OldLocalCoordSystem[3][3],
+                                                                              const double OldLocalCoordSystem[3][3],
                                                                               const double& other_radius,
                                                                               const double& dt,
                                                                               const array_1d<double, 3>& ang_vel,
@@ -330,7 +330,7 @@ virtual void ComputeMoments(double normalLocalContactForce,
                             SphericParticle* neighbour_iterator,
                             double indentation,
                             bool wall=false) final;
-                      
+
 virtual void ComputeRollingFriction(array_1d<double, 3>& rolling_resistance_moment, double& RollingResistance, double dt) final;
 
 virtual double GetInitialDeltaWithFEM(int index);
@@ -357,7 +357,7 @@ virtual void AddUpForcesAndProject(double OldCoordSystem[3][3],
                                    double LocalCoordSystem[3][3],
                                    double LocalContactForce[3],
                                    double LocalElasticContactForce[3],
-                                   double LocalElasticExtraContactForce[3],                    
+                                   double LocalElasticExtraContactForce[3],
                                    double GlobalContactForce[3],
                                    double GlobalElasticContactForce[3],
                                    double GlobalElasticExtraContactForce[3],
@@ -444,7 +444,7 @@ virtual void load(Serializer& rSerializer) override
     rSerializer.load("mSearchRadiusWithFem", mSearchRadiusWithFem);
     rSerializer.load("mRealMass",mRealMass);
     rSerializer.load("mClusterId",mClusterId);
-    rSerializer.load("mBoundDeltaDispSq",mBoundDeltaDispSq); 
+    rSerializer.load("mBoundDeltaDispSq",mBoundDeltaDispSq);
     int aux_int=0;
     rSerializer.load("HasStressTensor", aux_int);
     if(aux_int) this->Set(DEMFlags::HAS_STRESS_TENSOR, true);
