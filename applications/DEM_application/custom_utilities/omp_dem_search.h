@@ -103,7 +103,11 @@ class OMP_DEMSearch : public DEMSearch<OMP_DEMSearch>
       
       /// Default constructor.
 
-      OMP_DEMSearch(double period_x = -1.0, double period_y = -1.0, double period_z = -1.0){}
+      OMP_DEMSearch(const double domain_min_x = 0.0, const double domain_min_y = 0.0, const double domain_min_z = 0.0,
+                    const double domain_max_x = -1.0, const double domain_max_y = -1.0, const double domain_max_z = -1.0)
+      {
+            mDomainPeriodicity = (domain_min_x <= domain_max_x) ? true : false;
+      }
 
       /// Destructor.
       ~OMP_DEMSearch(){
@@ -775,7 +779,7 @@ class OMP_DEMSearch : public DEMSearch<OMP_DEMSearch>
       ///@} 
       ///@name Member Variables 
       ///@{ 
-        
+      bool mDomainPeriodicity;
         
       ///@} 
       ///@name Private Operators
