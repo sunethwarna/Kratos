@@ -65,11 +65,11 @@ namespace Kratos
             //.def("AddClustersVariables",&DEMIntegrationScheme::AddClustersVariables)
             //.def("SetRotationOption",&DEMIntegrationScheme::SetRotationOption)
                   ;
-          
+
           class_<Variable<DEMIntegrationScheme::Pointer>, boost::noncopyable >("DEMIntegrationSchemePointerVariable", no_init)
                     .def(self_ns::str(self)
           );
-          
+
           class_<Variable<DEMIntegrationScheme*>, boost::noncopyable >("DEMIntegrationSchemeRawPointerVariable", no_init)
                     .def(self_ns::str(self)
           );
@@ -86,7 +86,9 @@ namespace Kratos
 
           class_< ConstAverageAccelerationScheme, bases<DEMIntegrationScheme>,  boost::noncopyable>("ConstAverageAccelerationScheme", init<>());
 
-          class_<DemSearchType, bases<SpatialSearch>, boost::noncopyable>("OMP_DEMSearch", init<double, double, double>());
+          class_<DemSearchType, bases<SpatialSearch>, boost::noncopyable>("OMP_DEMSearch")
+                  .def(init<const double, const double, const double, const double, const double, const double>(args("min_x", "min_y", "min_z", "max_x", "max_y", "max_z")))
+                  ;
 
           class_< ExplicitSolverSettings, boost::noncopyable >("ExplicitSolverSettings", init<>() )
           .def_readwrite("r_model_part",&ExplicitSolverSettings::r_model_part)
@@ -103,7 +105,7 @@ namespace Kratos
                   .def("SetSearchRadiiOnAllParticles", &ExplicitSolverStrategy::SetSearchRadiiOnAllParticles)
                   .def("SetNormalRadiiOnAllParticles", &ExplicitSolverStrategy::SetNormalRadiiOnAllParticles)
                   .def("SetSearchRadiiWithFemOnAllParticles", &ExplicitSolverStrategy::SetSearchRadiiWithFemOnAllParticles)
-                  .def("RebuildListOfDiscontinuumSphericParticles", &ExplicitSolverStrategy::RebuildListOfDiscontinuumSphericParticles)          
+                  .def("RebuildListOfDiscontinuumSphericParticles", &ExplicitSolverStrategy::RebuildListOfDiscontinuumSphericParticles)
                   .def("InitialTimeStepCalculation", &ExplicitSolverStrategy::InitialTimeStepCalculation)
                   .def("PrepareElementsForPrinting", &ExplicitSolverStrategy::PrepareElementsForPrinting)
                   .def("ResetPrescribedMotionFlagsRespectingImposedDofs", &ExplicitSolverStrategy::ResetPrescribedMotionFlagsRespectingImposedDofs)

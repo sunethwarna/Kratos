@@ -10,14 +10,14 @@ class ExplicitStrategy:
 
     def __init__(self, all_model_parts, creator_destructor, dem_fem_search, scheme, Param, procedures):
 
-        # Initialization of member variables        
+        # Initialization of member variables
 
         self.spheres_model_part = all_model_parts.Get("SpheresPart")
         self.inlet_model_part = all_model_parts.Get("DEMInletPart")
         self.fem_model_part = all_model_parts.Get("RigidFacePart")
         self.cluster_model_part = all_model_parts.Get("ClusterPart")
         self.contact_model_part = all_model_parts.Get("ContactPart")
-        
+
         self.Parameters = Param
 
         if not (hasattr(Param, "ComputeStressTensorOption")):
@@ -35,7 +35,7 @@ class ExplicitStrategy:
             self.critical_time_option = 0
         else:
             self.critical_time_option = self.Var_Translator(Param.AutomaticTimestep)
-                   
+
         self.trihedron_option        = self.Var_Translator(Param.PostEulerAngles)
         self.rotation_option         = self.Var_Translator(Param.RotationOption)
         self.bounding_box_option     = self.Var_Translator(Param.BoundingBoxOption)
@@ -139,10 +139,11 @@ class ExplicitStrategy:
         self.dem_fem_search = dem_fem_search
 
         # STRATEGIES
-        self.search_strategy = OMP_DEMSearch(-1.0, -1.0, -1.0)
-        if (hasattr(Param, "PeriodicDomainOption")):
+        self.search_strategy = OMP_DEMSearch()
+        if hasattr(Param, "PeriodicDomainOption"):
             if self.Var_Translator(Param.PeriodicDomainOption):
-                self.search_strategy = OMP_DEMSearch(Param.BoundingBoxMaxX-Param.BoundingBoxMinX, Param.BoundingBoxMaxY-Param.BoundingBoxMinY, Param.BoundingBoxMaxZ-Param.BoundingBoxMinZ)
+                self.search_strategy = OMP_DEMSearch(Param.BoundingBoxMinX, Param.BoundingBoxMinY, Param.BoundingBoxMinZ,
+                                                     Param.BoundingBoxMaxX, Param.BoundingBoxMaxY, Param.BoundingBoxMaxZ)
 
         self.SetContinuumType()
 
@@ -209,7 +210,7 @@ class ExplicitStrategy:
 
         for properties in self.cluster_model_part.Properties:
             self.ModifyProperties(properties)
-        
+
         # RESOLUTION METHODS AND PARAMETERS
         # Creating the solution strategy
         self.settings = ExplicitSolverSettings()
@@ -250,21 +251,21 @@ class ExplicitStrategy:
         if (self.Parameters.IntegrationScheme == 'Verlet_Velocity'):
             self.cplusplus_strategy = IterativeSolverStrategy(self.settings, self.max_delta_time, self.n_step_search, self.safety_factor,
                                                               self.delta_option, self.creator_destructor, self.dem_fem_search,
-                                                              self.time_integration_scheme, self.search_strategy, self.do_search_neighbours) 
+                                                              self.time_integration_scheme, self.search_strategy, self.do_search_neighbours)
                                                               #TODO: remove time_integration_scheme. no longer necessary and maybe safety_factor
         else:
             self.cplusplus_strategy = ExplicitSolverStrategy(self.settings, self.max_delta_time, self.n_step_search, self.safety_factor,
                                                              self.delta_option, self.creator_destructor, self.dem_fem_search,
                                                              self.time_integration_scheme, self.search_strategy, self.do_search_neighbours)
                                                              #TODO: remove time_integration_scheme. no longer necessary
-                                
+
     def BeforeInitialize(self):
         self.CreateCPlusPlusStrategy()
         self.RebuildListOfDiscontinuumSphericParticles()
         self.SetNormalRadiiOnAllParticles()
         self.SetSearchRadiiOnAllParticles()
-        
-    def Initialize(self):                                                                     
+
+    def Initialize(self):
         self.CheckMomentumConservation()
         self.cplusplus_strategy.Initialize()  # Calls the cplusplus_strategy (C++) Initialize function (initializes all elements and performs other necessary tasks before starting the time loop in Python)
 
@@ -275,13 +276,13 @@ class ExplicitStrategy:
         (self.cplusplus_strategy).ResetPrescribedMotionFlagsRespectingImposedDofs()
         self.FixExternalForcesManually(time)
         (self.cplusplus_strategy).Solve()
-        
+
     def SetNormalRadiiOnAllParticles(self):
         (self.cplusplus_strategy).SetNormalRadiiOnAllParticles(self.spheres_model_part)
-        
+
     def SetSearchRadiiOnAllParticles(self):
         (self.cplusplus_strategy).SetSearchRadiiOnAllParticles(self.spheres_model_part, self.search_tolerance, 1.0)
-        
+
     def RebuildListOfDiscontinuumSphericParticles(self):
         (self.cplusplus_strategy).RebuildListOfDiscontinuumSphericParticles()
 
@@ -390,7 +391,7 @@ class ExplicitStrategy:
         elif name == 'Symplectic_Euler':
             class_name = 'SymplecticEulerScheme'
         elif name == 'Taylor_Scheme':
-            class_name = 'TaylorScheme'        
+            class_name = 'TaylorScheme'
         elif name == 'Newmark_Beta_Method':
             class_name = 'NewmarkBetaScheme'
         elif name == 'Verlet_Velocity':
@@ -445,19 +446,18 @@ class ExplicitStrategy:
 
         if write_gamma == True:
             properties[DAMPING_GAMMA] = gamma
-            
+
         if properties.Has(CLUSTER_FILE_NAME):
             cluster_file_name = properties[CLUSTER_FILE_NAME]
             [name, list_of_coordinates, list_of_radii, size, volume, inertias] = cluster_file_reader.ReadClusterFile(cluster_file_name)
             pre_utils = PreUtilities(self.spheres_model_part)
             pre_utils.SetClusterInformationInProperties(name, list_of_coordinates, list_of_radii, size, volume, inertias, properties)
             self.Procedures.KRATOSprint(properties)
-            
-        if properties.Has(DEM_INTEGRATION_SCHEME_NAME):  
+
+        if properties.Has(DEM_INTEGRATION_SCHEME_NAME):
             scheme_name = properties[DEM_INTEGRATION_SCHEME_NAME]
         else:
             scheme_name = self.Parameters.IntegrationScheme
-            
+
         scheme, error_status, summary_mssg = self.GetScheme(scheme_name)
         scheme.SetIntegrationSchemeInProperties(properties)
-        

@@ -76,7 +76,7 @@ class OMP_DEMSearch : public DEMSearch<OMP_DEMSearch>
     
       /// Pointer definition of OMP_DEMSearch
       KRATOS_CLASS_POINTER_DEFINITION(OMP_DEMSearch);
-      
+      typedef DEMSearch<OMP_DEMSearch>                      BaseClass;
       typedef PointType*                                    PtrPointType;
       typedef std::vector<PtrPointType>*                    PointVector;
       typedef std::vector<PtrPointType>::iterator           PointIterator;
@@ -107,8 +107,14 @@ class OMP_DEMSearch : public DEMSearch<OMP_DEMSearch>
 
       OMP_DEMSearch(const double domain_min_x = 0.0, const double domain_min_y = 0.0, const double domain_min_z = 0.0,
                     const double domain_max_x = -1.0, const double domain_max_y = -1.0, const double domain_max_z = -1.0)
-      {
-            mDomainPeriodicity = (domain_min_x <= domain_max_x) ? true : false;
+      {            
+          mDomainPeriodicity = (domain_min_x <= domain_max_x) ? true : false;
+          KRATOS_WATCH(domain_min_x);
+          KRATOS_WATCH(domain_min_y);
+          KRATOS_WATCH(domain_min_z);
+          KRATOS_WATCH(domain_max_x);
+          KRATOS_WATCH(domain_max_y);
+          KRATOS_WATCH(domain_max_z);
       }
 
       /// Destructor.
@@ -779,8 +785,7 @@ class OMP_DEMSearch : public DEMSearch<OMP_DEMSearch>
       ///@} 
       ///@name Member Variables 
       ///@{ 
-      bool mDomainPeriodicity;
-        
+
       ///@} 
       ///@name Private Operators
       ///@{ 
@@ -803,6 +808,7 @@ class OMP_DEMSearch : public DEMSearch<OMP_DEMSearch>
         BinsType GetBins(ElementsContainerType::ContainerType& r_model_part_container)
         {
             if (mDomainPeriodicity){
+                KRATOS_WATCH("PERIODIC")
                 BinsTypePeriodic bins(r_model_part_container.begin(), r_model_part_container.end(), this->mDomainMin, this->mDomainMax);
                 return bins;
             }
