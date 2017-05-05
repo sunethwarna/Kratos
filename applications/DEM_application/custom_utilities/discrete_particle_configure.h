@@ -112,6 +112,20 @@ public:
     virtual ~DiscreteParticleConfigure(){
 	}
 
+    static void SetDomain(const double domain_min_x, const double domain_min_y, const double domain_min_z,
+                          const double domain_max_x, const double domain_max_y, const double domain_max_z)
+    {
+        mDomainMin[0] = domain_min_x;
+        mDomainMin[1] = domain_min_y;
+        mDomainMin[2] = domain_min_z;
+        mDomainMax[0] = domain_max_x;
+        mDomainMax[1] = domain_max_y;
+        mDomainMax[2] = domain_max_z;
+        SetPeriods(domain_max_x - domain_min_x, domain_max_y - domain_min_y, domain_max_z - domain_min_z);
+        mDomainIsPeriodic = (mDomainPeriods[0] >= 0 && mDomainPeriods[1] >= 0 && mDomainPeriods[2] >= 0);
+        KRATOS_WATCH(mDomainIsPeriodic)
+    }
+
     static void SetPeriods(double domain_period_x, double domain_period_y, double domain_period_z)
     {
         mDomainPeriods[0] = domain_period_x;
@@ -302,10 +316,12 @@ public:
     }
 
     static double mDomainPeriods[3];
+    static double mDomainMin[3];
+    static double mDomainMax[3];
     static bool mDomainIsPeriodic;
 
     /// Turn back information as a string.
-    virtual std::string Info() const {return " Spatial Containers Configure for Particles"; }
+    virtual std::string Info() const {return " Spatial Containers Configure for Discrete Particles"; }
 
     /// Print information about this object.
     virtual void PrintInfo(std::ostream& rOStream) const {}
@@ -448,6 +464,10 @@ private:
     ///
 template <std::size_t TDimension>
 double DiscreteParticleConfigure<TDimension>::mDomainPeriods[] = {-1.0, -1.0, -1.0};
+template <std::size_t TDimension>
+double DiscreteParticleConfigure<TDimension>::mDomainMin[] = {0.0, 0.0, 0.0};
+template <std::size_t TDimension>
+double DiscreteParticleConfigure<TDimension>::mDomainMax[] = {-1.0, -1.0, -1.0};
 template <std::size_t TDimension>
 bool DiscreteParticleConfigure<TDimension>::mDomainIsPeriodic = false;
 
