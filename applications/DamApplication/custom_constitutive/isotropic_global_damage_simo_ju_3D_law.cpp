@@ -15,13 +15,7 @@ namespace Kratos
 
 //Default Constructor
 IsotropicGlobalDamageSimoJu3DLaw::IsotropicGlobalDamageSimoJu3DLaw()
-    : SimoJuLocalDamage3DLaw()
-{
-  mpHardeningLaw   = HardeningLaw::Pointer( new ExponentialDamageHardeningLaw() );
-  mpYieldCriterion = YieldCriterion::Pointer( new SimoJuYieldCriterion(mpHardeningLaw) );
-  mpFlowRule       = FlowRule::Pointer( new IsotropicDamageFlowRule(mpYieldCriterion) );
-
-}
+    : SimoJuLocalDamage3DLaw() {}
 
 //----------------------------------------------------------------------------------------
 
@@ -52,7 +46,7 @@ ConstitutiveLaw::Pointer IsotropicGlobalDamageSimoJu3DLaw::Clone() const
 
 void IsotropicGlobalDamageSimoJu3DLaw::CalculateMaterialResponseCauchy (Parameters& rValues)
 {
-        // Check
+    // Check
     rValues.CheckAllParameters();
     
     // Get values for the constitutive law
@@ -72,36 +66,29 @@ void IsotropicGlobalDamageSimoJu3DLaw::CalculateMaterialResponseCauchy (Paramete
     
     // Computing the linear branch
     if(CurrentProcessInfo[COMPUTE_GLOBAL_DAMAGE]==2)
-    {   
+    {
         if(Options.Is(ConstitutiveLaw::COMPUTE_CONSTITUTIVE_TENSOR))
         {
             if(Options.IsNot(ConstitutiveLaw::COMPUTE_STRESS))
             {
                 //COMPUTE_CONSTITUTIVE_TENSOR
-                Matrix& ConstitutiveMatrix = rValues.GetConstitutiveMatrix();
-                this->CalculateLinearElasticMatrix(ConstitutiveMatrix,YoungModulus,PoissonCoefficient);
+                Matrix& rConstitutiveMatrix = rValues.GetConstitutiveMatrix();
+                noalias(rConstitutiveMatrix) = LinearElasticMatrix;
             }
             else
             {
                 // COMPUTE_CONSTITUTIVE_TENSOR && COMPUTE_STRESS
-                Matrix& ConstitutiveMatrix = rValues.GetConstitutiveMatrix();
+                Matrix& rConstitutiveMatrix = rValues.GetConstitutiveMatrix();
                 Vector& rStressVector = rValues.GetStressVector();
-                this->CalculateLinearElasticMatrix(ConstitutiveMatrix,YoungModulus,PoissonCoefficient);
-
-                noalias(rStressVector) = prod(ConstitutiveMatrix,rStrainVector);
-
+                noalias(rConstitutiveMatrix) = LinearElasticMatrix;
+                noalias(rStressVector) = prod(LinearElasticMatrix,rStrainVector);
             }
         }
         else if(Options.Is(ConstitutiveLaw::COMPUTE_STRESS))
         {
             // COMPUTE_STRESS
             Vector& rStressVector = rValues.GetStressVector();
-            Matrix ConstitutiveMatrix(VoigtSize,VoigtSize);
-	        noalias(ConstitutiveMatrix) = ZeroMatrix(VoigtSize,VoigtSize);
-            this->CalculateLinearElasticMatrix(ConstitutiveMatrix,YoungModulus,PoissonCoefficient);
-
-            noalias(rStressVector) = prod(ConstitutiveMatrix,rStrainVector);
-            
+            noalias(rStressVector) = prod(LinearElasticMatrix,rStrainVector);
         }
     }
     else
@@ -152,68 +139,6 @@ void IsotropicGlobalDamageSimoJu3DLaw::CalculateMaterialResponseCauchy (Paramete
             
             this->CalculateReturnMapping(ReturnMappingVariables,AuxMatrix,rStressVector,LinearElasticMatrix,rStrainVector);
 
-        }
-    }
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-void IsotropicGlobalDamageSimoJu3DLaw::FinalizeMaterialResponseCauchy (Parameters& rValues)
-{    
-    // Check
-    rValues.CheckAllParameters();
-    
-    // Get values for the constitutive law
-    const Properties& MaterialProperties = rValues.GetMaterialProperties();
-    const ProcessInfo& CurrentProcessInfo = rValues.GetProcessInfo();
-    Vector& rStrainVector = rValues.GetStrainVector();
-    const unsigned int VoigtSize = rStrainVector.size();
-    Vector EffectiveStressVector(VoigtSize);
-    
-    // Initialize main variables
-
-    // LinearElasticMatrix
-    const double& YoungModulus = MaterialProperties[YOUNG_MODULUS];
-    const double& PoissonCoefficient = MaterialProperties[POISSON_RATIO];
-    Matrix LinearElasticMatrix (VoigtSize,VoigtSize);
-    this->CalculateLinearElasticMatrix(LinearElasticMatrix,YoungModulus,PoissonCoefficient);
-    
-    if(CurrentProcessInfo[COMPUTE_GLOBAL_DAMAGE] !=2)
-    {
-        // ReturnMappingVariables
-        FlowRule::RadialReturnVariables ReturnMappingVariables;
-        ReturnMappingVariables.initialize();
-        // Strain and Stress matrices
-        const unsigned int Dim = this->WorkingSpaceDimension();
-        Matrix AuxMatrix(Dim,Dim);
-        noalias(AuxMatrix) = MathUtils<double>::StrainVectorToTensor(rStrainVector);
-        ReturnMappingVariables.StrainMatrix.resize(Dim,Dim,false);
-        noalias(ReturnMappingVariables.StrainMatrix) = AuxMatrix;
-        ReturnMappingVariables.TrialIsoStressMatrix.resize(Dim,Dim,false);
-        // CharacteristicSize
-        double CharacteristicSize = 1.0;
-        this->CalculateCharacteristicSize(CharacteristicSize,rValues.GetElementGeometry());
-        ReturnMappingVariables.CharacteristicSize = CharacteristicSize;
-
-        if(rValues.GetProcessInfo()[IS_CONVERGED]==true) //Convergence is achieved. Save equilibrium state variable
-        {
-            ReturnMappingVariables.Options.Set(FlowRule::RETURN_MAPPING_COMPUTED,false); // Restore sate variable = false
-            
-            this->UpdateInternalStateVariables(ReturnMappingVariables,EffectiveStressVector,LinearElasticMatrix,rStrainVector);
-        }
-        else // No convergence is achieved. Restore state variable to equilibrium
-        {
-            ReturnMappingVariables.Options.Set(FlowRule::RETURN_MAPPING_COMPUTED,true); // Restore sate variable = true
-            
-            this->UpdateInternalStateVariables(ReturnMappingVariables,EffectiveStressVector,LinearElasticMatrix,rStrainVector);
-        }
-
-        if(rValues.GetOptions().Is(ConstitutiveLaw::COMPUTE_STRESS))
-        {
-            // COMPUTE_STRESS
-            Vector& rStressVector = rValues.GetStressVector();
-            
-            this->CalculateReturnMapping(ReturnMappingVariables,AuxMatrix,rStressVector,LinearElasticMatrix,rStrainVector);
         }
     }
 }
