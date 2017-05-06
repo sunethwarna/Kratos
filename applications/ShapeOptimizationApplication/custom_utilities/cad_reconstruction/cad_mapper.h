@@ -1723,13 +1723,12 @@ class CADMapper
 
 						auto cosine_theta = inner_ms/ ( norm_2(normal_m) * norm_2(normal_s) );
 
-						CosineVector.push_back( cosine_theta );
+						CosineVector.push_back( abs(cosine_theta) );
 					}
-					// double J1 = norm_2( g1* tangent_on_master_patch(0) + g2* tangent_on_master_patch(1) );
-					// std::cout << "inner loop" << std::endl;
+					
 				}
 			}
-			// std::cout << "outer loop" << std::endl;
+
 		}
 		double average, max;
 		check_c0_continuity( MasterPointVector, SlavePointVector, average, max);
@@ -1737,14 +1736,17 @@ class CADMapper
 		KRATOS_WATCH("C_Zero Continuity");
 		KRATOS_WATCH( max );
 		KRATOS_WATCH( average );
-		average = std::accumulate( CosineVector.begin(), CosineVector.end(), 0.0)/CosineVector.size();
 
-		auto it_max = std::min_element( CosineVector.begin(), CosineVector.end() );
-		auto position = std::distance(CosineVector.begin(), it_max) - 1;
+		// -----------------------------------------------------------
+		auto it_min = std::min_element( CosineVector.begin(), CosineVector.end() );
+		auto position = std::distance(CosineVector.begin(), it_min) - 1;
+		average = std::accumulate( CosineVector.begin(), CosineVector.end(), 0.0)/CosineVector.size();
 		KRATOS_WATCH("C_One Continuity");
 		std::cout<< "Min: " << CosineVector[position] << std::endl;
 		KRATOS_WATCH( average );
-		
+		// -----------------------------------------------------------
+
+
 		file_to_write.close();
 	}
 
