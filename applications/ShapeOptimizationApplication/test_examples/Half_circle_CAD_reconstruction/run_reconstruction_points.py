@@ -18,8 +18,12 @@ import json as json
 
 # Input parameters
 fem_input_filename = "optimized_shell_3418_elements"
+# cad_geometry_input_filename = "Benchmark_halbkreis_32x16_multipatch_corrected_geometry.json" 
 cad_geometry_input_filename = "Benchmark_halbkreis_32x16_multipatch_geometry.json" 
-cad_integration_input_filename = "test.json" 
+# cad_geometry_input_filename = "halbkreis_complete_geometry.json" 
+# cad_integration_input_filename = "Benchmark_halbkreis_32x16_multipatch_corrected_integration_data.json" 
+cad_integration_input_filename = "Benchmark_halbkreis_32x16_multipatch_integration_data.json" 
+# cad_integration_input_filename = "exampe_IBRA_Format.json" 
 
 # Output parameters
 cad_geometry_output_filename = cad_geometry_input_filename
@@ -84,11 +88,11 @@ for node in fe_model_part.Nodes:
     node.SetValue(SHAPE_CHANGE_ABSOLUTE,shape_update)
 
 # Apply boundary conditions
-penalty_factor_displacement_coupling = 1e4
-penalty_factor_rotation_coupling = 1e4
-penalty_factor_dirichlet_condition = 1e5
+penalty_factor_displacement_coupling = 1e3
+penalty_factor_rotation_coupling = 1e3
+penalty_factor_dirichlet_condition = 1e3
 edges_with_specific_dirichlet_conditions = []
-# edges_with_specific_dirichlet_conditions = [ [1001,[False,True,False]], [1003,[False,True,False]] ]
+edges_with_specific_dirichlet_conditions = [ [1004,[False,True,False]], [2007,[False,True,False]],[3010,[False,True,False]], [4012,[False,True,False]] ]
 edges_with_enforced_tangent_continuity = []
 # edges_with_enforced_tangent_continuity = [ [1004, 1e3] ]
 mapper.apply_boundary_conditions( penalty_factor_displacement_coupling, 

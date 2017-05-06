@@ -1648,7 +1648,7 @@ class CADMapper
 		{
 			
 
-			if(brep_elem_i->HasCouplingCondition())
+			if(brep_elem_i->HasCouplingCondition() || brep_elem_i->HasDirichletCondition())
 			{
 				patch++;
 				// Get Gauss points of current brep element
@@ -1675,7 +1675,7 @@ class CADMapper
 					// master_patch.GetSurface().EvaluateNURBSFunctions(-1,-1,u_m, v_m, R_gpi_master);
 					// matrix<unsigned int> mapping_matrix_ids_gpi_master = master_patch.GetSurface().GetMappingMatrixIds(-1,-1,u_m, v_m);
 
-					matrix<double> R_gpi_slave;
+					// matrix<double> R_gpi_slave;
 					double u_s = location_on_slave_patch(0);
 					double v_s = location_on_slave_patch(1);
 
@@ -1685,43 +1685,46 @@ class CADMapper
 					Point<3> cad_point_slave;
 					slave_patch.GetSurface().EvaluateSurfacePoint(cad_point_slave, u_s, v_s);
 
-					MasterPointVector.push_back( cad_point_master );
-					SlavePointVector.push_back( cad_point_slave );
-					slave_patch.GetSurface().EvaluateNURBSFunctions(-1,-1,u_s, v_s, R_gpi_slave);	
-					// // matrix<unsigned int> mapping_matrix_ids_gpi_slave = slave_patch.GetSurface().GetMappingMatrixIds(-1,-1,u_s, v_s);							
-
-
 					file_to_write << cad_point_master.X() << " " << cad_point_master.Y() << " " << cad_point_master.Z() << std::endl;
-					// Compute Jacobian J1
-					matrix<double> g_master = master_patch.GetSurface().GetBaseVectors(-1,-1,u_m,v_m);
-					Vector g1_m = ZeroVector(3);
-					g1_m(0) = g_master(0,0);
-					g1_m(1) = g_master(1,0);
-					g1_m(2) = g_master(2,0);
-					Vector g2_m = ZeroVector(3);
-					g2_m(0) = g_master(0,1);
-					g2_m(1) = g_master(1,1);
-					g2_m(2) = g_master(2,1);
 
-					matrix<double> g_slave = slave_patch.GetSurface().GetBaseVectors(-1,-1,u_s,v_s);
-					Vector g1_s = ZeroVector(3);
-					g1_s(0) = g_slave(0,0);
-					g1_s(1) = g_slave(1,0);
-					g1_s(2) = g_slave(2,0);
-					Vector g2_s = ZeroVector(3);
-					g2_s(0) = g_slave(0,1);
-					g2_s(1) = g_slave(1,1);
-					g2_s(2) = g_slave(2,1);
+					if(brep_elem_i->HasCouplingCondition())
+					{
+						// store information needed to evaluate C0-continuity
+						MasterPointVector.push_back( cad_point_master );
+						SlavePointVector.push_back( cad_point_slave );
+						// slave_patch.GetSurface().EvaluateNURBSFunctions(-1,-1,u_s, v_s, R_gpi_slave);	
+						// // matrix<unsigned int> mapping_matrix_ids_gpi_slave = slave_patch.GetSurface().GetMappingMatrixIds(-1,-1,u_s, v_s);							
 
-					auto normal_m = MathUtils<double>::CrossProduct(g1_m, g2_m);
-					auto normal_s = MathUtils<double>::CrossProduct(g1_s, g2_s);
+						// evaluate C1-continuity
+						matrix<double> g_master = master_patch.GetSurface().GetBaseVectors(-1,-1,u_m,v_m);
+						Vector g1_m = ZeroVector(3);
+						g1_m(0) = g_master(0,0);
+						g1_m(1) = g_master(1,0);
+						g1_m(2) = g_master(2,0);
+						Vector g2_m = ZeroVector(3);
+						g2_m(0) = g_master(0,1);
+						g2_m(1) = g_master(1,1);
+						g2_m(2) = g_master(2,1);
 
-					auto inner_ms = inner_prod( normal_m, normal_s);
+						matrix<double> g_slave = slave_patch.GetSurface().GetBaseVectors(-1,-1,u_s,v_s);
+						Vector g1_s = ZeroVector(3);
+						g1_s(0) = g_slave(0,0);
+						g1_s(1) = g_slave(1,0);
+						g1_s(2) = g_slave(2,0);
+						Vector g2_s = ZeroVector(3);
+						g2_s(0) = g_slave(0,1);
+						g2_s(1) = g_slave(1,1);
+						g2_s(2) = g_slave(2,1);
 
-					auto cosine_theta = inner_ms/ ( norm_2(normal_m) * norm_2(normal_s) );
+						auto normal_m = MathUtils<double>::CrossProduct(g1_m, g2_m);
+						auto normal_s = MathUtils<double>::CrossProduct(g1_s, g2_s);
 
-					CosineVector.push_back( cosine_theta );
+						auto inner_ms = inner_prod( normal_m, normal_s);
 
+						auto cosine_theta = inner_ms/ ( norm_2(normal_m) * norm_2(normal_s) );
+
+						CosineVector.push_back( cosine_theta );
+					}
 					// double J1 = norm_2( g1* tangent_on_master_patch(0) + g2* tangent_on_master_patch(1) );
 					// std::cout << "inner loop" << std::endl;
 				}
@@ -1736,10 +1739,10 @@ class CADMapper
 		KRATOS_WATCH( average );
 		average = std::accumulate( CosineVector.begin(), CosineVector.end(), 0.0)/CosineVector.size();
 
-		auto it_max = std::max_element( CosineVector.begin(), CosineVector.end() );
+		auto it_max = std::min_element( CosineVector.begin(), CosineVector.end() );
 		auto position = std::distance(CosineVector.begin(), it_max) - 1;
 		KRATOS_WATCH("C_One Continuity");
-		std::cout<< " Max is " << CosineVector[position] << std::endl;
+		std::cout<< "Min: " << CosineVector[position] << std::endl;
 		KRATOS_WATCH( average );
 		
 		file_to_write.close();
