@@ -1644,6 +1644,8 @@ class CADMapper
 		VectorPoint SlavePointVector;
 		VectorPoint MasterPointVector; 
 		DoubleVector CosineVector;
+		// FILE *fp;
+		// fp=fopen("/home/giovannifilomeno/Dropbox/FILMEC/StudentWork/cosine.txt", "w");
 		for (BREPElementVector::iterator brep_elem_i = m_brep_elements.begin(); brep_elem_i != m_brep_elements.end(); ++brep_elem_i)
 		{
 			
@@ -1659,36 +1661,26 @@ class CADMapper
 				{
 					// Read information from Gauss point
 					unsigned int master_patch_id = brep_gp_i->GetPatchId();
-					unsigned int slave_patch_id = brep_gp_i->GetSlavePatchId();
 					Patch& master_patch = m_patches[m_patch_position_in_patch_vector[master_patch_id]];
-					Patch& slave_patch = m_patches[m_patch_position_in_patch_vector[slave_patch_id]];
-					// double gp_i_weight = brep_gp_i->GetWeight();
 					Vector location_on_master_patch = brep_gp_i->GetLocation();
-					Vector location_on_slave_patch = brep_gp_i->GetSlaveLocation();
-					// Vector tangent_on_master_patch = brep_gp_i->GetTangent();
-					// Vector tangent_on_slave_patch = brep_gp_i->GetSlaveTangent();
-
-					// Evaluate NURBS basis function for Gauss point on both patches and get the corresponding ids of control points in the mapping matrix
 					matrix<double> R_gpi_master;
 					double u_m = location_on_master_patch(0);
 					double v_m = location_on_master_patch(1);
-					// master_patch.GetSurface().EvaluateNURBSFunctions(-1,-1,u_m, v_m, R_gpi_master);
-					// matrix<unsigned int> mapping_matrix_ids_gpi_master = master_patch.GetSurface().GetMappingMatrixIds(-1,-1,u_m, v_m);
-
-					// matrix<double> R_gpi_slave;
-					double u_s = location_on_slave_patch(0);
-					double v_s = location_on_slave_patch(1);
-
 					Point<3> cad_point_master;
 					master_patch.GetSurface().EvaluateSurfacePoint(cad_point_master, u_m, v_m);
-
-					Point<3> cad_point_slave;
-					slave_patch.GetSurface().EvaluateSurfacePoint(cad_point_slave, u_s, v_s);
-
 					file_to_write << cad_point_master.X() << " " << cad_point_master.Y() << " " << cad_point_master.Z() << std::endl;
 
 					if(brep_elem_i->HasCouplingCondition())
 					{
+						unsigned int slave_patch_id = brep_gp_i->GetSlavePatchId();
+						Patch& slave_patch = m_patches[m_patch_position_in_patch_vector[slave_patch_id]];
+						Vector location_on_slave_patch = brep_gp_i->GetSlaveLocation();
+						double u_s = location_on_slave_patch(0);
+						double v_s = location_on_slave_patch(1);
+						Point<3> cad_point_slave;
+						slave_patch.GetSurface().EvaluateSurfacePoint(cad_point_slave, u_s, v_s);
+						file_to_write << cad_point_slave.X() << " " << cad_point_slave.Y() << " " << cad_point_slave.Z() << std::endl;
+
 						// store information needed to evaluate C0-continuity
 						MasterPointVector.push_back( cad_point_master );
 						SlavePointVector.push_back( cad_point_slave );
@@ -1724,12 +1716,15 @@ class CADMapper
 						auto cosine_theta = inner_ms/ ( norm_2(normal_m) * norm_2(normal_s) );
 
 						CosineVector.push_back( abs(cosine_theta) );
+
+						// fprintf(fp, "%lf\t\t%lf\t%lf\t%lf\t\t%lf\t%lf\t%lf\n", abs(cosine_theta), cad_point_master.X(),cad_point_master.Y(),cad_point_master.Z(),cad_point_slave.X(), cad_point_slave.Y(), cad_point_slave.Z());
 					}
 					
 				}
 			}
 
 		}
+		// fclose(fp);
 		double average, max;
 		check_c0_continuity( MasterPointVector, SlavePointVector, average, max);
 
@@ -1738,11 +1733,17 @@ class CADMapper
 		KRATOS_WATCH( average );
 
 		// -----------------------------------------------------------
-		auto it_min = std::min_element( CosineVector.begin(), CosineVector.end() );
-		auto position = std::distance(CosineVector.begin(), it_min) - 1;
 		average = std::accumulate( CosineVector.begin(), CosineVector.end(), 0.0)/CosineVector.size();
+		auto min = CosineVector[0];
+		for(size_t i = 0; i < CosineVector.size(); i++)
+		{
+			if(CosineVector[i] < min)
+			{
+				min = CosineVector[i];
+			}
+		}
 		KRATOS_WATCH("C_One Continuity");
-		std::cout<< "Min: " << CosineVector[position] << std::endl;
+		std::cout<< "Min: " << min << std::endl;
 		KRATOS_WATCH( average );
 		// -----------------------------------------------------------
 
@@ -1785,31 +1786,6 @@ class CADMapper
 			average = average / distance.size();
 		}
 	}
-
-	// --------------------------------------------------------------------------
-	// void check_c1_continuity( DoubleVector master_u, DoubleVector master_v, DoubleVector slave_u, DoubleVector slave_v )
-	// {
-	// 	if()
-	// 	{
-	// 		KRATOS_WATCH(" CentoDiciottoooooooo ");
-	// 		average = NAN;
-	// 		max = NAN;
-	// 	}else
-	// 	{
-	// 		for( size_t i = 0; i < master_u.size( ); i++)
-	// 		{
-	// 		matrix<double> g_master = master_patch.GetSurface().GetBaseVectors(-1,-1,master_u[i],master_v[i]);
-	// 		Vector g1 = ZeroVector(3);
-	// 		g1(0) = g_master(0,0);
-	// 		g1(1) = g_master(1,0);
-	// 		g1(2) = g_master(2,0);
-
-	// 		matrix<double> g_slave = slave_patch.GetSurface().GetBaseVectors(-1,-1,slave_u[i],slave_v[i]);
-				
-	// 		}
-			
-	// 	}
-	// }
     // ==============================================================================
 
     /// Turn back information as a string.
