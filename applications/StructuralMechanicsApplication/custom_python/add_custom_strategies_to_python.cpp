@@ -34,6 +34,7 @@
 #include "solving_strategies/schemes/scheme.h"
 #include "custom_strategies/custom_schemes/residual_based_relaxation_scheme.hpp"
 #include "custom_strategies/custom_schemes/eigensolver_dynamic_scheme.hpp"
+#include "custom_strategies/custom_schemes/eigensolver_stability_scheme.hpp"
 
 // Convergence criterias
 #include "solving_strategies/convergencecriterias/convergence_criteria.h"
@@ -69,6 +70,7 @@ void  AddCustomStrategiesToPython()
     // Custom scheme types
     typedef ResidualBasedRelaxationScheme< SparseSpaceType, LocalSpaceType >  ResidualBasedRelaxationSchemeType;
     typedef EigensolverDynamicScheme< SparseSpaceType, LocalSpaceType > EigensolverDynamicSchemeType;
+	typedef EigensolverStabilityScheme< SparseSpaceType, LocalSpaceType > EigensolverStabilitySchemeType;
     
     // Custom convergence criterion types
 

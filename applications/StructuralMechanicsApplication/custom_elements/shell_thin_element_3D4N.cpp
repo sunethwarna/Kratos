@@ -676,14 +676,14 @@ namespace Kratos
 				// Assemble shape function matrix over nodes
 				for (size_t node = 0; node < 4; node++)
 				{
-					// translational entries
+					// translational entries - dofs 1, 2, 3
 					for (size_t dof = 0; dof < 3; dof++)
 					{
 						N(dof, 6 * node + dof) =
 							shapeFunctions(gauss_point, node);
 					}
 
-					// rotational inertia entries
+					// rotational inertia entries - dofs 4, 5
 					for (size_t dof = 0; dof < 2; dof++)
 					{
 						N(dof + 3, 6 * node + dof + 3) =
@@ -808,6 +808,85 @@ namespace Kratos
 		Matrix dummy;
 		CalculateAll(dummy, rRightHandSideVector, rCurrentProcessInfo, true,
 			true);
+	}
+
+	void ShellThinElement3D4N::CalculateGeometricStiffnessMatrix(MatrixType & rGeometricStiffnessMatrix, ProcessInfo & rCurrentProcessInfo)
+	{
+		// Resize the Left Hand Side and initialize it to Zero
+		Matrix rLeftHandSideMatrix = ZeroMatrix(OPT_NUM_DOFS, OPT_NUM_DOFS);
+
+		// Resize the Geometric Stiffness matrix if necessary,
+		// and initialize it to Zero
+		if ((rGeometricStiffnessMatrix.size1() != OPT_NUM_DOFS) ||
+			(rGeometricStiffnessMatrix.size2() != OPT_NUM_DOFS))
+			rGeometricStiffnessMatrix.resize(OPT_NUM_DOFS, OPT_NUM_DOFS, false);
+		noalias(rGeometricStiffnessMatrix) = ZeroMatrix(OPT_NUM_DOFS, OPT_NUM_DOFS);
+
+		// Resize the Right Hand Side and initialize it to Zero
+		Vector (rRightHandSideVector) = ZeroVector(OPT_NUM_DOFS);
+
+		// Compute the local coordinate system.
+		ShellQ4_LocalCoordinateSystem localCoordinateSystem(
+			mpCoordinateTransformation->CreateLocalCoordinateSystem());
+
+		ShellQ4_LocalCoordinateSystem referenceCoordinateSystem(
+			mpCoordinateTransformation->CreateReferenceCoordinateSystem());
+
+		// Initialize common calculation variables
+		CalculationData data(localCoordinateSystem, referenceCoordinateSystem,
+			rCurrentProcessInfo);
+		const bool RHSrequired = false;
+		const bool LHSrequired = true;
+		data.CalculateLHS = LHSrequired;
+		data.CalculateRHS = RHSrequired;
+		InitializeCalculationData(data);
+		data.ExtractKm = false;	// must disable here
+		data.ExtractKg = true;
+
+		// Gauss Loop.
+		for (size_t i = 0; i < OPT_NUM_GP; i++)
+		{
+			data.gpIndex = i;
+			CalculateGaussPointContribution(data, rLeftHandSideMatrix,
+				rRightHandSideVector);
+		}
+
+		// If basic membrane formulation is enabled - add drilling stiffness
+		if (data.basicQuad == true)
+		{
+			double max_stiff = 0.0;
+			for (int dof = 0; dof < 24; dof++)
+			{
+				if (rLeftHandSideMatrix(dof, dof) > max_stiff)
+				{
+					max_stiff = rLeftHandSideMatrix(dof, dof);
+				}
+			}
+			for (int node = 0; node < 4; node++)
+			{
+				rLeftHandSideMatrix(6 * node + 5, 6 * node + 5) =
+					max_stiff / 1000.0;
+			}
+		}
+
+		// Add all contributions to the residual vector
+		rRightHandSideVector -= prod(rLeftHandSideMatrix,
+			data.localDisplacements);
+
+		// Let the CoordinateTransformation finalize the calculation.
+		// This will handle the transformation of the local matrices/vectors to
+		// the global coordinate system.
+		mpCoordinateTransformation->FinalizeCalculations(data.LCS,
+			data.globalDisplacements,
+			data.localDisplacements,
+			rLeftHandSideMatrix,
+			rRightHandSideVector,
+			RHSrequired,
+			LHSrequired,
+			data.ExtractKm,
+			data.ExtractKg);
+
+		rGeometricStiffnessMatrix = rLeftHandSideMatrix;
 	}
 
 	// =========================================================================
@@ -2189,6 +2268,15 @@ namespace Kratos
 		options.Set(ConstitutiveLaw::COMPUTE_CONSTITUTIVE_TENSOR,
 			data.CalculateLHS);
 
+		// Set option for stability eigenproblems
+		if (data.CurrentProcessInfo.Has(IS_STABILITY_EIGENPROBLEM))
+		{
+			if (data.CurrentProcessInfo[IS_STABILITY_EIGENPROBLEM] == true)
+			{
+				data.ExtractKm = true;
+			}
+		}
+
 		KRATOS_CATCH("")
 	}
 
@@ -2528,7 +2616,9 @@ namespace Kratos
 			rLeftHandSideMatrix,
 			rRightHandSideVector,
 			RHSrequired,
-			LHSrequired);
+			LHSrequired,
+			data.ExtractKm,
+			data.ExtractKg);
 
 		// Add body forces contributions. This doesn't depend on the coordinate
 		// system

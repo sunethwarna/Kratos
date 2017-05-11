@@ -113,7 +113,9 @@ namespace Kratos
 										  MatrixType & rLeftHandSideMatrix,
 										  VectorType & rRightHandSideVector,
 										  const bool RHSrequired,
-										  const bool LHSrequired)
+										  const bool LHSrequired,
+										  const bool extractKm = false,
+										  const bool extractKg = false)
 		{
 			MatrixType R(24, 24);
 			LCS.ComputeTotalRotationMatrix( R );

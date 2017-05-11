@@ -2061,7 +2061,7 @@ namespace Kratos
 						else
 						{
 							//std::cout << data.rlaminateStresses[surface][3] << std::endl;
-							iValue(row, col) = data.rlaminateStresses[surface][7];
+							iValue(row, col) = data.rlaminateStrains[surface][6];
 						}
 						surface++;
 					}

@@ -203,6 +203,10 @@ namespace Kratos
 		void CalculateRightHandSide(VectorType& rRightHandSideVector,
 			ProcessInfo& rCurrentProcessInfo);
 
+		void CalculateGeometricStiffnessMatrix(MatrixType& rGeometricStiffnessMatrix,
+			ProcessInfo& rCurrentProcessInfo);
+		// needed for dyn
+
 		// Results calculation on integration points
 		void GetValueOnIntegrationPoints(const Variable<double>& rVariable,
 			std::vector<double>& rValues, const ProcessInfo& rCurrentProcessInfo);
@@ -340,6 +344,10 @@ namespace Kratos
 			VectorType globalDisplacements; /*!< global displacement vector */
 			VectorType localDisplacements;  /*!< local displacement vector */
 
+			MatrixType geometricStiffnessMatrix;
+
+			bool ExtractKm = false; /*!< flag for the calculation of ONLY the material stiffness matrix*/
+			bool ExtractKg = false; /*!< flag for the calculation of ONLY the geometric stiffness matrix*/
 			bool CalculateRHS; /*!< flag for the calculation of the right-hand-side vector */
 			bool CalculateLHS; /*!< flag for the calculation of the left-hand-side vector */
 
