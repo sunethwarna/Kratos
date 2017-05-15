@@ -52,11 +52,11 @@ public:
                 "Upstream_Longitudinal_Coordinate"                      : [0.0,0.0,0.0],
                 "Spe_weight"                                            : 0.0,
                 "Water_level"                                           : 10.0,
+                "Water_Table"                                           : 0,
                 "Drains"                                                : false,
                 "Height_drain"                                          : 0.0,
                 "Distance"                                              : 0.0,
-                "Effectiveness"                                         : 0.0,
-                "table"                                                 : 0
+                "Effectiveness"                                         : 0.0
             }  )" );
             
         
@@ -101,7 +101,7 @@ public:
         mwater_level = rParameters["Water_level"].GetDouble();
         
         mtime_unit_converter = mr_model_part.GetProcessInfo()[TIME_UNIT_CONVERTER];
-        mTableId = rParameters["table"].GetInt();
+        mTableId = rParameters["Water_Table"].GetInt();
         
         if(mTableId != 0)
             mpTable = model_part.pGetTable(mTableId);
