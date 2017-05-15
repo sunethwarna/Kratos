@@ -2764,29 +2764,6 @@ namespace Kratos
 			{
 				if (ijob > 7)
 				{
-					bool nasaTest6 = false;
-					bool nasaTest7 = false;
-
-					if (nasaTest6)
-					{
-						std::cout << "Running test case for nasa paper ex 6" << std::endl;
-						data.generalizedStrains.clear();
-						data.generalizedStrains[3] = 0.418;
-						data.generalizedStrains[4] = -0.165;
-						data.generalizedStrains[5] = -0.0975;
-					}
-					else if (nasaTest7)
-					{
-						std::cout << "Running test case for nasa paper ex 7" << std::endl;
-						data.generalizedStrains.clear();
-						data.generalizedStrains[0] = 0.00425;
-						data.generalizedStrains[1] = -0.00077;
-						data.generalizedStrains[2] = -0.0029;
-						data.generalizedStrains[3] = -1.02;
-						data.generalizedStrains[4] = 0.088;
-						data.generalizedStrains[5] = 0.92;
-					}
-
 					//Calculate lamina stresses
 					CalculateLaminaStrains(data);
 					CalculateLaminaStresses(data);
