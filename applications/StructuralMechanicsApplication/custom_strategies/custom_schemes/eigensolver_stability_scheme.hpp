@@ -151,7 +151,7 @@ public:
 
         if (CurrentProcessInfo[BUILD_LEVEL] == 1)
         { // geometric stiffness matrix
-            pCurrentCondition->CalculateGeometricStiffnessMatrix(LHS_Contribution,CurrentProcessInfo);
+            //pCurrentCondition->CalculateGeometricStiffnessMatrix(LHS_Contribution,CurrentProcessInfo); //TODO p0 fix!
             auto LocalSize = LHS_Contribution.size1();
             if (RHS_Contribution.size() != LocalSize)
                 RHS_Contribution.resize(LocalSize,false);
