@@ -321,6 +321,7 @@ namespace Kratos
 				noalias(temp) = prod(trans(G), trans(Fnm));
 				if (extractKg)
 				{
+					std::cout << "Extracting Kg!!!!" << std::endl;
 					rLeftHandSideMatrix.clear();
 				}
 				noalias(rLeftHandSideMatrix) += prod(temp, P); // note: '+' not '-' because the RHS already has the negative sign
@@ -344,6 +345,13 @@ namespace Kratos
 			// T' * [(P' * Km * H * P) - (G' * Fn' * P) - (Fnm * G)] * T
 			noalias( temp ) = prod( rLeftHandSideMatrix, T );
 			noalias( rLeftHandSideMatrix ) = prod( trans( T ), temp );
+
+			if (extractKg)
+			{
+				// TODO p1 delete
+				//std::cout << "Printing RHS:\n" << rRightHandSideVector << std::endl;
+				//std::cout << "Extracted Kg:\n" << rLeftHandSideMatrix << std::endl;
+			}
 		}
 
 		virtual MatrixType GetNodalDeformationalRotationTensor(const ShellQ4_LocalCoordinateSystem & LCS,

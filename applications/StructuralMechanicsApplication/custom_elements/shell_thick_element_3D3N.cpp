@@ -648,7 +648,7 @@ namespace Kratos
 		{
 			// Lumped mass matrix
 
-			// lumped area
+ 			// lumped area
 			double lump_area = referenceCoordinateSystem.Area() / 3.0;
 
 			// loop on nodes
@@ -1096,8 +1096,6 @@ namespace Kratos
 			data.rlaminateStresses[i].clear();
 		}
 
-		bool bcomposite_debugging = false;
-
 		// Loop over all plies - start from top ply, top surface
 		for (unsigned int plyNumber = 0;
 			plyNumber < section->NumberOfPlies(); ++plyNumber)
@@ -1113,18 +1111,6 @@ namespace Kratos
 			data.rlaminateStresses[2 * plyNumber + 1] = prod(
 				section->GetPlyConstitutiveMatrix(plyNumber),
 				data.rlaminateStrains[2 * plyNumber + 1]);
-
-			if (bcomposite_debugging)
-			{
-				printMatrix(section->GetPlyConstitutiveMatrix(plyNumber),
-					"Material matrix of ply");
-
-				std::cout << "Strains at top surface of ply " << plyNumber <<
-					" = :" << data.rlaminateStrains[2 * plyNumber] << std::endl;
-
-				std::cout << "Stresses at top surface of ply " << plyNumber <<
-					" = :" << data.rlaminateStresses[2 * plyNumber] << std::endl;
-			}
 		}
 	}
 

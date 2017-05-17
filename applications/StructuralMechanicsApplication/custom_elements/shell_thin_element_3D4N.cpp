@@ -823,7 +823,7 @@ namespace Kratos
 		noalias(rGeometricStiffnessMatrix) = ZeroMatrix(OPT_NUM_DOFS, OPT_NUM_DOFS);
 
 		// Resize the Right Hand Side and initialize it to Zero
-		Vector (rRightHandSideVector) = ZeroVector(OPT_NUM_DOFS);
+		Vector (rRightHandSideVector) = Vector(OPT_NUM_DOFS,1.0);
 
 		// Compute the local coordinate system.
 		ShellQ4_LocalCoordinateSystem localCoordinateSystem(
@@ -887,6 +887,7 @@ namespace Kratos
 			data.ExtractKg);
 
 		rGeometricStiffnessMatrix = rLeftHandSideMatrix;
+		//printMatrix(rGeometricStiffnessMatrix, "kg");
 	}
 
 	// =========================================================================

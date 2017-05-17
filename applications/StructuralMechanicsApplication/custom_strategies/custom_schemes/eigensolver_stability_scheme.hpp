@@ -100,10 +100,11 @@ public:
     {
 		KRATOS_TRY
 
-			CurrentProcessInfo()[IS_STABILITY_EIGENPROBLEM] = true;
+		CurrentProcessInfo[IS_STABILITY_EIGENPROBLEM] = true;
 
 			if (CurrentProcessInfo[BUILD_LEVEL] == 1)
 			{ // geometric stiffness matrix
+				//std::cout << "---------- Geometric stiffness matrix called ----------" << std::endl;
 				pCurrentElement->CalculateGeometricStiffnessMatrix(LHS_Contribution, CurrentProcessInfo);
 				auto LocalSize = LHS_Contribution.size1();
 				if (RHS_Contribution.size() != LocalSize)
@@ -151,7 +152,7 @@ public:
 
         if (CurrentProcessInfo[BUILD_LEVEL] == 1)
         { // geometric stiffness matrix
-            //pCurrentCondition->CalculateGeometricStiffnessMatrix(LHS_Contribution,CurrentProcessInfo); //TODO p0 fix!
+            //pCurrentCondition->CalculateGeometricStiffnessMatrix(LHS_Contribution,CurrentProcessInfo); // TODO p0 fix!
             auto LocalSize = LHS_Contribution.size1();
             if (RHS_Contribution.size() != LocalSize)
                 RHS_Contribution.resize(LocalSize,false);

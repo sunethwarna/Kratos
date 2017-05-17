@@ -112,6 +112,12 @@ void  AddCustomStrategiesToPython()
                 "EigensolverDynamicScheme", init<>() )
             ;
 
+	class_< EigensolverStabilitySchemeType,
+		EigensolverStabilitySchemeType::Pointer, bases< BaseSchemeType >, boost::noncopyable >
+		(
+			"EigensolverStabilityScheme", init<>())
+		;
+
     //********************************************************************
     //*******************CONVERGENCE CRITERIA CLASSES*********************
     //********************************************************************
