@@ -281,71 +281,19 @@ namespace Kratos
 			ShellQ4_LocalCoordinateSystem LCS0; /*!< reference coordinate system */
 			ShellQ4_LocalCoordinateSystem LCS;  /*!< current coordinate system */
 
-			Vector s_xi, s_eta, s_24, s_13;
-			array_1d<double, 4> N_pw;
-			array_1d<Vector, 4> r_cartesian;
-			array_1d<double, 4> dA;			/** \brief dA
-											*
-											* data.dA[PointNumber] = mDetJ0[PointNumber] * IntegrationWeight;
-											*
-											*/
+			// Unit vectors (in cartesian coords)
+			Vector s_xi = ZeroVector(3);	/*!< xi unit vector in cartesian coords */
+			Vector s_eta = ZeroVector(3);	/*!< xi unit vector in cartesian coords */
+			
+			// Geometry data
+			array_1d<Vector, 4> r_cartesian;	/*!< array of cartesian point positions */
+			array_1d<double, 4> dA;	/*!< array of integration areas (incl. weight) */
 
-			MatrixType L_mem;
-			MatrixType L_bend;
-			MatrixType L_bend_mod;
+			// Displacements
+			VectorType globalDisplacements = ZeroVector(24); /*!< global displacement vector */
+			VectorType localDisplacements = ZeroVector(24);  /*!< local displacement vector */
 
-			MatrixType Z;
-			MatrixType HZ;
-
-			MatrixType Q1;
-			MatrixType Q2;
-			MatrixType Q3;
-			MatrixType Q4;
-			MatrixType QF;
-
-			MatrixType B_h_1;
-			MatrixType B_h_2;
-			MatrixType B_h_3;
-			MatrixType B_h_4;
-			MatrixType B_h_bar;
-
-			array_1d<double, 4> DKQ_a;
-			array_1d<double, 4> DKQ_b;
-			array_1d<double, 4> DKQ_c;
-			array_1d<double, 4> DKQ_d;
-			array_1d<double, 4> DKQ_e;
-			MatrixType DKQ_indices;
-			array_1d<Matrix, 4> DKQ_invJac;
-			array_1d<Matrix, 4> DKQ_jac;
-			array_1d<double, 4> DKQ_jac_det;
-
-			MatrixType K_bend_temp;
-
-			array_1d<Matrix, 4> B_i_bend;
-			MatrixType B_h_bend_bar;
-			MatrixType B_higher_test;
-			MatrixType B_bend_DKQ;
-
-			MatrixType H_mem;
-			MatrixType H_mem_mod;
-
-			MatrixType T_13 = Matrix(3, 3, 0.0);
-			MatrixType T_24 = Matrix(3, 3, 0.0);
-
-			double hMean;
-			double element_thickness;
-			double TotalArea;
-			double TotalVolume;
-			double alpha = 1.5;
-			std::vector< array_1d<double, 4> > gpLocations;
-
-			MatrixType dNxy; /*!< shape function cartesian derivatives */ // Maybe DELETE????
-
-			VectorType globalDisplacements; /*!< global displacement vector */
-			VectorType localDisplacements;  /*!< local displacement vector */
-
-			MatrixType geometricStiffnessMatrix;
-
+			// Element flags
 			bool ExtractKm = false; /*!< flag for the calculation of ONLY the material stiffness matrix*/
 			bool ExtractKg = false; /*!< flag for the calculation of ONLY the geometric stiffness matrix*/
 			bool CalculateRHS; /*!< flag for the calculation of the right-hand-side vector */
@@ -367,7 +315,8 @@ namespace Kratos
 			// these data are updated during the
 			// calculations
 
-			size_t gpIndex;
+			array_1d<double, 4> N;	/*!< SF values at parametric point */
+			size_t gpIndex;	/*!< Index of current Gauss Point (zero based) */
 
 			// ---------------------------------------
 			// calculation-variable data
@@ -377,22 +326,43 @@ namespace Kratos
 			// only once(the first time they are used)
 			// to avoid useless re-allocations
 
-			MatrixType B;   /*!< total strain-displacement matrix at the current integration point */
-			MatrixType D;   /*!< section constitutive matrix at the current integration point */
-			MatrixType BTD; /*!< auxiliary matrix to store the product B'*D */
+			// ANDES membrane data
+			const double alpha = 1.5;
+			MatrixType L_mem = ZeroMatrix(3, 12); /*!< basic membrane lumping matrix */
+			MatrixType H_mem_mod = ZeroMatrix(7, 12);	/*!< higher order membrane filter matrix */
+			MatrixType Z = ZeroMatrix(12, 12);	/*!< transformation from Haugen to Kratos DOFs */
+			MatrixType B_h_1 = ZeroMatrix(3, 7);	/*!< higher order membrane B1 matrix */
+			MatrixType B_h_2 = ZeroMatrix(3, 7);	/*!< higher order membrane B2 matrix */
+			MatrixType B_h_3 = ZeroMatrix(3, 7);	/*!< higher order membrane B3 matrix */
+			MatrixType B_h_4 = ZeroMatrix(3, 7);	/*!< higher order membrane B4 matrix */
+			MatrixType B_h_bar = ZeroMatrix(3, 7);	/*!< higher order membrane B_bar matrix */
+			MatrixType T_13 = ZeroMatrix(3, 3);
+			MatrixType T_24 = ZeroMatrix(3, 3);
+			
+			// DKQ bending data
+			array_1d<double, 4> DKQ_a;
+			array_1d<double, 4> DKQ_b;
+			array_1d<double, 4> DKQ_c;
+			array_1d<double, 4> DKQ_d;
+			array_1d<double, 4> DKQ_e;
+			MatrixType DKQ_indices = ZeroMatrix(4, 2);
+			array_1d<Matrix, 4> DKQ_invJac;
+			array_1d<Matrix, 4> DKQ_jac;
+			array_1d<double, 4> DKQ_jac_det;
 
-			VectorType generalizedStrains;  /*!< generalized strain vector at the current integration point */
-			VectorType generalizedStresses; /*!< generalized stress vector at the current integration point */
 
+			// General total element data
+			MatrixType B = ZeroMatrix(6, 24);   /*!< total strain-displacement matrix at the current integration point */
+			MatrixType D = ZeroMatrix(6, 6);    /*!< section constitutive matrix at the current integration point */
+			MatrixType BTD = ZeroMatrix(24, 6);  /*!< auxiliary matrix to store the product B'*D */
+
+			VectorType generalizedStrains = ZeroVector(6);  /*!< generalized strain vector at the current integration point */
+			VectorType generalizedStresses = ZeroVector(6); /*!< generalized stress vector at the current integration point */
 			std::vector<VectorType> rlaminateStrains;	/*!< laminate strain vector at all surfaces at the current integration point */
 			std::vector<VectorType> rlaminateStresses;	/*!< laminate stress vector at all surfaces at the current integration point */
 
-			VectorType N; /*!< shape function vector at the current integration point */
 			JacobianOperator jacOp;
-
 			ShellCrossSection::Parameters SectionParameters; /*!< parameters for cross section calculations */
-
-			//array_1d< Vector3Type, 3 > Sig;
 
 		public:
 

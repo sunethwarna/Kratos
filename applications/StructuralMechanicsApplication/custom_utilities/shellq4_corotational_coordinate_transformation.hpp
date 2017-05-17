@@ -345,13 +345,6 @@ namespace Kratos
 			// T' * [(P' * Km * H * P) - (G' * Fn' * P) - (Fnm * G)] * T
 			noalias( temp ) = prod( rLeftHandSideMatrix, T );
 			noalias( rLeftHandSideMatrix ) = prod( trans( T ), temp );
-
-			if (extractKg)
-			{
-				// TODO p1 delete
-				//std::cout << "Printing RHS:\n" << rRightHandSideVector << std::endl;
-				//std::cout << "Extracted Kg:\n" << rLeftHandSideMatrix << std::endl;
-			}
 		}
 
 		virtual MatrixType GetNodalDeformationalRotationTensor(const ShellQ4_LocalCoordinateSystem & LCS,

@@ -51,8 +51,11 @@ namespace Kratos
 			dN(3, 1) = (1.0 - xi)  * 0.25;
 		}
 
-		inline double dN_seren_dxi(int actualNodeNumber, double xi, double eta)
+		inline double dN_seren_dxi(const int actualNodeNumber,const double xi,
+			const double eta)
 		{
+			// Natural derivatives of 8-node serendipity shape functions
+
 			double returnValue;
 			switch (actualNodeNumber)
 			{
@@ -93,8 +96,11 @@ namespace Kratos
 			return returnValue;
 		}
 
-		inline double dN_seren_deta(int actualNodeNumber, double xi, double eta)
+		inline double dN_seren_deta(const int actualNodeNumber,const double xi,
+			const double eta)
 		{
+			// Natural derivatives of 8-node serendipity shape functions
+
 			double returnValue;
 			switch (actualNodeNumber)
 			{
@@ -188,7 +194,6 @@ namespace Kratos
 			new ShellQ4_CoordinateTransformation(pGeometry))
 	{
 		mThisIntegrationMethod = GetGeometry().GetDefaultIntegrationMethod();
-		//mThisIntegrationMethod = OPT_INTEGRATION_METHOD;
 	}
 
 	ShellThinElement3D4N::ShellThinElement3D4N(IndexType NewId,
@@ -201,7 +206,6 @@ namespace Kratos
 			new ShellQ4_CoordinateTransformation(pGeometry))
 	{
 		mThisIntegrationMethod = GetGeometry().GetDefaultIntegrationMethod();
-		//mThisIntegrationMethod = OPT_INTEGRATION_METHOD;
 	}
 
 	ShellThinElement3D4N::ShellThinElement3D4N(IndexType NewId,
@@ -212,7 +216,6 @@ namespace Kratos
 		, mpCoordinateTransformation(pCoordinateTransformation)
 	{
 		mThisIntegrationMethod = GetGeometry().GetDefaultIntegrationMethod();
-		//mThisIntegrationMethod = OPT_INTEGRATION_METHOD;
 	}
 
 	ShellThinElement3D4N::~ShellThinElement3D4N()
@@ -701,16 +704,6 @@ namespace Kratos
 				rMassMatrix += prod(trans(N), N)*dA*av_mass_per_unit_area;
 			}
 
-			bool bprint_normalised_mat = false;
-			if (bprint_normalised_mat)
-			{
-				Matrix printMat = Matrix(rMassMatrix);
-				printMat /= (referenceCoordinateSystem.Area()*
-					av_mass_per_unit_area);
-				printMat *= 432.0;
-				printMatrix(printMat, "Consistent matrix");
-			}
-
 		}// Consistent mass matrix
 		else
 		{
@@ -840,7 +833,7 @@ namespace Kratos
 		data.CalculateLHS = LHSrequired;
 		data.CalculateRHS = RHSrequired;
 		InitializeCalculationData(data);
-		data.ExtractKm = false;	// must disable here
+		data.ExtractKm = false;
 		data.ExtractKg = true;
 
 		// Gauss Loop.
@@ -887,7 +880,6 @@ namespace Kratos
 			data.ExtractKg);
 
 		rGeometricStiffnessMatrix = rLeftHandSideMatrix;
-		//printMatrix(rGeometricStiffnessMatrix, "kg");
 	}
 
 	// =========================================================================
@@ -1299,8 +1291,6 @@ namespace Kratos
 			data.rlaminateStresses[i].clear();
 		}
 
-		bool bcomposite_debugging = false;
-
 		// Loop over all plies - start from top ply, top surface
 		for (unsigned int plyNumber = 0;
 			plyNumber < section->NumberOfPlies(); ++plyNumber)
@@ -1316,18 +1306,6 @@ namespace Kratos
 			data.rlaminateStresses[2 * plyNumber + 1] = prod(
 				section->GetPlyConstitutiveMatrix(plyNumber),
 				data.rlaminateStrains[2 * plyNumber + 1]);
-
-			if (bcomposite_debugging)
-			{
-				printMatrix(section->GetPlyConstitutiveMatrix(plyNumber),
-					"Material matrix of ply");
-
-				std::cout << "Strains at top surface of ply " << plyNumber <<
-					" = :" << data.rlaminateStrains[2 * plyNumber] << std::endl;
-
-				std::cout << "Stresses at top surface of ply " << plyNumber <<
-					" = :" << data.rlaminateStresses[2 * plyNumber] << std::endl;
-			}
 		}
 	}
 
@@ -1393,51 +1371,6 @@ namespace Kratos
 			}
 		}
 		double tsai_reserve_factor_bottom = (-1.0*var_b + std::sqrt(var_b*var_b + 4.0 * var_a)) / 2.0 / var_a;
-
-		bool tsai_testing = false;
-		if (tsai_testing)
-		{
-			if (data.gpIndex == 0)
-			{
-				std::cout << "\n" << std::endl;
-				std::cout << "tsai_reserve_factor_top =\t\t" << tsai_reserve_factor_top << std::endl;
-				std::cout << "a =\t\t\t" << var_a << std::endl;
-				std::cout << "b =\t\t\t" << var_b << std::endl;
-				for (size_t i = 0; i < 3; i++)
-				{
-					//std::cout << "b_" << i << "=\t\t" << F_i[i] * data.rlaminateStresses[2 * rPly + 1][i] << std::endl;
-				}
-				std::cout << "stresses =\t\t" << data.rlaminateStresses[2 * rPly] << std::endl;
-				//std::cout << "F_i =\t\t" << F_i << std::endl;
-				//printMatrix(F_ij, "F_ij");
-			}
-		}
-		
-
-		bool bTesting = true;
-		if (bTesting)
-		{
-			const GeometryType & geom = GetGeometry();
-
-			for (int node = 0; node < 4; node++)
-			{
-				const NodeType & iNode = geom[node];
-				if (iNode.Y() > 99.9 && iNode.X() > 99.9)
-				{
-					if (rPly == 0)
-					{
-						std::cout << "\nNode @ X,Y [" << iNode.X() << ", " << iNode.Y() << "]" << std::endl;
-						std::cout << "Tsai @ GP " << data.gpIndex << " and ply " << rPly << " = " << tsai_reserve_factor_top << std::endl;
-						std::cout << "Top surface Stresses = " << data.rlaminateStresses[2 * rPly] << std::endl;
-						//std::cout << "Z Disp = \t\t\t" << data.globalDisplacements[6 * node + 2] << std::endl;
-						//printMatrix(data.B_bend_test, "B bending");
-
-
-					}
-				}
-			}
-		}
-
 
 		// Return min of both surfaces as the result for the whole ply
 		return std::min(tsai_reserve_factor_bottom, tsai_reserve_factor_top);
@@ -1530,7 +1463,6 @@ namespace Kratos
 		{
 			// TESTING VARIABLE
 			ijob = 99;
-			//bGlobal = true;
 		}
 	}
 
@@ -1636,6 +1568,8 @@ namespace Kratos
 		const double y43 = -y34;
 		const double y14 = -y41;
 
+		const double A = data.LCS0.Area();
+
 		for (int i = 0; i < 4; i++)
 		{
 			data.r_cartesian[i] = Vector(3, 0.0);
@@ -1664,55 +1598,29 @@ namespace Kratos
 			data.dA[gp] = IntegrationWeight * data.jacOp.Determinant();
 		}
 
-		// Note: here we compute the avarage thickness,
-		// since L is constant over the element.
-		// Now it is not necessary to compute the avarage
-		// because the current implementation of the cross section
-		// doesn't have a variable thickness
-		// (for example as a function of the spatial coordinates...).
-		// This is just a place-holder for future
-		// implementation of a variable thickness
 
-		const double A = data.LCS0.Area();
-		data.element_thickness = 0.0;
-		for (unsigned int i = 0; i < mSections.size(); i++)
-		{
-			data.element_thickness += mSections[i]->GetThickness();
-		}
-		data.element_thickness /= (double)mSections.size();
-
-		//h /= (double)mSections.size();
-		//data.hMean = h;
-		//data.TotalArea = A;
-		//data.TotalVolume = A * h;
-
-		//check from this dot
 		// Unit vectors s_xi and s_eta (eqn 5.2.25)
 		// eqns 5.2.29 -> 5.2.31
-		data.s_xi.resize(3, false);
 		data.s_xi.clear();
-		data.s_eta.resize(3, false);
 		data.s_eta.clear();
 
 		//set values of SFs to xi = 1 and eta = 0
-		Utilities::ShapeFunc(1, 0, data.N_pw);
+		Utilities::ShapeFunc(1, 0, data.N);
 		for (int i = 0; i < 4; i++)
 		{
-			data.s_xi(0) += data.r_cartesian[i][0] * data.N_pw(i);
-			data.s_xi(1) += data.r_cartesian[i][1] * data.N_pw(i);
+			data.s_xi(0) += data.r_cartesian[i][0] * data.N(i);
+			data.s_xi(1) += data.r_cartesian[i][1] * data.N(i);
 		}
-
 		double s_xi_mag = std::sqrt(inner_prod(data.s_xi, data.s_xi));
-		data.s_xi = data.s_xi / s_xi_mag;	//value checked
-		//printVector(data.s_xi, "Printing data.s_xi");
+		data.s_xi = data.s_xi / s_xi_mag;
 
 		//set values of SFs to xi = 0 and eta = 1
-		data.N_pw.clear();
-		Utilities::ShapeFunc(0, 1, data.N_pw);
+		data.N.clear();
+		Utilities::ShapeFunc(0, 1, data.N);
 		for (int i = 0; i < 4; i++)
 		{
-			data.s_eta(0) += data.r_cartesian[i][0] * data.N_pw(i);
-			data.s_eta(1) += data.r_cartesian[i][1] * data.N_pw(i);
+			data.s_eta(0) += data.r_cartesian[i][0] * data.N(i);
+			data.s_eta(1) += data.r_cartesian[i][1] * data.N(i);
 		}
 		double s_eta_mag = std::sqrt(inner_prod(data.s_eta, data.s_eta));
 		data.s_eta = data.s_eta / s_eta_mag;
@@ -1726,7 +1634,7 @@ namespace Kratos
 		double L_mult = 0.5 / A;
 		const double alpha_6 = data.alpha / 6.0;
 		const double alpha_3 = data.alpha / 3.0;
-		data.L_mem.resize(3, 12, false);
+		//data.L_mem.resize(3, 12, false); \\ TODO delete
 		data.L_mem.clear();
 
 		//j = 1, i=4, k=2
@@ -1923,22 +1831,16 @@ namespace Kratos
 		chi_eta_hat /= 4.0;
 
 		// Template constants defined in eqn 5.2.41
-		double rho1 = 0.1;
-		double rho2 = -0.1;
-		double rho3 = -0.1;
-		double rho4 = 0.1;
-		double rho5 = 0.0;
-		double rho6 = 0.5;
-		double rho7 = 0.0;
-		double rho8 = -0.5;
-		double beta1 = 0.6;
-		double beta2 = 0.0;
-
-		//pwdebug
-		//data.alpha = 0.0;
-		//beta1 = 0;
-		//l_xi = l_24;
-		//l_eta = l_13;
+		const double rho1 = 0.1;
+		const double rho2 = -0.1;
+		const double rho3 = -0.1;
+		const double rho4 = 0.1;
+		const double rho5 = 0.0;
+		const double rho6 = 0.5;
+		const double rho7 = 0.0;
+		const double rho8 = -0.5;
+		const double beta1 = 0.6;
+		//double beta2 = 0.0; - entries disabled to save effort
 
 		//s_13 and s_24 unit vectors
 		Vector s_13 = Vector(data.r_cartesian[2] - data.r_cartesian[0]);
@@ -1946,107 +1848,100 @@ namespace Kratos
 		Vector s_24 = Vector(data.r_cartesian[3] - data.r_cartesian[1]);
 		s_24 /= std::sqrt(inner_prod(s_24, s_24));
 
-		double c_13_xi = inner_prod(s_13, s_xi);
-		double c_13_eta = inner_prod(s_13, s_eta);
-		double c_24_xi = inner_prod(s_24, s_xi);
-		double c_24_eta = inner_prod(s_24, s_eta);
-
 		Matrix Q1 = Matrix(3, 7, 0.0);
 		Matrix Q2 = Matrix(3, 7, 0.0);
 		Matrix Q3 = Matrix(3, 7, 0.0);
 		Matrix Q4 = Matrix(3, 7, 0.0);
 
-		int qind = 1 - 1;
-		Q1(0, 0) = rho1*chi_xi_i[qind];
-		Q1(0, 1) = rho2*chi_xi_i[qind];
-		Q1(0, 2) = rho3*chi_xi_i[qind];
-		Q1(0, 3) = rho4*chi_xi_i[qind];
+		Q1(0, 0) = rho1*chi_xi_i[0];
+		Q1(0, 1) = rho2*chi_xi_i[0];
+		Q1(0, 2) = rho3*chi_xi_i[0];
+		Q1(0, 3) = rho4*chi_xi_i[0];
 
 		Q1(0, 4) = data.alpha*chi_xi_t;
-		Q1(0, 5) = -1.0 * beta1 * chi_xi_i[qind] / chi_xi_hat / l_xi;
+		Q1(0, 5) = -1.0 * beta1 * chi_xi_i[0] / chi_xi_hat / l_xi;
 
-		Q1(1, 0) = -1.0* rho1*chi_eta_i[qind];
-		Q1(1, 1) = -1.0* rho4*chi_eta_i[qind];
-		Q1(1, 2) = -1.0* rho3*chi_eta_i[qind];
-		Q1(1, 3) = -1.0* rho2*chi_eta_i[qind];
+		Q1(1, 0) = -1.0* rho1*chi_eta_i[0];
+		Q1(1, 1) = -1.0* rho4*chi_eta_i[0];
+		Q1(1, 2) = -1.0* rho3*chi_eta_i[0];
+		Q1(1, 3) = -1.0* rho2*chi_eta_i[0];
 
 		Q1(1, 4) = -1.0 * data.alpha*chi_eta_t;
-		Q1(1, 6) = -1.0 * beta1 * chi_eta_i[qind] / chi_eta_hat / l_eta;
+		Q1(1, 6) = -1.0 * beta1 * chi_eta_i[0] / chi_eta_hat / l_eta;
 
 		Q1(2, 0) = rho5*chi_24;
 		Q1(2, 1) = rho6*chi_24;
 		Q1(2, 2) = rho7*chi_24;
 		Q1(2, 3) = rho8*chi_24;
 
-		//Q1(2, 5) = beta2 * c_24_xi / l_24;	- beta2 = 0
-		//Q1(2, 6) = -1.0 * beta2 * c_24_eta / l_24;	- beta2 = 0
+		//Q1(2, 5) = beta2 * c_24_xi / l_24;	- beta2 = 0!!!
+		//Q1(2, 6) = -1.0 * beta2 * c_24_eta / l_24;	- beta2 = 0!!!
 
-		qind = 2 - 1;
-		Q2(0, 0) = -1.0*rho2*chi_xi_i[qind];
-		Q2(0, 1) = -1.0*rho1*chi_xi_i[qind];
-		Q2(0, 2) = -1.0*rho4*chi_xi_i[qind];
-		Q2(0, 3) = -1.0*rho3*chi_xi_i[qind];
+		Q2(0, 0) = -1.0*rho2*chi_xi_i[1];
+		Q2(0, 1) = -1.0*rho1*chi_xi_i[1];
+		Q2(0, 2) = -1.0*rho4*chi_xi_i[1];
+		Q2(0, 3) = -1.0*rho3*chi_xi_i[1];
 
 		Q2(0, 4) = -1.0*data.alpha*chi_xi_t;
-		Q2(0, 5) = -1.0 * beta1 * chi_xi_i[qind] / chi_xi_hat / l_xi;
+		Q2(0, 5) = -1.0 * beta1 * chi_xi_i[1] / chi_xi_hat / l_xi;
 
-		Q2(1, 0) = rho4*chi_eta_i[qind];
-		Q2(1, 1) = rho1*chi_eta_i[qind];
-		Q2(1, 2) = rho2*chi_eta_i[qind];
-		Q2(1, 3) = rho3*chi_eta_i[qind];
+		Q2(1, 0) = rho4*chi_eta_i[1];
+		Q2(1, 1) = rho1*chi_eta_i[1];
+		Q2(1, 2) = rho2*chi_eta_i[1];
+		Q2(1, 3) = rho3*chi_eta_i[1];
 
 		Q2(1, 4) = data.alpha*chi_eta_t;
-		Q2(1, 6) = beta1 * chi_eta_i[qind] / chi_eta_hat / l_eta;
+		Q2(1, 6) = beta1 * chi_eta_i[1] / chi_eta_hat / l_eta;
 
 		Q2(2, 0) = rho8*chi_13;
 		Q2(2, 1) = rho5*chi_13;
 		Q2(2, 2) = rho6*chi_13;
 		Q2(2, 3) = rho7*chi_13;
 
-		//Q2(2, 5) = -1.0* beta2 * c_13_xi / l_13;	 beta2 = 0
-		//Q2(2, 6) = beta2 * c_13_eta / l_13;	beta2=0
+		//Q2(2, 5) = -1.0* beta2 * c_13_xi / l_13;	 beta2 = 0!!!
+		//Q2(2, 6) = beta2 * c_13_eta / l_13;	beta2=0!!!
 
-		qind = 3 - 1;
-		Q3(0, 0) = rho3*chi_xi_i[qind];
-		Q3(0, 1) = rho4*chi_xi_i[qind];
-		Q3(0, 2) = rho1*chi_xi_i[qind];
-		Q3(0, 3) = rho2*chi_xi_i[qind];
+
+		Q3(0, 0) = rho3*chi_xi_i[2];
+		Q3(0, 1) = rho4*chi_xi_i[2];
+		Q3(0, 2) = rho1*chi_xi_i[2];
+		Q3(0, 3) = rho2*chi_xi_i[2];
 
 		Q3(0, 4) = data.alpha*chi_xi_t;
-		Q3(0, 5) = beta1 * chi_xi_i[qind] / chi_xi_hat / l_xi;
+		Q3(0, 5) = beta1 * chi_xi_i[2] / chi_xi_hat / l_xi;
 
-		Q3(1, 0) = -1.0* rho3*chi_eta_i[qind];
-		Q3(1, 1) = -1.0* rho2*chi_eta_i[qind];
-		Q3(1, 2) = -1.0* rho1*chi_eta_i[qind];
-		Q3(1, 3) = -1.0* rho4*chi_eta_i[qind];
+		Q3(1, 0) = -1.0* rho3*chi_eta_i[2];
+		Q3(1, 1) = -1.0* rho2*chi_eta_i[2];
+		Q3(1, 2) = -1.0* rho1*chi_eta_i[2];
+		Q3(1, 3) = -1.0* rho4*chi_eta_i[2];
 
 		Q3(1, 4) = -1.0 * data.alpha*chi_eta_t;
-		Q3(1, 6) = beta1 * chi_eta_i[qind] / chi_eta_hat / l_eta;
+		Q3(1, 6) = beta1 * chi_eta_i[2] / chi_eta_hat / l_eta;
 
 		Q3(2, 0) = rho7*chi_13;
 		Q3(2, 1) = rho8*chi_13;
 		Q3(2, 2) = rho5*chi_13;
 		Q3(2, 3) = rho6*chi_13;
 
-		//Q3(2, 5) = -1.0*beta2 * c_13_xi / l_13;	beta2 = 0
-		//Q3(2, 6) = beta2 * c_13_eta / l_13;	beta2 = 0
+		//Q3(2, 5) = -1.0*beta2 * c_13_xi / l_13;	beta2 = 0!!!
+		//Q3(2, 6) = beta2 * c_13_eta / l_13;	beta2 = 0!!!
 
-		qind = 4 - 1;
-		Q4(0, 0) = -1.0*rho4*chi_xi_i[qind];
-		Q4(0, 1) = -1.0*rho3*chi_xi_i[qind];
-		Q4(0, 2) = -1.0*rho2*chi_xi_i[qind];
-		Q4(0, 3) = -1.0*rho1*chi_xi_i[qind];
+
+		Q4(0, 0) = -1.0*rho4*chi_xi_i[3];
+		Q4(0, 1) = -1.0*rho3*chi_xi_i[3];
+		Q4(0, 2) = -1.0*rho2*chi_xi_i[3];
+		Q4(0, 3) = -1.0*rho1*chi_xi_i[3];
 
 		Q4(0, 4) = -1.0*data.alpha*chi_xi_t;
-		Q4(0, 5) = beta1 * chi_xi_i[qind] / chi_xi_hat / l_xi;
+		Q4(0, 5) = beta1 * chi_xi_i[3] / chi_xi_hat / l_xi;
 
-		Q4(1, 0) = rho2*chi_eta_i[qind];
-		Q4(1, 1) = rho3*chi_eta_i[qind];
-		Q4(1, 2) = rho4*chi_eta_i[qind];
-		Q4(1, 3) = rho1*chi_eta_i[qind];
+		Q4(1, 0) = rho2*chi_eta_i[3];
+		Q4(1, 1) = rho3*chi_eta_i[3];
+		Q4(1, 2) = rho4*chi_eta_i[3];
+		Q4(1, 3) = rho1*chi_eta_i[3];
 
 		Q4(1, 4) = data.alpha*chi_eta_t;
-		Q4(1, 6) = -1.0* beta1 * chi_eta_i[qind] / chi_eta_hat / l_eta;
+		Q4(1, 6) = -1.0* beta1 * chi_eta_i[3] / chi_eta_hat / l_eta;
 
 		Q4(2, 0) = rho6*chi_13;
 		Q4(2, 1) = rho7*chi_13;
@@ -2091,7 +1986,7 @@ namespace Kratos
 		data.B_h_4 = prod(T_24, Q4);
 
 		//transform DOFs from Haugen to Kratos
-		data.Z.resize(12, 12, false);
+		//data.Z.resize(12, 12, false); // TODO delete
 		data.Z.clear();
 		for (int i = 0; i < 3; i++)
 		{
@@ -2101,12 +1996,12 @@ namespace Kratos
 			data.Z(4 * i + 3, i + 9) = 1.0;
 		}
 
-		data.H_mem_mod.resize(7, 12, 0.0);
+		//data.H_mem_mod.resize(7, 12, 0.0); // TODO delete
 		data.H_mem_mod.clear();
 		data.H_mem_mod = prod(H, data.Z);
 
 		//calculate Bh bar
-		data.B_h_bar.resize(3, 7, false);
+		//data.B_h_bar.resize(3, 7, false); // TODO deletes
 		data.B_h_bar.clear();
 		const Matrix & shapeFunctionsValues =
 			geom.ShapeFunctionsValues(GetIntegrationMethod());
@@ -2186,7 +2081,7 @@ namespace Kratos
 			l_41;
 
 		//prepare DKT assembly indices - for eqn 3.92 a->f
-		data.DKQ_indices.resize(4, 2);
+		//data.DKQ_indices.resize(4, 2); // TODO delete
 		data.DKQ_indices.clear();
 		// 1st col = r, 2nd col = s
 		data.DKQ_indices(0, 0) = 5;	//actual node number, not index!
@@ -2214,7 +2109,6 @@ namespace Kratos
 			DKQ_temp(1, 0) = x32 + x41 + xi*(x12 + x34);
 			DKQ_temp(1, 1) = y32 + y41 + xi*(y12 + y34);
 			DKQ_temp = DKQ_temp / 4;
-			//printMatrix(DKQ_temp, "Printing DKQ_temp");
 			double det = MathUtils<double>::Det(DKQ_temp);
 			Matrix DKQ_temp_inv = Matrix(2, 2, 0.0);
 			DKQ_temp_inv(0, 0) = DKQ_temp(1, 1);
@@ -2229,24 +2123,23 @@ namespace Kratos
 		// calculate the displacement vector
 		// in global and local coordinate systems
 
-		data.globalDisplacements.resize(OPT_NUM_DOFS, false);
+		//data.globalDisplacements.resize(OPT_NUM_DOFS, false); // TODO delete
 		GetValuesVector(data.globalDisplacements);
 		data.localDisplacements =
 			mpCoordinateTransformation->CalculateLocalDisplacements(
 				data.LCS, data.globalDisplacements);
 
 		//--------------------------------------
-		// Finally allocate all auxiliary
+		// Clear all auxiliary
 		// matrices to be used later on
 		// during the element integration.
-		// Just to avoid re-allocations
 
-		data.B.resize(OPT_STRAIN_SIZE, OPT_NUM_DOFS, false);
-		data.D.resize(OPT_STRAIN_SIZE, OPT_STRAIN_SIZE, false);
-		data.BTD.resize(OPT_NUM_DOFS, OPT_STRAIN_SIZE, false);
+		data.B.clear();
+		data.D.clear();
+		data.BTD.clear();
+		data.generalizedStrains.clear();
+		data.generalizedStresses.clear();
 
-		data.generalizedStrains.resize(OPT_STRAIN_SIZE, false);
-		data.generalizedStresses.resize(OPT_STRAIN_SIZE, false);
 
 		//--------------------------------------
 		// Initialize the section parameters
@@ -2260,9 +2153,6 @@ namespace Kratos
 		data.SectionParameters.SetGeneralizedStressVector
 		(data.generalizedStresses);
 		data.SectionParameters.SetConstitutiveMatrix(data.D);
-
-		//this isn't constant for a quad!!!!
-		//data.SectionParameters.SetShapeFunctionsDerivatives(data.dNxy);
 
 		Flags& options = data.SectionParameters.GetOptions();
 		options.Set(ConstitutiveLaw::COMPUTE_STRESS, data.CalculateRHS);
@@ -2448,9 +2338,8 @@ namespace Kratos
 		j21 = data.DKQ_invJac[data.gpIndex](1, 0);
 		j22 = data.DKQ_invJac[data.gpIndex](1, 1);
 
-		//try assembling like in original formulation
+		//Assemble into B matrix
 		Matrix B_bend_DKQ = Matrix(3, 12, 0.0);
-		//B_bend_DKQ.clear();
 		for (int col = 0; col < 12; col++)
 		{
 			B_bend_DKQ(0, col) += j11*dpsiX_dxi(col) + j12*dpsiX_deta(col);
@@ -2651,10 +2540,6 @@ namespace Kratos
 		if (rValues.size() != size)
 			rValues.resize(size);
 
-		// Get some references.
-
-		//GeometryType & geom = GetGeometry();
-
 		// Compute the local coordinate system.
 
 		ShellQ4_LocalCoordinateSystem localCoordinateSystem(
@@ -2842,44 +2727,6 @@ namespace Kratos
 				iValue(0, 1) = iValue(1, 0) = 0.5 * data.generalizedStrains(5);
 				iValue(0, 2) = iValue(2, 0) = 0.0;
 				iValue(1, 2) = iValue(2, 1) = 0.0;
-
-				bool bTesting = false;
-				if (bTesting)
-				{
-					const GeometryType & geom = GetGeometry();
-
-					for (int node = 0; node < 4; node++)
-					{
-						const NodeType & iNode = geom[node];
-						if (iNode.Y() > 99.9)
-						{
-							if (i == 0)
-							{
-								std::cout << "\nNode @ X,Y [" << iNode.X() << ", " << iNode.Y() << "]" << std::endl;
-								//std::cout << "Z Disp = \t\t\t" << data.globalDisplacements[6 * node + 2] << std::endl;
-								//printMatrix(data.B_bend_test, "B bending");
-
-								Vector BendingDisps = Vector(12, 0.0);
-								for (size_t k = 0; k < 4; k++)
-								{
-									BendingDisps[3 * k] = data.localDisplacements[3 * k + 2];
-									BendingDisps[3 * k+1] = data.localDisplacements[3 * k + 4];
-									BendingDisps[3 * k+2] = data.localDisplacements[3 * k + 5];
-								}
-								//printVector(BendingDisps, "Bending disp");
-
-								
-								printVector(data.globalDisplacements, "new global disp");
-								printVector(data.localDisplacements, "localDisplacements");								
-							}
-
-							//std::cout << "Kappa X (GP" << i <<") = \t\t" << data.generalizedStrains(3) << std::endl;
-							//printMatrix(data.B, "B mat");
-						}
-						
-						
-					}
-				}
 			}
 			else if (ijob == 3) // forces
 			{
@@ -2898,33 +2745,6 @@ namespace Kratos
 				iValue(0, 1) = iValue(1, 0) = data.generalizedStresses(5);
 				iValue(0, 2) = iValue(2, 0) = 0.0;
 				iValue(1, 2) = iValue(2, 1) = 0.0;
-
-				bool bTesting = false;
-				if (bTesting)
-				{
-					const GeometryType & geom = GetGeometry();
-
-					for (int node = 0; node < 4; node++)
-					{
-						const NodeType & iNode = geom[node];
-						if (iNode.Y() > 99.9)
-						{
-							if (i == 0)
-							{
-								std::cout << "\nNode @ X,Y [" << iNode.X() << ", " << iNode.Y() << "]" << std::endl;
-								std::cout << "Z Disp = \t\t\t" << data.globalDisplacements[6 * node + 2] << std::endl;
-
-								//std::cout << "Kappa Y = \t" << data.generalizedStrains(3) << std::endl;
-								
-							}
-
-							std::cout << "Moment X (GP" << i << ") = \t\t" << data.generalizedStresses(3) << std::endl;
-							
-						}
-
-
-					}
-				}
 			}
 			else if (ijob == 5) // SHELL_STRESS_TOP_SURFACE
 			{
@@ -3001,26 +2821,6 @@ namespace Kratos
 					}
 				}
 
-				bool testing_rotation = false;
-				if (testing_rotation)
-				{
-					// Test to rotate local stresses to lamina principal directions
-					iValue.clear();
-					R.clear();
-					Vector ply_orientations = Vector(section->NumberOfPlies(), 0.0);
-					section->GetLaminaeOrientation(ply_orientations);
-					section->GetRotationMatrixForGeneralizedStresses(-ply_orientations[1], R);
-					data.rlaminateStresses[2] = prod(R, data.rlaminateStresses[2]);
-
-
-					iValue(0, 0) = data.rlaminateStresses[2][0];
-					iValue(1, 1) = data.rlaminateStresses[2][1];
-					iValue(2, 2) = 0.0;
-					iValue(0, 1) = iValue(1, 0) = data.rlaminateStresses[2][2];
-					iValue(0, 2) = iValue(2, 0) = 0.0;
-					iValue(1, 2) = iValue(2, 1) = 0.0;
-				}
-
 				bool tsai_wu_thru_output = true;
 				if (tsai_wu_thru_output)
 				{
@@ -3049,10 +2849,9 @@ namespace Kratos
 						data.rlaminateStresses[2 * ply + 1] = prod(R, data.rlaminateStresses[2 * ply + 1]);
 					}
 
-					// Calculate Tsai-Wu criterion for each ply, some bad tricks here
+					// Calculate Tsai-Wu criterion for each ply
 					Vector tsai_output = Vector(9, 0.0);
 					tsai_output.clear();
-					double min_tsai_wu = 0.0;
 					double temp_tsai_wu = 0.0;
 					for (unsigned int ply = 0; ply < section->NumberOfPlies(); ply++)
 					{
@@ -3120,7 +2919,6 @@ namespace Kratos
 					<< matrixIn(i, j) << " | ";
 			}
 			std::cout << std::endl;
-			//std::cout << "|" << std::endl;
 		}
 		std::cout << std::endl;
 	}
@@ -3137,7 +2935,6 @@ namespace Kratos
 				<< matrixIn(i) << " | ";
 
 			std::cout << std::endl;
-			//std::cout << "|" << std::endl;
 		}
 		std::cout << std::endl;
 	}
@@ -3155,7 +2952,6 @@ namespace Kratos
 					matrixIn(i, j) << " | ";
 			}
 			std::cout << std::endl;
-			//std::cout << "|" << std::endl;
 		}
 		std::cout << std::endl;
 	}
