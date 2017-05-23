@@ -120,7 +120,7 @@ public:
         
 		double ref_coord = mreference_coordinate + mwater_level;
 		double unit_acceleration = macceleration/9.81;
-                   
+                  
         if(nnodes != 0)
         {
             ModelPart::NodesContainerType::iterator it_begin = mr_model_part.GetMesh(mmesh_id).NodesBegin();
@@ -142,24 +142,28 @@ public:
                     y_water=0.0;
                 }
                 
-                // Hydrodynamics Westergaard effects just contribute when the acceleration goes in the upstream direction                
-                if(unit_acceleration<0.0)
-                {
-                    pressure = (mspecific*(y_water)) + 0.875*(-1.0*unit_acceleration)*mspecific*sqrt(y_water*mwater_level);
-                }
-                else
-                {
-                    pressure = (mspecific*(y_water));
-                }
+                // // Hydrodynamics Westergaard effects just contribute when the acceleration goes in the upstream direction                
+                // if(unit_acceleration<0.0)
+                // {
+                //     pressure = (mspecific*(y_water)) + 0.875*(-1.0*unit_acceleration)*mspecific*sqrt(y_water*mwater_level);
+                // }
+                // else
+                // {
+                //     pressure = (mspecific*(y_water));
+                // }
 
-                if(pressure>0.0)
-                {
-                    it->FastGetSolutionStepValue(var) = pressure;
-                }
-                else
-                {
-                    it->FastGetSolutionStepValue(var)=0.0;
-                }
+                pressure = (mspecific*(y_water)) + 0.875*(unit_acceleration)*mspecific*sqrt(y_water*mwater_level);
+
+                it->FastGetSolutionStepValue(var) = pressure;
+
+                // if(pressure>0.0)
+                // {
+                //     it->FastGetSolutionStepValue(var) = pressure;
+                // }
+                // else
+                // {
+                //     it->FastGetSolutionStepValue(var)=0.0;
+                // }
             }            
         }
         
@@ -203,7 +207,7 @@ public:
         
         double ref_coord = mreference_coordinate + mwater_level;
         double unit_acceleration = macceleration/9.81;
-                           
+                          
         if(nnodes != 0)
         {
             ModelPart::NodesContainerType::iterator it_begin = mr_model_part.GetMesh(mmesh_id).NodesBegin();
@@ -225,24 +229,28 @@ public:
                     y_water=0.0;
                 }
                 
-                // Hydrodynamics Westergaard effects just contribute when the acceleration goes in the upstream direction                
-                if(unit_acceleration<0.0)
-                {
-                    pressure = (mspecific*(y_water)) + 0.875*(-1.0*unit_acceleration)*mspecific*sqrt(y_water*mwater_level);
-                }
-                else
-                {
-                    pressure = (mspecific*(y_water));
-                }
+                // // Hydrodynamics Westergaard effects just contribute when the acceleration goes in the upstream direction                
+                // if(unit_acceleration<0.0)
+                // {
+                //     pressure = (mspecific*(y_water)) + 0.875*(-1.0*unit_acceleration)*mspecific*sqrt(y_water*mwater_level);
+                // }
+                // else
+                // {
+                //     pressure = (mspecific*(y_water));
+                // }
+
+                pressure = (mspecific*(y_water)) + 0.875*(unit_acceleration)*mspecific*sqrt(y_water*mwater_level);
                 
-                if(pressure>0.0)
-                {
-                    it->FastGetSolutionStepValue(var) = pressure;
-                }
-                else
-                {
-                    it->FastGetSolutionStepValue(var)=0.0;
-                }
+                it->FastGetSolutionStepValue(var) = pressure;
+
+                // if(pressure>0.0)
+                // {
+                //     it->FastGetSolutionStepValue(var) = pressure;
+                // }
+                // else
+                // {
+                //     it->FastGetSolutionStepValue(var)=0.0;
+                // }
             }            
         }
         

@@ -123,7 +123,7 @@ public:
         Variable<double> var = KratosComponents< Variable<double> >::Get(mvariable_name);
         const int nnodes = mr_model_part.GetMesh(mmesh_id).Nodes().size();
                 
-    if(nnodes != 0)
+        if(nnodes != 0)
         {
             ModelPart::NodesContainerType::iterator it_begin = mr_model_part.GetMesh(mmesh_id).NodesBegin();
         
