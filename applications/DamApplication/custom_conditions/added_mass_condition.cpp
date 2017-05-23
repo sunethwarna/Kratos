@@ -170,18 +170,21 @@ void AddedMassCondition<TDim,TNumNodes>::CalculateLHS( MatrixType& rLeftHandSide
 		for(unsigned int i = 0; i<NumGPoints; i++)
 			(JContainer[i]).resize(TDim,LocalDim,false);
 		Geom.Jacobian( JContainer, mThisIntegrationMethod );
+        
         double IntegrationCoefficient;
-
-        // Distributed mass contribution according the surface element
+        Vector ShapeFunctionsValues;
         double mass_contribution =0.0;
-
-        // for ( unsigned int j = 0; j < TNumNodes; j++ )
-        // {
-        //     mass_contribution += ShapeFunctionsValues[j] * Geom[j].GetSolutionStepValue(ADDED_MASS);
-        // }
-
+        ShapeFunctionsValues.resize(TNumNodes,false);
+        
         for(unsigned int igauss = 0; igauss < NumGPoints; igauss++ )
         {	
+            // Distributed mass contribution according the surface element
+            noalias(ShapeFunctionsValues) = row(NContainer,igauss);
+            for ( unsigned int j = 0; j < TNumNodes; j++ )
+            {
+                 mass_contribution += ShapeFunctionsValues[j] * Geom[j].GetSolutionStepValue(ADDED_MASS);
+            }
+
 			//Computing Nu Matrix
 			ConditionUtilities::CalculateNuMatrix(Nu,NContainer,igauss);
 								
@@ -189,7 +192,7 @@ void AddedMassCondition<TDim,TNumNodes>::CalculateLHS( MatrixType& rLeftHandSide
 			this->CalculateIntegrationCoefficient(IntegrationCoefficient, JContainer[igauss], integration_points[igauss].Weight() );
 			
             // Mass matrix contribution
-			noalias(rLeftHandSideMatrix) += mass_contribution*prod(trans(Nu),Nu)*IntegrationCoefficient;
+			noalias(rLeftHandSideMatrix) += rCurrentProcessInfo[ACCELERATION_PRESSURE_COEFFICIENT]*mass_contribution*prod(trans(Nu),Nu)*IntegrationCoefficient;
 			
 		}
 
@@ -210,29 +213,29 @@ void AddedMassCondition<TDim,TNumNodes>::CalculateRHS( VectorType& rRightHandSid
 			
 		// Components of the Jacobian for computing the normal vector and shape functions container
 		boost::numeric::ublas::bounded_matrix<double,TDim, TNumNodes*TDim> Nu;
-        //const Vector& ShapeFunctionsValues = Geom.ShapeFunctionsValues();
         const Matrix& NContainer = Geom.ShapeFunctionsValues( mThisIntegrationMethod );
 		GeometryType::JacobiansType JContainer(NumGPoints);
 		for(unsigned int i = 0; i<NumGPoints; i++)
 			(JContainer[i]).resize(TDim,LocalDim,false);
 		Geom.Jacobian( JContainer, mThisIntegrationMethod );
+        
         double IntegrationCoefficient;
-
         boost::numeric::ublas::bounded_matrix<double,TNumNodes,TNumNodes> MassMatrix;
-
+        Vector ShapeFunctionsValues;
+        ShapeFunctionsValues.resize(TNumNodes,false);
         Vector AccelerationVector;
         this->GetAccelerationVector(AccelerationVector,0);
-
-        // Distributed mass contribution according the surface element
         double mass_contribution =0.0;
-
-        // for ( unsigned int j = 0; j < TNumNodes; j++ )
-        // {
-        //     mass_contribution += ShapeFunctionsValues[j] * Geom[j].GetSolutionStepValue(ADDED_MASS);
-        // }
 
         for(unsigned int igauss = 0; igauss < NumGPoints; igauss++ )
         {	
+            // Distributed mass contribution according the surface element
+            noalias(ShapeFunctionsValues) = row(NContainer,igauss);
+            for ( unsigned int j = 0; j < TNumNodes; j++ )
+            {
+                 mass_contribution += ShapeFunctionsValues[j] * Geom[j].GetSolutionStepValue(ADDED_MASS);
+            }
+
 			//Computing Nu Matrix
 			ConditionUtilities::CalculateNuMatrix(Nu,NContainer,igauss);
 								
@@ -241,7 +244,7 @@ void AddedMassCondition<TDim,TNumNodes>::CalculateRHS( VectorType& rRightHandSid
 			
     		// Mass matrix contribution
 			noalias(MassMatrix) = mass_contribution*prod(trans(Nu),Nu)*IntegrationCoefficient;
-            noalias(rRightHandSideVector) += prod( MassMatrix, AccelerationVector );
+            noalias(rRightHandSideVector) += -1.0*prod( MassMatrix, AccelerationVector );
 
 		}
 
