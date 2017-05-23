@@ -600,9 +600,6 @@ class CADMapper
 			g2(2) = g_master(2,1);
 			double J1 = norm_2( g1* tangent_on_master_patch(0) + g2* tangent_on_master_patch(1) );
 
-			// if(brep_elem_i->GetEdgeId()==1005)
-			// 	m_length_circle += gp_i_weight * J1;
-
 			// First we introduce coupling of displacements
 			apply_displacement_coupling( mapping_matrix_ids_gpi_master, 
 										 mapping_matrix_ids_gpi_slave, 
@@ -1644,8 +1641,7 @@ class CADMapper
 		VectorPoint SlavePointVector;
 		VectorPoint MasterPointVector; 
 		DoubleVector CosineVector;
-		// FILE *fp;
-		// fp=fopen("/home/giovannifilomeno/Dropbox/FILMEC/StudentWork/cosine.txt", "w");
+	
 		for (BREPElementVector::iterator brep_elem_i = m_brep_elements.begin(); brep_elem_i != m_brep_elements.end(); ++brep_elem_i)
 		{
 			
@@ -1684,8 +1680,6 @@ class CADMapper
 						// store information needed to evaluate C0-continuity
 						MasterPointVector.push_back( cad_point_master );
 						SlavePointVector.push_back( cad_point_slave );
-						// slave_patch.GetSurface().EvaluateNURBSFunctions(-1,-1,u_s, v_s, R_gpi_slave);	
-						// // matrix<unsigned int> mapping_matrix_ids_gpi_slave = slave_patch.GetSurface().GetMappingMatrixIds(-1,-1,u_s, v_s);							
 
 						// evaluate C1-continuity
 						matrix<double> g_master = master_patch.GetSurface().GetBaseVectors(-1,-1,u_m,v_m);
@@ -1717,14 +1711,12 @@ class CADMapper
 
 						CosineVector.push_back( abs(cosine_theta) );
 
-						// fprintf(fp, "%lf\t\t%lf\t%lf\t%lf\t\t%lf\t%lf\t%lf\n", abs(cosine_theta), cad_point_master.X(),cad_point_master.Y(),cad_point_master.Z(),cad_point_slave.X(), cad_point_slave.Y(), cad_point_slave.Z());
 					}
 					
 				}
 			}
 
 		}
-		// fclose(fp);
 		double average, max;
 		check_c0_continuity( MasterPointVector, SlavePointVector, average, max);
 
@@ -1747,8 +1739,6 @@ class CADMapper
 		KRATOS_WATCH( average );
 		// -----------------------------------------------------------
 
-
-		file_to_write.close();
 	}
 
 	// --------------------------------------------------------------------------
