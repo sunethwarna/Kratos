@@ -118,7 +118,8 @@ class DamMechanicalSolver(object):
         self.main_model_part.AddNodalSolutionStepVariable(KratosDam.NODAL_JOINT_WIDTH)
         self.main_model_part.AddNodalSolutionStepVariable(KratosDam.NODAL_JOINT_AREA)
         self.main_model_part.AddNodalSolutionStepVariable(KratosDam.NODAL_YOUNG_MODULUS)
-        
+        self.main_model_part.AddNodalSolutionStepVariable(KratosDam.ADDED_MASS)
+
         print("Variables correctly added")
 
     def GetMinimumBufferSize(self):

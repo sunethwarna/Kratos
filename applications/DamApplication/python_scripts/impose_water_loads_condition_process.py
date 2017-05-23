@@ -31,8 +31,12 @@ class ImposeWaterLoadsConditionProcess(Process):
         
         if "Hydrodynamic" in settings["model_part_name"].GetString():
             
-            self.components_process_list.append(DamWestergaardConditionLoadProcess(model_part, settings))   
-        
+            self.components_process_list.append(DamWestergaardConditionLoadProcess(model_part, settings))
+
+        if "AddedMass" in settings["model_part_name"].GetString():
+
+            self.components_process_list.append(DamAddedMassConditionProcess(model_part, settings))
+
     def ExecuteInitialize(self):
 
         for component in self.components_process_list:

@@ -25,7 +25,7 @@
 #include "custom_processes/dam_westergaard_condition_load_process.hpp"
 #include "custom_processes/dam_nodal_young_modulus_process.hpp"
 #include "custom_processes/dam_construction_process.hpp"
-
+#include "custom_processes/dam_added_mass_condition_process.hpp"
 
 
 namespace Kratos
@@ -66,6 +66,9 @@ void  AddCustomProcessesToPython()
     class_< DamConstructionProcess, bases< Process >, boost::noncopyable > ( "DamConstructionProcess",
         init < ModelPart&, Parameters>());
 
+    // Added Mass Distribution     
+    class_< DamAddedMassConditionProcess, bases< Process >, boost::noncopyable > ( "DamAddedMassConditionProcess",
+        init < ModelPart&, Parameters>());
 
 }
 

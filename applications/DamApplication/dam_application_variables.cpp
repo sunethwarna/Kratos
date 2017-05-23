@@ -51,5 +51,7 @@ namespace Kratos
 
     KRATOS_CREATE_VARIABLE( double, NODAL_YOUNG_MODULUS )  
     KRATOS_CREATE_VARIABLE( int, COMPUTE_GLOBAL_DAMAGE ) 
+    KRATOS_CREATE_VARIABLE( double, ADDED_MASS )  
+
 
 }// namespace Kratos.
