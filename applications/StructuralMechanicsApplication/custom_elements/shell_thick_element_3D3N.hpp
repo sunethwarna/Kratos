@@ -7,7 +7,7 @@
 //					 license: structural_mechanics_application/license.txt
 //
 //  Main authors:    Peter Wilson
-//					 (inspired by Massimo Petracca's shells)
+//					 
 
 #if !defined(SHELL_THICK_ELEMENT_3D3N_H_INCLUDED )
 #define  SHELL_THICK_ELEMENT_3D3N_H_INCLUDED
@@ -82,14 +82,10 @@ namespace Kratos
 		///@name Classes
 		///@{
 
-		// TODO: Add Calulation Data
-
 		///@}
 
 		///@name Life Cycle
 		///@{
-
-		//pwchecked
 
 		ShellThickElement3D3N(IndexType NewId,
 			GeometryType::Pointer pGeometry,
@@ -233,14 +229,14 @@ namespace Kratos
 			double dA;
 			double hMean;
 			double TotalArea;
-			double TotalVolume;
+
 			std::vector< array_1d<double, 3> > gpLocations;
 
-			MatrixType dNxy; /*!< shape function cartesian derivatives */
-			VectorType N; /*!< shape function vector at the current integration point */
+			MatrixType dNxy = ZeroMatrix(3, 2);  /*!< shape function cartesian derivatives */
+			VectorType N = ZeroVector(3); /*!< shape function vector at the current integration point */
 
-			VectorType globalDisplacements; /*!< global displacement vector */
-			VectorType localDisplacements;  /*!< local displacement vector */
+			VectorType globalDisplacements = ZeroVector(18); /*!< global displacement vector */
+			VectorType localDisplacements = ZeroVector(18);  /*!< local displacement vector */
 
 			bool CalculateRHS; /*!< flag for the calculation of the right-hand-side vector */
 			bool CalculateLHS; /*!< flag for the calculation of the left-hand-side vector */
@@ -278,18 +274,18 @@ namespace Kratos
 			// only once(the first time they are used)
 			// to avoid useless re-allocations
 
-			MatrixType B;   /*!< total strain-displacement matrix at the current integration point */
+			MatrixType B = ZeroMatrix(8, 18);   /*!< total strain-displacement matrix at the current integration point */
 
 			double h_e;		/*!< longest edge of triangle */
 			double alpha = 0.1;	// modifier of shear material matrix stabilization parameter
 								// refer Lyly(1993)
 			double shearStabilisation;
 
-			Matrix D;		/*!< section constitutive matrix at the current integration point */
+			Matrix D = ZeroMatrix(8, 8);		/*!< section constitutive matrix at the current integration point */
 
-			VectorType generalizedStrains;  /*!< generalized strain vector at the current integration point */
+			VectorType generalizedStrains = ZeroVector(8);  /*!< generalized strain vector at the current integration point */
 
-			VectorType generalizedStresses; /*!< generalized stress vector at the current integration point */
+			VectorType generalizedStresses = ZeroVector(8); /*!< generalized stress vector at the current integration point */
 
 			ShellCrossSection::Parameters SectionParameters; /*!< parameters for cross section calculations */
 

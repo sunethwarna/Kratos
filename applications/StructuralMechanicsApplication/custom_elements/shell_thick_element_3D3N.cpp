@@ -52,8 +52,6 @@
 #endif // OPT_USES_INTERIOR_GAUSS_POINTS
 #endif // OPT_1_POINT_INTEGRATION
 
-//#define OPT_AVARAGE_RESULTS
-
 namespace Kratos
 {
 	namespace Utilities
@@ -1277,7 +1275,6 @@ namespace Kratos
 		{
 			// TESTING VARIABLE
 			ijob = 99;
-			//bGlobal = true;
 		}
 	}
 
@@ -1387,20 +1384,11 @@ namespace Kratos
 		const double y23 = data.LCS0.Y2() - data.LCS0.Y3();
 		const double y31 = data.LCS0.Y3() - data.LCS0.Y1();
 		const double y21 = -y12;
-		const double y32 = -y23;
+
 		const double y13 = -y31;
 
 		const double A = 0.5*(y21*x13 - x21*y13);
 		const double A2 = 2.0*A;
-
-		// Note: here we compute the avarage thickness,
-		// since L is constant over the element.
-		// Now it is not necessary to compute the avarage
-		// because the current implementation of the cross section
-		// doesn't have a variable thickness
-		// (for example as a function of the spatial coordinates...).
-		// This is just a place-holder for future
-		// implementation of a variable thickness
 
 		double h = 0.0;
 		for (unsigned int i = 0; i < mSections.size(); i++)
@@ -1409,18 +1397,9 @@ namespace Kratos
 
 		data.hMean = h;
 		data.TotalArea = A;
-		data.TotalVolume = A * h;
 		data.dA = A;
 
-		// this is the integration weight
-		// used during the gauss loop.
-		// it is dArea because it will
-		// multiply section stress resultants
-		// and section constitutive matrices
-		// that already take into accout the
-		// thickness
-
-		// crete the integration point locations
+		// create the integration point locations
 		if (data.gpLocations.size() != 0) data.gpLocations.clear();
 		data.gpLocations.resize(OPT_NUM_GP);
 #ifdef OPT_1_POINT_INTEGRATION
@@ -1457,7 +1436,6 @@ namespace Kratos
 #endif // OPT_1_POINT_INTEGRATION
 
 		// cartesian derivatives
-		data.dNxy.resize(3, 2, false);
 		data.dNxy(0, 0) = (y13 - y12) / A2;
 		data.dNxy(0, 1) = (x12 - x13) / A2;
 		data.dNxy(1, 0) = -y13 / A2;
@@ -1465,17 +1443,16 @@ namespace Kratos
 		data.dNxy(2, 0) = y12 / A2;
 		data.dNxy(2, 1) = -x12 / A2;
 
-		data.N.resize(3, false);
+		// ---------------------------------------------------------------------
+		// Total Formulation:
+		//		as per Efficient Co-Rotational 3-Node Shell Element paper (2016)
+		// ---------------------------------------------------------------------
 
-		// --------------------------------------------------------------------------
-		// Total Formulation - as per Efficient Co-Rotational 3-Node Shell Element paper (2016)
-		// --------------------------------------------------------------------------
-
-		data.B.resize(8, 18, false);
 		data.B.clear();
 
 		//Membrane components
-			//node 1
+		//
+		//node 1
 		data.B(0, 0) = y23;
 		data.B(1, 1) = x32;
 		data.B(2, 0) = x32;
@@ -1494,7 +1471,8 @@ namespace Kratos
 		data.B(2, 13) = y12;
 
 		//Bending components
-			//node 1
+		//
+		//node 1
 		data.B(3, 4) = y23;
 		data.B(4, 3) = -1.0 * x32;
 		data.B(5, 3) = -1.0 * y23;
@@ -1513,6 +1491,7 @@ namespace Kratos
 		data.B(5, 16) = x21;
 
 		//Shear components
+		//
 		if (data.basicTriCST == false)
 		{
 			// Use DSG method
@@ -1552,7 +1531,8 @@ namespace Kratos
 			// strain displacement matrix.
 			// Only for testing!
 
-			const Matrix & shapeFunctions = GetGeometry().ShapeFunctionsValues(mThisIntegrationMethod);
+			const Matrix & shapeFunctions = 
+				GetGeometry().ShapeFunctionsValues(mThisIntegrationMethod);
 
 			//node 1
 			data.B(6, 2) = y23;
@@ -1594,9 +1574,6 @@ namespace Kratos
 		//
 
 		//allocate and setup
-		data.D.resize(8, 8, false);
-		data.generalizedStrains.resize(8, false);
-		data.generalizedStresses.resize(8, false);
 		data.SectionParameters.SetElementGeometry(GetGeometry());
 		data.SectionParameters.SetMaterialProperties(GetProperties());
 		data.SectionParameters.SetProcessInfo(data.CurrentProcessInfo);
@@ -1616,7 +1593,7 @@ namespace Kratos
 		// calculate the displacement vector
 		// in global and local coordinate systems
 
-		data.globalDisplacements.resize(OPT_NUM_DOFS, false);
+		data.globalDisplacements.clear();
 		GetValuesVector(data.globalDisplacements);
 
 		data.localDisplacements =
@@ -1669,7 +1646,7 @@ namespace Kratos
 			bf.clear();
 			for (unsigned int inode = 0; inode < 3; inode++)
 			{
-				if (geom[inode].SolutionStepsDataHas(VOLUME_ACCELERATION)) //temporary, will be checked once at the beginning only
+				if (geom[inode].SolutionStepsDataHas(VOLUME_ACCELERATION))
 				{
 					bf += N(igauss, inode) * geom[inode].FastGetSolutionStepValue(VOLUME_ACCELERATION);
 				}
@@ -1710,7 +1687,6 @@ namespace Kratos
 		noalias(rRightHandSideVector) = ZeroVector(OPT_NUM_DOFS);
 
 		// Initialize common calculation variables
-		//std::cout << "before initialize" << std::endl;
 		CalculationData data(mpCoordinateTransformation, rCurrentProcessInfo);
 		data.CalculateLHS = LHSrequired;
 		data.CalculateRHS = RHSrequired;
@@ -2046,7 +2022,6 @@ namespace Kratos
 						}
 						else
 						{
-							//std::cout << data.rlaminateStresses[surface][3] << std::endl;
 							iValue(row, col) = data.rlaminateStrains[surface][6];
 						}
 						surface++;
@@ -2057,7 +2032,6 @@ namespace Kratos
 				bool tsai_wu_thru_output = false;
 				if (tsai_wu_thru_output)
 				{
-					// Must use non-global stresses for this!!!
 					std::vector<Matrix> Laminae_Strengths =
 						std::vector<Matrix>(section->NumberOfPlies());
 					for (unsigned int ply = 0; ply < section->NumberOfPlies(); ply++)
@@ -2085,16 +2059,14 @@ namespace Kratos
 						data.rlaminateStresses[2 * ply + 1] = prod(R, data.rlaminateStresses[2 * ply + 1]);
 					}
 
-					// Calculate Tsai-Wu criterion for each ply, some bad tricks here
+					// Calculate Tsai-Wu criterion for each ply
 					Vector tsai_output = Vector(9, 0.0);
 					tsai_output.clear();
-					double min_tsai_wu = 0.0;
 					double temp_tsai_wu = 0.0;
 					for (unsigned int ply = 0; ply < section->NumberOfPlies(); ply++)
 					{
 						Vector lamina_stress_top = Vector(data.rlaminateStresses[2 * ply]);
 						Vector lamina_stress_bottom = Vector(data.rlaminateStresses[2 * ply + 1]);
-						// for testing, we want both top and bottom results, so trick the function
 
 						// top surface
 						data.rlaminateStresses[2 * ply + 1] = Vector(lamina_stress_top);

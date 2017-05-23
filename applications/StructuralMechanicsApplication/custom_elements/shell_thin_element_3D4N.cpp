@@ -816,7 +816,7 @@ namespace Kratos
 		noalias(rGeometricStiffnessMatrix) = ZeroMatrix(OPT_NUM_DOFS, OPT_NUM_DOFS);
 
 		// Resize the Right Hand Side and initialize it to Zero
-		Vector (rRightHandSideVector) = Vector(OPT_NUM_DOFS,1.0);
+		Vector (rRightHandSideVector) = ZeroVector(OPT_NUM_DOFS);
 
 		// Compute the local coordinate system.
 		ShellQ4_LocalCoordinateSystem localCoordinateSystem(
@@ -835,6 +835,8 @@ namespace Kratos
 		InitializeCalculationData(data);
 		data.ExtractKm = false;
 		data.ExtractKg = true;
+
+		std::cout << "Global disps of element" << data.globalDisplacements << std::endl;
 
 		// Gauss Loop.
 		for (size_t i = 0; i < OPT_NUM_GP; i++)
