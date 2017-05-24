@@ -26,11 +26,16 @@ from SmallTests import EigenTL3D8NCubeTests as TEigenTL3D8NCubeTests
 from SmallTests import ShellThinQ4MembraneTest as TShellThinQ4MembraneTest
 
 ## NIGTHLY TESTS
+# Shell test
 from NightlyTests import ShellT3IsotropicScordelisTests as TShellT3IsotropicScordelisTests
+# CL tests
+from NightlyTests import IsotropicDamageSimoJuPSTest    as TIsotropicDamageSimoJuPSTest
 
 ## VALIDATION TESTS
-from ValidationTests import SprismPanTests as TSprismPanTests
-from ValidationTests import Eigen3D3NThinCircleTests as TEigen3D3NThinCircleTests
+# SPRISM tests
+from ValidationTests import SprismPanTests              as TSprismPanTests
+# Eigenvalues tests
+from ValidationTests import Eigen3D3NThinCircleTests    as TEigen3D3NThinCircleTests
 
 def AssambleTestSuites():
     ''' Populates the test suites to run.
@@ -45,9 +50,39 @@ def AssambleTestSuites():
 
     # Create a test suit with the selected tests (Small tests):
     smallSuite = suites['small']
+    # Basic moving mesh test
     smallSuite.addTest(TSimpleMeshMovingTest('test_execution'))
+    # Dynamic basic tests
     smallSuite.addTest(TDynamicBossakTests('test_execution'))
     smallSuite.addTest(TDynamicNewmarkTests('test_execution'))
+    # Patch test Small Displacements
+    smallSuite.addTest(TSDTwoDShearQuaPatchTest('test_execution'))
+    smallSuite.addTest(TSDTwoDShearTriPatchTest('test_execution'))
+    smallSuite.addTest(TSDTwoDTensionQuaPatchTest('test_execution'))
+    smallSuite.addTest(TSDTwoDTensionTriPatchTest('test_execution'))
+    smallSuite.addTest(TSDThreeDShearHexaPatchTest('test_execution'))
+    smallSuite.addTest(TSDThreeDShearTetraPatchTest('test_execution'))
+    smallSuite.addTest(TSDThreeDTensionHexaPatchTest('test_execution'))
+    smallSuite.addTest(TSDThreeDTensionTetraPatchTest('test_execution'))
+    # Patch test Total Lagrangian
+    smallSuite.addTest(TTLTwoDShearQuaPatchTest('test_execution'))
+    smallSuite.addTest(TTLTwoDShearTriPatchTest('test_execution'))
+    smallSuite.addTest(TTLTwoDTensionQuaPatchTest('test_execution'))
+    smallSuite.addTest(TTLTwoDTensionTriPatchTest('test_execution'))
+    smallSuite.addTest(TTLThreeDShearHexaPatchTest('test_execution'))
+    smallSuite.addTest(TTLThreeDShearTetraPatchTest('test_execution'))
+    smallSuite.addTest(TTLThreeDTensionHexaPatchTest('test_execution'))
+    smallSuite.addTest(TTLThreeDTensionTetraPatchTest('test_execution'))
+    # Patch test Updated Lagrangian
+    smallSuite.addTest(TULTwoDShearQuaPatchTest('test_execution'))
+    smallSuite.addTest(TULTwoDShearTriPatchTest('test_execution'))
+    smallSuite.addTest(TULTwoDTensionQuaPatchTest('test_execution'))
+    smallSuite.addTest(TULTwoDTensionTriPatchTest('test_execution'))
+    smallSuite.addTest(TULThreeDShearHexaPatchTest('test_execution'))
+    smallSuite.addTest(TULThreeDShearTetraPatchTest('test_execution'))
+    smallSuite.addTest(TULThreeDTensionHexaPatchTest('test_execution'))
+    smallSuite.addTest(TULThreeDTensionTetraPatchTest('test_execution'))
+    # SPRISM tests
     smallSuite.addTest(TSprismMembranePatchTests('test_execution'))
     smallSuite.addTest(TSprismBendingPatchTests('test_execution'))
     smallSuite.addTest(TShellQ4ThinTensionTests('test_execution'))
@@ -57,6 +92,7 @@ def AssambleTestSuites():
     smallSuite.addTest(TShellQ4ThickDrillingRollUpTests('test_execution'))
     smallSuite.addTest(TShellT3ThinBendingRollUpTests('test_execution'))
     smallSuite.addTest(TShellT3ThinDrillingRollUpTests('test_execution'))
+    # Eigenvalues tests
     smallSuite.addTest(TEigenQ4Thick2x2PlateTests('test_execution'))
     smallSuite.addTest(TEigenTL3D8NCubeTests('test_execution'))
     smallSuite.addTest(TShellThinQ4MembraneTest('test_execution'))    
@@ -64,11 +100,16 @@ def AssambleTestSuites():
     # Create a test suit with the selected tests plus all small tests
     nightSuite = suites['nightly']
     nightSuite.addTests(smallSuite)
+    # Shell tests
     nightSuite.addTest(TShellT3IsotropicScordelisTests('test_execution'))
+    # CL tests
+    nightSuite.addTest(TIsotropicDamageSimoJuPSTest('test_execution'))
     
     # For very long tests that should not be in nighly and you can use to validate 
     validationSuite = suites['validation']
+    # SPRISM tests
     validationSuite.addTest(TSprismPanTests('test_execution'))
+    # Eigenvalues tests
     validationSuite.addTest(TEigen3D3NThinCircleTests('test_execution'))
 
     # Create a test suit that contains all the tests:
@@ -78,6 +119,30 @@ def AssambleTestSuites():
             TSimpleMeshMovingTest,
             TDynamicBossakTests,
             TDynamicNewmarkTests,
+            TSDTwoDShearQuaPatchTest,
+            TSDTwoDShearTriPatchTest,
+            TSDTwoDTensionQuaPatchTest,
+            TSDTwoDTensionTriPatchTest,
+            TSDThreeDShearHexaPatchTest,
+            TSDThreeDShearTetraPatchTest,
+            TSDThreeDTensionHexaPatchTest,
+            TSDThreeDTensionTetraPatchTest,
+            TTLTwoDShearQuaPatchTest,
+            TTLTwoDShearTriPatchTest,
+            TTLTwoDTensionQuaPatchTest,
+            TTLTwoDTensionTriPatchTest,
+            TTLThreeDShearHexaPatchTest,
+            TTLThreeDShearTetraPatchTest,
+            TTLThreeDTensionHexaPatchTest,
+            TTLThreeDTensionTetraPatchTest,
+            TULTwoDShearQuaPatchTest,
+            TULTwoDShearTriPatchTest,
+            TULTwoDTensionQuaPatchTest,
+            TULTwoDTensionTriPatchTest,
+            TULThreeDShearHexaPatchTest,
+            TULThreeDShearTetraPatchTest,
+            TULThreeDTensionHexaPatchTest,
+            TULThreeDTensionTetraPatchTest,
             TSprismMembranePatchTests,
             TSprismBendingPatchTests,
             TShellQ4ThickBendingRollUpTests,
