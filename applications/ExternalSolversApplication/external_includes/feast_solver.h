@@ -372,6 +372,8 @@ private:
         while (ijob != 0)
         {
             // FEAST's reverse communication interface
+			// dfeast_grcix(&ijob,&SystemSize,(double *)&Ze,(double *)work.data().begin(),
+			
             dfeast_srcix(&ijob,&SystemSize,(double *)&Ze,(double *)work.data().begin(),
                     (double *)zwork.data().begin(),(double *)Aq.data().begin(),
                     (double *)Bq.data().begin(),FEAST_Params,&Epsout,&NumIter,

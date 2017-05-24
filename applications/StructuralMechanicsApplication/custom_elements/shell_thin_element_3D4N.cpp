@@ -836,8 +836,6 @@ namespace Kratos
 		data.ExtractKm = false;
 		data.ExtractKg = true;
 
-		std::cout << "Global disps of element" << data.globalDisplacements << std::endl;
-
 		// Gauss Loop.
 		for (size_t i = 0; i < OPT_NUM_GP; i++)
 		{
@@ -880,6 +878,26 @@ namespace Kratos
 			LHSrequired,
 			data.ExtractKm,
 			data.ExtractKg);
+
+		bool make_symm = true;
+		if (make_symm)
+		{
+			for (size_t i = 0; i < 24; i++)
+			{
+				for (size_t j = 0; j < 24; j++)
+				{
+					rLeftHandSideMatrix(i, j) = rLeftHandSideMatrix(j, i);
+				}
+			}
+		}
+
+		bool btest = false;
+		if (btest)
+		{
+			rLeftHandSideMatrix.clear();
+			rLeftHandSideMatrix = IdentityMatrix(24);
+			rLeftHandSideMatrix *= 2.0;
+		}
 
 		rGeometricStiffnessMatrix = rLeftHandSideMatrix;
 	}
@@ -2511,6 +2529,14 @@ namespace Kratos
 			LHSrequired,
 			data.ExtractKm,
 			data.ExtractKg);
+
+		bool btest = false;
+		if (btest && data.ExtractKm)
+		{
+			rLeftHandSideMatrix.clear();
+			rLeftHandSideMatrix = IdentityMatrix(24);
+			rLeftHandSideMatrix *= 4.0;
+		}
 
 		// Add body forces contributions. This doesn't depend on the coordinate
 		// system
