@@ -29,7 +29,7 @@ class JsonOutputProcess(KratosMultiphysics.Process):
         ## Overwrite the default settings with user-provided parameters
         self.params = params
         self.params.ValidateAndAssignDefaults(default_parameters)
-        
+
         self.model_part = model_part
 
         self.params = params
@@ -39,7 +39,7 @@ class JsonOutputProcess(KratosMultiphysics.Process):
         self.frequency = 0.0
         self.time_counter = 0.0
         self.resultant_solution = False
-        
+
     def ExecuteInitialize(self):
         self.output_file_name = self.params["output_file_name"].GetString()
         if (len(self.params["sub_model_part_name"].GetString()) > 0):
@@ -59,8 +59,8 @@ class JsonOutputProcess(KratosMultiphysics.Process):
             if (self.resultant_solution == False):
                 data["NODE_"+str(node.Id)] = {}
             else:
-                data["RESULTANT"] = {}
-                    
+                if (count == 0):
+                    data["RESULTANT"] = {}
             for i in range(self.params["output_variables"].size()):
                 out = self.params["output_variables"][i]
                 variable = KratosMultiphysics.KratosGlobals.GetVariable( out.GetString() )
@@ -82,7 +82,6 @@ class JsonOutputProcess(KratosMultiphysics.Process):
                             data["RESULTANT"][out.GetString()  + "_Y"] = []
                             data["RESULTANT"][out.GetString()  + "_Z"] = []
             count += 1
-            
         write_external_json(self.output_file_name, data)
         
     def ExecuteInitializeSolutionStep(self):
