@@ -196,6 +196,7 @@ Matrix StructuralMeshMovingElement::SetAndModifyConstitutiveLaw(
         ConstitutiveMatrix(2, 2) = Mue;
         ConstitutiveMatrix(0, 1) = Lambda;
         ConstitutiveMatrix(1, 0) = Lambda;
+        
     }
 
     else if (rdimension == 3)
