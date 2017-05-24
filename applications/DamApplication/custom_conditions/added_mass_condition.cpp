@@ -170,14 +170,15 @@ void AddedMassCondition<TDim,TNumNodes>::CalculateLHS( MatrixType& rLeftHandSide
 		for(unsigned int i = 0; i<NumGPoints; i++)
 			(JContainer[i]).resize(TDim,LocalDim,false);
 		Geom.Jacobian( JContainer, mThisIntegrationMethod );
-        
+
         double IntegrationCoefficient;
         Vector ShapeFunctionsValues;
-        double mass_contribution =0.0;
         ShapeFunctionsValues.resize(TNumNodes,false);
         
         for(unsigned int igauss = 0; igauss < NumGPoints; igauss++ )
-        {	
+        {
+            double mass_contribution =0.0;
+
             // Distributed mass contribution according the surface element
             noalias(ShapeFunctionsValues) = row(NContainer,igauss);
             for ( unsigned int j = 0; j < TNumNodes; j++ )
@@ -225,10 +226,11 @@ void AddedMassCondition<TDim,TNumNodes>::CalculateRHS( VectorType& rRightHandSid
         ShapeFunctionsValues.resize(TNumNodes,false);
         Vector AccelerationVector;
         this->GetAccelerationVector(AccelerationVector,0);
-        double mass_contribution =0.0;
 
         for(unsigned int igauss = 0; igauss < NumGPoints; igauss++ )
         {	
+            double mass_contribution =0.0;
+
             // Distributed mass contribution according the surface element
             noalias(ShapeFunctionsValues) = row(NContainer,igauss);
             for ( unsigned int j = 0; j < TNumNodes; j++ )

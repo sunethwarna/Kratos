@@ -57,10 +57,9 @@ public:
         double DeltaTime = r_model_part.GetProcessInfo()[DELTA_TIME];
         // Using beta=0.25 Newmark (It is used in the added mass)
         r_model_part.GetProcessInfo()[ACCELERATION_PRESSURE_COEFFICIENT] = 1.0/(0.25*DeltaTime*DeltaTime);
-        double coeff = r_model_part.GetProcessInfo()[ACCELERATION_PRESSURE_COEFFICIENT];
         r_model_part.GetProcessInfo()[RAYLEIGH_ALPHA] = mRayleighAlpha;
         r_model_part.GetProcessInfo()[RAYLEIGH_BETA] = mRayleighBeta;
-                
+        
         mSchemeIsInitialized = true;
         
         KRATOS_CATCH("")
