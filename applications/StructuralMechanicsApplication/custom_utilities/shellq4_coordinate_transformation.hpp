@@ -28,7 +28,7 @@ namespace Kratos
 
 	public:
 
-		KRATOS_CLASS_POINTER_DEFINITION( ShellQ4_CoordinateTransformation );
+		KRATOS_CLASS_POINTER_DEFINITION(ShellQ4_CoordinateTransformation);
 
 		typedef Element::GeometryType GeometryType;
 
@@ -57,7 +57,7 @@ namespace Kratos
 
 		virtual ShellQ4_CoordinateTransformation::Pointer Create(GeometryType::Pointer pGeometry)const
 		{
-			return ShellQ4_CoordinateTransformation::Pointer( new ShellQ4_CoordinateTransformation( pGeometry ) );
+			return ShellQ4_CoordinateTransformation::Pointer(new ShellQ4_CoordinateTransformation(pGeometry));
 		}
 
 		virtual void Initialize()
@@ -67,15 +67,15 @@ namespace Kratos
 		virtual void InitializeSolutionStep(ProcessInfo& CurrentProcessInfo)
 		{
 		}
-		
+
 		virtual void FinalizeSolutionStep(ProcessInfo& CurrentProcessInfo)
 		{
 		}
-		
+
 		virtual void InitializeNonLinearIteration(ProcessInfo& CurrentProcessInfo)
 		{
 		}
-		
+
 		virtual void FinalizeNonLinearIteration(ProcessInfo& CurrentProcessInfo)
 		{
 		}
@@ -84,9 +84,9 @@ namespace Kratos
 		{
 			const GeometryType & geom = GetGeometry();
 			return ShellQ4_LocalCoordinateSystem(geom[0].GetInitialPosition(),
-											     geom[1].GetInitialPosition(),
-											     geom[2].GetInitialPosition(),
-											     geom[3].GetInitialPosition());
+				geom[1].GetInitialPosition(),
+				geom[2].GetInitialPosition(),
+				geom[3].GetInitialPosition());
 		}
 
 		virtual ShellQ4_LocalCoordinateSystem CreateLocalCoordinateSystem()const
@@ -94,58 +94,60 @@ namespace Kratos
 			return CreateReferenceCoordinateSystem();
 		}
 
-		virtual Vector CalculateLocalDisplacements(const ShellQ4_LocalCoordinateSystem & LCS, 
-												   const VectorType & globalDisplacements)
+		virtual Vector CalculateLocalDisplacements(const ShellQ4_LocalCoordinateSystem & LCS,
+			const VectorType & globalDisplacements)
 		{
 			MatrixType R(24, 24);
-			LCS.ComputeTotalRotationMatrix( R );
-			if(LCS.IsWarped()) {
+			LCS.ComputeTotalRotationMatrix(R);
+			if (LCS.IsWarped()) {
 				MatrixType W(24, 24);
-				LCS.ComputeTotalWarpageMatrix( W );
-				R = prod( W, R );
+				LCS.ComputeTotalWarpageMatrix(W);
+				R = prod(W, R);
 			}
-			return prod( R, globalDisplacements );
+			return prod(R, globalDisplacements);
 		}
 
 		virtual void FinalizeCalculations(const ShellQ4_LocalCoordinateSystem & LCS,
-										  const VectorType & globalDisplacements,
-										  const VectorType & localDisplacements,
-										  MatrixType & rLeftHandSideMatrix,
-										  VectorType & rRightHandSideVector,
-										  const bool RHSrequired,
-										  const bool LHSrequired)
+			const VectorType & globalDisplacements,
+			const VectorType & localDisplacements,
+			MatrixType & rLeftHandSideMatrix,
+			VectorType & rRightHandSideVector,
+			const bool RHSrequired,
+			const bool LHSrequired,
+			const bool extractKm = false,
+			const bool extractKg = false)
 		{
 			MatrixType R(24, 24);
-			LCS.ComputeTotalRotationMatrix( R );
-			if(LCS.IsWarped()) {
+			LCS.ComputeTotalRotationMatrix(R);
+			if (LCS.IsWarped()) {
 				MatrixType W(24, 24);
-				LCS.ComputeTotalWarpageMatrix( W );
-				R = prod( W, R );
+				LCS.ComputeTotalWarpageMatrix(W);
+				R = prod(W, R);
 			}
 
-			if(LHSrequired) {
+			if (LHSrequired) {
 				MatrixType temp(24, 24);
-				noalias( temp ) = prod( trans( R ), rLeftHandSideMatrix );
-				noalias( rLeftHandSideMatrix ) = prod( temp, R );
+				noalias(temp) = prod(trans(R), rLeftHandSideMatrix);
+				noalias(rLeftHandSideMatrix) = prod(temp, R);
 			}
 
-			if(RHSrequired) {
-				rRightHandSideVector = prod( trans( R ), rRightHandSideVector );
+			if (RHSrequired) {
+				rRightHandSideVector = prod(trans(R), rRightHandSideVector);
 			}
 		}
 
 		virtual MatrixType GetNodalDeformationalRotationTensor(const ShellQ4_LocalCoordinateSystem & LCS,
-			                                                   const Vector& globalDisplacements,
-															   size_t nodeid)
+			const Vector& globalDisplacements,
+			size_t nodeid)
 		{
-			return IdentityMatrix(3,3);
+			return IdentityMatrix(3, 3);
 		}
 
 		virtual MatrixType GetNodalDeformationalRotationTensor(const ShellQ4_LocalCoordinateSystem & LCS,
-			                                                   const Vector& globalDisplacements,
-															   const Vector& N)
+			const Vector& globalDisplacements,
+			const Vector& N)
 		{
-			return IdentityMatrix(3,3);
+			return IdentityMatrix(3, 3);
 		}
 
 	public:
@@ -155,7 +157,7 @@ namespace Kratos
 	protected:
 
 		ShellQ4_CoordinateTransformation()
-		  : mpGeometry(GeometryType::Pointer())
+			: mpGeometry(GeometryType::Pointer())
 		{
 		}
 

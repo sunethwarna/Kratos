@@ -343,6 +343,12 @@ public:
     void CalculateRightHandSide(VectorType& rRightHandSideVector,
                                 ProcessInfo& rCurrentProcessInfo);
 
+	void CalculateGeometricStiffnessMatrix(MatrixType& rGeometricStiffnessMatrix,
+		ProcessInfo& rCurrentProcessInfo);
+
+	void CalculateElasticStiffnessMatrix(MatrixType& rElasticStiffnessMatrix,
+		ProcessInfo& rCurrentProcessInfo);
+
     // Results calculation on integration points
 
     void GetValueOnIntegrationPoints(const Variable<double>& rVariable, std::vector<double>& rValues, const ProcessInfo& rCurrentProcessInfo);
@@ -396,7 +402,8 @@ private:
                       VectorType& rRightHandSideVector,
                       ProcessInfo& rCurrentProcessInfo,
                       const bool LHSrequired,
-                      const bool RHSrequired);
+                      const bool RHSrequired,
+					  const unsigned int caseId = 0);
 
     void AddBodyForces(const array_1d<double,4> & dA, VectorType& rRightHandSideVector);
 
