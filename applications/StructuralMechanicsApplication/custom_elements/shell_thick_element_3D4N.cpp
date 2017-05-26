@@ -814,7 +814,10 @@ void ShellThickElement3D4N::CalculateRightHandSide(VectorType& rRightHandSideVec
 void ShellThickElement3D4N::CalculateGeometricStiffnessMatrix(MatrixType & rGeometricStiffnessMatrix, ProcessInfo & rCurrentProcessInfo)
 {
 	Vector dummyRHS;
-	CalculateAll(rGeometricStiffnessMatrix, dummyRHS, rCurrentProcessInfo, true, false,2);
+	//CalculateAll(rGeometricStiffnessMatrix, dummyRHS, rCurrentProcessInfo, true, false,2);
+
+	rGeometricStiffnessMatrix = IdentityMatrix(24);
+	rGeometricStiffnessMatrix *= 2.0;
 
 	bool make_symmmetric = true;
 	if (make_symmmetric)
@@ -827,12 +830,16 @@ void ShellThickElement3D4N::CalculateGeometricStiffnessMatrix(MatrixType & rGeom
 			}
 		}
 	}
+
+	
 }
 
 void ShellThickElement3D4N::CalculateElasticStiffnessMatrix(MatrixType & rElasticStiffnessMatrix, ProcessInfo & rCurrentProcessInfo)
 {
 	Vector dummyRHS;
-	CalculateAll(rElasticStiffnessMatrix, dummyRHS, rCurrentProcessInfo, true, false, 1);
+	//CalculateAll(rElasticStiffnessMatrix, dummyRHS, rCurrentProcessInfo, true, false, 1);
+	rElasticStiffnessMatrix = IdentityMatrix(24);
+	rElasticStiffnessMatrix *= 4.0;
 }
 
 
@@ -1085,7 +1092,7 @@ void ShellThickElement3D4N::CalculateAll(MatrixType& rLeftHandSideMatrix,
         ProcessInfo& rCurrentProcessInfo,
         const bool LHSrequired,
         const bool RHSrequired,
-		const unsigned int caseId = 0)
+		const unsigned int caseId)
 {
     // Resize the Left Hand Side if necessary,
     // and initialize it to Zero
@@ -1249,23 +1256,33 @@ void ShellThickElement3D4N::CalculateAll(MatrixType& rLeftHandSideMatrix,
     EASOp.ComputeModfiedTangentAndResidual(rLeftHandSideMatrix, rRightHandSideVector, mEASStorage);
 
 	// Perform switch of caseID to finalize correct stiffness matrix
-	bool extractKg, extractKm;
+	bool extractKg = false;
+	bool extractKm = false;
+	std::cout << "\n======== CaseId = " << caseId << "==========\n" << std::endl;
 	switch (caseId)
 	{
+	case 0:
+		// Normal calculation, determine complete stiffness matrix
+		extractKm = false;
+		extractKg = false;
+		break;
 	case 1:
 		// Extract elastic stiffness matrix only
 		std::cout << "\n\nKe case called!!!\n\n" << std::endl;
 		extractKm = true;
 		extractKg = false;
+		break;
 	case 2:
 		// Extract geometric stiffness matrix only
 		std::cout << "\n\nKg case called!!!\n\n" << std::endl;
 		extractKm = false;
 		extractKg = true;
+		break;
 	default:
 		// Normal calculation, determine complete stiffness matrix
 		extractKm = false;
 		extractKg = false;
+		break;
 	}
 
     // Let the CoordinateTransformation finalize the calculation.
