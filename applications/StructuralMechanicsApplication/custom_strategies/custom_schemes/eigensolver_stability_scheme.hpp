@@ -100,27 +100,33 @@ public:
     {
 		KRATOS_TRY
 
-			if (CurrentProcessInfo[BUILD_LEVEL] == 1)
-			{ // geometric stiffness matrix
-				std::cout << "\n\n---------- Geometric stiffness matrix called ----------" << std::endl;
-				pCurrentElement->CalculateGeometricStiffnessMatrix(LHS_Contribution, CurrentProcessInfo);
-				auto LocalSize = LHS_Contribution.size1();
-				if (RHS_Contribution.size() != LocalSize)
-					RHS_Contribution.resize(LocalSize, false);
-				noalias(RHS_Contribution) = ZeroVector(LocalSize);
+		if (CurrentProcessInfo[BUILD_LEVEL] == 1)
+		{ // geometric stiffness matrix
+			//std::cout << "\n\n---------- Geometric stiffness matrix called ----------" << std::endl;
+			pCurrentElement->CalculateGeometricStiffnessMatrix(LHS_Contribution, CurrentProcessInfo);
+			auto LocalSize = LHS_Contribution.size1();
+			if (RHS_Contribution.size() != LocalSize)
+				RHS_Contribution.resize(LocalSize, false);
+			noalias(RHS_Contribution) = ZeroVector(LocalSize);
 				
-				std::cout << LHS_Contribution << std::endl;
-			}
-			else if (CurrentProcessInfo[BUILD_LEVEL] == 2) // material stiffness matrix
-			{
-				std::cout << "\n\n---------- Material stiffness matrix called ----------" << std::endl;
-				pCurrentElement->CalculateElasticStiffnessMatrix(LHS_Contribution, CurrentProcessInfo);
+			//std::cout << LHS_Contribution << std::endl;
+		}
+		else if (CurrentProcessInfo[BUILD_LEVEL] == 2) // material stiffness matrix
+		{
+			//std::cout << "\n\n---------- Material stiffness matrix called ----------" << std::endl;
+			//pCurrentElement->CalculateLocalSystem(LHS_Contribution, RHS_Contribution, CurrentProcessInfo);
+			pCurrentElement->CalculateElasticStiffnessMatrix(LHS_Contribution, CurrentProcessInfo);
+			auto LocalSize = LHS_Contribution.size1();
+			if (RHS_Contribution.size() != LocalSize)
+				RHS_Contribution.resize(LocalSize, false);
+			noalias(RHS_Contribution) = ZeroVector(LocalSize);
 				
-				std::cout << LHS_Contribution << std::endl;
-			}
-				
-			else
-				KRATOS_THROW_ERROR(std::logic_error, "Invalid BUILD_LEVEL", "");
+			//std::cout << LHS_Contribution << std::endl;
+		}
+		else
+		{
+			KRATOS_THROW_ERROR(std::logic_error, "Invalid BUILD_LEVEL", "");
+		}
 
         pCurrentElement->EquationIdVector(EquationId,CurrentProcessInfo);
 
