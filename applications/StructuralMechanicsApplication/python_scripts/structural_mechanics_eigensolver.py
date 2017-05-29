@@ -51,6 +51,7 @@ class EigenSolver(solid_mechanics_solver.MechanicalSolver):
 
     def Initialize(self):
         self.compute_model_part = self.GetComputeModelPart()
+        self.compute_model_part.ProcessInfo.SetValue(COMPUTE_MODAL_CONTRIBUTION, False)
 
         self.eigensolver_settings = self.settings["eigensolver_settings"] 
         if self.eigensolver_settings["solver_type"].GetString() == "FEAST":
