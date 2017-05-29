@@ -32,6 +32,7 @@
 
 #ifdef INCLUDE_FEAST
   #include "external_includes/feast_solver.h"
+  #include "external_includes/feast_solver_general.h"
 #endif
 
 #ifdef INCLUDE_PASTIX
@@ -84,6 +85,12 @@ void  AddLinearSolversToPython()
         ( "FEASTSolver", init<Parameters::Pointer>() )
         .def(init<Parameters::Pointer, TLinearSolverType<std::complex<double>>::Pointer>())
         ;
+
+	typedef FEASTSolverGeneral<SpaceType, LocalSpaceType> FEASTSolverGeneralType;
+	class_<FEASTSolverGeneralType, FEASTSolverGeneralType::Pointer, bases<LinearSolverType>, boost::noncopyable >
+		("FEASTSolverGeneral", init<Parameters::Pointer>())
+		.def(init<Parameters::Pointer, TLinearSolverType<std::complex<double>>::Pointer>())
+		;
 #endif    
           
     

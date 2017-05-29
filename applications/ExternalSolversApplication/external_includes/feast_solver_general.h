@@ -8,8 +8,8 @@
 //   Kratos default license: kratos/license.txt
 //
 //   Project Name:        $ExternalSolversApplication   $
-//   Last modified by:    $Author: michael.andre@tum.de $
-//   Date:                $Date:             April 2017 $
+//   Last modified by:    $Author:	peter.wilson@tum.de $
+//   Date:                $Date:			  June 2017 $
 //   Revision:            $Revision:                0.0 $
 //
 //
@@ -42,13 +42,15 @@ extern "C" {
 #include "includes/ublas_interface.h"
 #include "spaces/ublas_space.h"
 
-#if !defined(KRATOS_FEAST_SOLVER)
-#define  KRATOS_FEAST_SOLVER
+#if !defined(KRATOS_FEAST_SOLVER_GENERAL)
+#define  KRATOS_FEAST_SOLVER_GENERAL
 
 namespace Kratos {
 
 ///@name Kratos Classes
 ///@{
+
+/*
 
 template <class TSparseSpaceType, class TDenseSpaceType, class TReordererType = Reorderer<TSparseSpaceType, TDenseSpaceType>>
 class SkylineLUSolver
@@ -119,17 +121,19 @@ private:
     boost::shared_ptr<SolverType> pSolver;
 };
 
+*/
+
 /// Adapter to FEAST eigenvalue problem solver.
 template<class TSparseSpaceType, class TDenseSpaceType,
         class TReordererType = Reorderer<TSparseSpaceType, TDenseSpaceType> >
-class FEASTSolver: public LinearSolver<TSparseSpaceType, TDenseSpaceType,
+class FEASTSolverGeneral: public LinearSolver<TSparseSpaceType, TDenseSpaceType,
         TReordererType> {
 
 public:
     ///@name Type Definitions
     ///@{
 
-    KRATOS_CLASS_POINTER_DEFINITION( FEASTSolver );
+    KRATOS_CLASS_POINTER_DEFINITION( FEASTSolverGeneral);
 
     typedef LinearSolver<TSparseSpaceType, TDenseSpaceType, TReordererType> BaseType;
 
@@ -164,9 +168,10 @@ public:
     /**
      * Parameters let the user control the settings of the FEAST library.
      */
-    FEASTSolver(Parameters::Pointer pParam) : mpParam(pParam)
+	FEASTSolverGeneral(Parameters::Pointer pParam) : mpParam(pParam)
     {
-		std::cout << "\n\n========= USING SYMM FEAST SOLVER ==========\n\n" << std::endl;
+
+		std::cout << "\n\n========= USING GENERAL FEAST SOLVER ==========\n\n" << std::endl;
 
         Parameters default_params(R"(
         {
@@ -199,10 +204,10 @@ public:
      *          solvers normally don't perform efficiently with FEAST 
      *          (M. Galgon et al., Parallel Computing (49) 2015 153-163).
      */
-    FEASTSolver(Parameters::Pointer pParam, ComplexLinearSolverType::Pointer pLinearSolver)
+	FEASTSolverGeneral(Parameters::Pointer pParam, ComplexLinearSolverType::Pointer pLinearSolver)
         : mpParam(pParam), mpLinearSolver(pLinearSolver)
     {
-		std::cout << "\n\n========= USING SYMM FEAST SOLVER ==========\n\n" << std::endl;
+		std::cout << "\n\n========= USING GENERAL FEAST SOLVER ==========\n\n" << std::endl;
 
         Parameters default_params(R"(
         {
@@ -222,17 +227,17 @@ public:
     }
 
     /// Deleted copy constructor.
-    FEASTSolver(const FEASTSolver& Other) = delete;
+	FEASTSolverGeneral(const FEASTSolverGeneral& Other) = delete;
 
     /// Destructor.
-    virtual ~FEASTSolver() {}
+    virtual ~FEASTSolverGeneral() {}
 
     ///@}
     ///@name Operators
     ///@{
 
     /// Deleted assignment operator.
-    FEASTSolver& operator=(const FEASTSolver& Other) = delete;
+	FEASTSolverGeneral& operator=(const FEASTSolverGeneral& Other) = delete;
 
     ///@}
     ///@name Operations
@@ -533,7 +538,7 @@ private:
 
     ///@}
 
-}; // Class FEASTSolver
+}; // Class FEASTSolverGeneral
 
 ///@}
 
@@ -543,14 +548,14 @@ private:
 /// input stream function
 template<class TSparseSpaceType, class TDenseSpaceType, class TReordererType>
 inline std::istream& operator >>(std::istream& rIStream,
-        FEASTSolver<TSparseSpaceType, TDenseSpaceType, TReordererType>& rThis) {
+        FEASTSolverGeneral<TSparseSpaceType, TDenseSpaceType, TReordererType>& rThis) {
     return rIStream;
 }
 
 /// output stream function
 template<class TSparseSpaceType, class TDenseSpaceType, class TReordererType>
 inline std::ostream& operator <<(std::ostream& rOStream,
-        const FEASTSolver<TSparseSpaceType, TDenseSpaceType, TReordererType>& rThis) {
+        const FEASTSolverGeneral<TSparseSpaceType, TDenseSpaceType, TReordererType>& rThis) {
     rThis.PrintInfo(rOStream);
     rOStream << std::endl;
     rThis.PrintData(rOStream);
@@ -561,4 +566,4 @@ inline std::ostream& operator <<(std::ostream& rOStream,
 
 }// namespace Kratos.
 
-#endif // KRATOS_FEAST_SOLVER  defined
+#endif // KRATOS_FEAST_SOLVER_GENERAL  defined

@@ -57,11 +57,20 @@ class EigenSolver(solid_mechanics_solver.MechanicalSolver):
             linear_solver_settings = self.eigensolver_settings["linear_solver_settings"]
             if linear_solver_settings["solver_type"].GetString() == "skyline_lu":
                 # default built-in feast system solver
-                self.eigen_solver = ExternalSolversApplication.FEASTSolver(self.eigensolver_settings)            
+                if self.settings["solution_type"].GetString() == "Stability":
+                    print("\n\n PYTHON FEAST GENERAL SOLVER\n\n")
+                    self.eigen_solver = ExternalSolversApplication.FEASTSolverGeneral(self.eigensolver_settings)
+                else:
+                    self.eigen_solver = ExternalSolversApplication.FEASTSolver(self.eigensolver_settings)            
             else:
                 # external feast system solver
                 feast_system_solver = self._GetFEASTSystemSolver(linear_solver_settings)
-                self.eigen_solver = ExternalSolversApplication.FEASTSolver(self.eigensolver_settings, feast_system_solver)
+                if self.settings["solution_type"].GetString() == "Stability":
+                    self.eigen_solver = ExternalSolversApplication.FEASTSolverGeneral(self.eigensolver_settings, feast_system_solver)
+                else:
+                    self.eigen_solver = ExternalSolversApplication.FEASTSolver(self.eigensolver_settings, feast_system_solver)
+                
+                
         else:
             raise Exception("solver_type is not yet implemented: " + self.eigensolver_settings["solver_type"].GetString())
 

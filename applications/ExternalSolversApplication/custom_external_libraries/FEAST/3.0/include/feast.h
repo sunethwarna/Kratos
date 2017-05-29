@@ -24,6 +24,8 @@
 !==========================================================================================
 */
 
+#ifndef FEAST_SEEN
+#define FEAST_SEEN
 
 #include "feast_tools.h"
 
@@ -34,13 +36,69 @@
 // Double precision
 extern void dfeast_srci_(char *ijob,int *N,double *Ze,double *work,double   *workc,double   *Aq,double   *Sq,int *feastparam,double *epsout,int *loop,double *Emin,double *Emax,int *M0,double *lambda,double *q,int *mode,double *res,int *info);
 extern void zfeast_hrci_(char *ijob,int *N,double   *Ze,double   *work,double   *workc,double   *zAq,double   *zSq,int *feastparam,double *epsout,int *loop,double *Emin,double *Emax,int *M0,double *lambda,double   *q,int *mode,double *res,int *info);
-extern void dfeast_srcix_(int *ijob,int *N,double *Ze,double *work,double   *workc,double   *Aq,double   *Sq,int *feastparam,double *epsout,int *loop,double *Emin,double *Emax,int *M0,double *lambda,double *q,int *mode,double *res,int *info,double *Zne, double *Wne);
+
+extern void dfeast_srcix_(int *ijob,int *N,double *Ze,double *work,double*workc,double *Aq,double *Sq,
+							int *feastparam,double *epsout,int *loop,double *Emin,double *Emax,int *M0,
+							double *lambda,double *q,int *mode,double *res,int *info,double *Zne, 
+							double *Wne);
+
+//////////////// ----------
+
+// original external function declaration:
+//extern void dfeast_grcix_(char *ijob,int *N,double *Ze,double *workr, double *workl ,double *workc,double *Aq,double *Sq,int *feastparam,double *epsout,int *loop,	double *Emid,double *r,				int *M0,double *lambda,double *qr,double *ql,	int *mode,double *resr,double *resl,	int *info, double *Zne, double *Wne);
+
+// new external function declaration, modified to align with corresponding Fortran function:
+
+extern void dfeast_grcix_(int *ijob,			// changed char to int as per dfeast_srcix_
+							int *N,				// same as dfeast_srcix_
+							double *Ze,			// same as dfeast_srcix_
+							double *workr, 		// workspace, same as dfeast_srcix_
+							double *workc,		// workspace, same form as above (ref dzfeast.f90)
+							double *Aq,			// same as dfeast_srcix_
+							double *Sq,			// same as dfeast_srcix_
+							int *feastparam,	// same as dfeast_srcix_
+							double *epsout,		// same as dfeast_srcix_
+							int *loop,			// same as dfeast_srcix_
+							double *Emid,		// complex double precision, middle of the search interval
+							double *r,			// REAL DOUBLE PRECISION: horizontal radius of the search interval
+							int *M0,			// same as dfeast_srcix_
+							double *lambda,		// same as dfeast_srcix_
+							double *Q,			// COMPLEX DOUBLE PRECISION(N,M0) : Right Eigenvectors-solution (1:N,1:mode)
+							int *mode,			// same as dfeast_srcix_
+							double *res,		// REAL DOUBLE PRECISION(M0) :Relative Residual of the solution (1-norm)
+							int *info, 			// same as dfeast_srcix_
+							double *Zne, 		// same as dfeast_srcix_
+							double *Wne);		// same as dfeast_srcix_
+// Fortran function:
+// dfeast_grcix(ijob,N,Ze,work,workc,zAq,zSq,fpm,epsout,loop,Emid,r,M0,lambda,Q,mode,res,info,Zne,Wne)
+
+							
+// other commentary:
+//		arg double *workl removed as per fortran arg list
+//		args double *qr and double *ql replaced with Q
+//		args double *resr and double *resl replaced with res
+
+
+
+// 1st arg from char to int
+// first 3 same as symm
+// workr = real , same as symm
+// workl = matrix<std::complex<double>,column_major> zwork(SystemSize,2*SearchDimension);
+// workc = matrix<std::complex<double>,column_major> zwork(SystemSize,SearchDimension);
+// qr and ql are both m0 in size, split from 2*m0 - check in fortran function
+// 
+//
+//extern void dfeast_grcix_(int *ijob,int *N,double *Ze,double *workr, double *workl ,double *workc,double *Aq,double *Sq,int *feastparam,double *epsout,int *loop,double *Emid,double *r,int *M0,double *lambda,double *qr,double *ql,int *mode,double *resr,double *resl,int *info, double *Zne, double *Wne);
+
+//////////////// ----------
+
 extern void zfeast_hrcix_(char *ijob,int *N,double   *Ze,double   *work,double   *workc,double   *zAq,double   *zSq,int *feastparam,double *epsout,int *loop,double *Emin,double *Emax,int *M0,double *lambda,double   *q,int *mode,double *res,int *info,double *Zne, double *Wne);
 extern void zfeast_srci_(char *ijob,int *N,double *Ze,double *workr, double *workl ,double *workc,double *Aq,double *Sq,int *feastparam,double *epsout,int *loop,double *Emid,double *r,int *M0,double *lambda,double *qr,int *mode,double *resr,int *info);
 extern void dfeast_grci_(char *ijob,int *N,double *Ze,double *workr, double *workl ,double *workc,double *Aq,double *Sq,int *feastparam,double *epsout,int *loop,double *Emid,double *r,int *M0,double *lambda,double *qr, double *ql,int *mode,double *resr,double *resl, int *info);
 extern void zfeast_grci_(char *ijob,int *N,double *Ze,double *workr, double *workl ,double *workc,double *Aq,double *Sq,int *feastparam,double *epsout,int *loop,double *Emid,double *r,int *M0,double *lambda,double *qr,double *ql,int *mode,double *resr,double *resl,int *info);
 extern void zfeast_srcix_(char *ijob,int *N,double *Ze,double *workr, double *workl ,double *workc,double *Aq,double *Sq,int *feastparam,double *epsout,int *loop,double *Emid,double *r,int *M0,double *lambda,double *qr,int *mode,double *resr,int *info,double *Zne, double *Wne);
-extern void dfeast_grcix_(char *ijob,int *N,double *Ze,double *workr, double *workl ,double *workc,double *Aq,double *Sq,int *feastparam,double *epsout,int *loop,double *Emid,double *r,int *M0,double *lambda,double *qr,double *ql,int *mode,double *resr,double *resl,int *info, double *Zne, double *Wne);
+
+
 extern void zfeast_grcix_(char *ijob,int *N,double *Ze,double *workr, double *workl ,double *workc,double *Aq,double *Sq,int *feastparam,double *epsout,int *loop,double *Emid,double *r,int *M0,double *lambda,double *qr,double *ql,int *mode,double *resr,double *resl,int *info, double *Zne, double *Wne);
 
 // Single precision
@@ -85,9 +143,47 @@ void zfeast_grci(char *ijob,int *N,double *Ze,double *workr, double *workl ,doub
 void zfeast_srcix(char *ijob,int *N,double *Ze,double *workr, double *workl ,double *workc,double *Aq,double *Sq,int *feastparam,double *epsout,int *loop,double *Emid,double *r,int *M0,double *lambda,double *qr,int *mode,double *resr,int *info,double *Zne,double *Wne){
      zfeast_srcix_(ijob,N,Ze,workr,workl,workc,Aq,Sq,feastparam,epsout,loop,Emid,r,M0,lambda,qr,mode,resr,info,Zne,Wne);
 }
-void dfeast_grcix(char *ijob,int *N,double *Ze,double *workr, double *workl ,double *workc,double *Aq,double *Sq,int *feastparam,double *epsout,int *loop,double *Emid,double *r,int *M0,double *lambda,double *qr,double *ql,int *mode,double *resr,double *resl,int *info,double *Zne,double *Wne){
-     dfeast_grcix_(ijob,N,Ze,workr,workl,workc,Aq,Sq,feastparam,epsout,loop,Emid,r,M0,lambda,qr,ql,mode,resr,resl,info,Zne,Wne);
+
+//original call:
+//
+//void dfeast_grcix(char *ijob,int *N,double *Ze,double *workr, double *workl ,double *workc,double *Aq,double *Sq,int *feastparam,double *epsout,int *loop,double *Emid,double *r,int *M0,double *lambda,double *qr,double *ql,int *mode,double *resr,double *resl,int *info,double *Zne,double *Wne){
+//     dfeast_grcix_(ijob,N,Ze,workr,workl,workc,Aq,Sq,feastparam,epsout,loop,Emid,r,M0,lambda,qr,ql,mode,resr,resl,info,Zne,Wne);
+//}
+
+//modified call:
+void dfeast_grcix(int *ijob,
+					int *N,
+					double *Ze,
+					double *work, 
+					double *workc,
+					double *Aq,
+					double *Sq,
+					int *feastparam,
+					double *epsout,
+					int *loop,
+					double *Emid,
+					double *r,
+					int *M0,
+					double *lambda,
+					double *Q,
+					int *mode,
+					double *res,
+					int *info,
+					double *Zne,
+					double *Wne){
+     dfeast_grcix_(ijob,N,Ze,work,workc,
+					Aq,Sq,feastparam,epsout,loop,
+					Emid,r,M0,lambda,Q,mode,
+					res,info,Zne,Wne);
 }
+
+// Fortran function:
+// dfeast_grcix(ijob,N,Ze,work,workc,
+//				zAq,zSq,fpm,epsout,loop,
+//				Emid,r,M0,lambda,Q,mode,
+//				res,info,Zne,Wne)
+
+
 void zfeast_grcix(char *ijob,int *N,double *Ze,double *workr, double *workl ,double *workc,double *Aq,double *Sq,int *feastparam,double *epsout,int *loop,double *Emid,double *r,int *M0,double *lambda,double *qr,double *ql,int *mode,double *resr,double *resl,int *info,double *Zne, double *Wne){
      zfeast_grcix_(ijob,N,Ze,workr,workl,workc,Aq,Sq,feastparam,epsout,loop,Emid,r,M0,lambda,qr,ql,mode,resr,resl,info,Zne,Wne);
 }
@@ -139,3 +235,4 @@ void CFEAST_HRCI(char *ijob,int *N,float   *Ze,float   *work,float   *workc,floa
 //////////////////////////////////////////////////////////////////////////
 
 
+#endif /* !FEAST_SEEN */
