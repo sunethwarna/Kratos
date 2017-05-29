@@ -147,6 +147,9 @@ void KratosStructuralMechanicsApplication::Register()
     KRATOS_REGISTER_VARIABLE(HENCKY_STRAIN_VECTOR);
     KRATOS_REGISTER_VARIABLE(HENCKY_STRAIN_TENSOR);
 
+    // Computation of Modal Contribution
+    KRATOS_REGISTER_VARIABLE(COMPUTE_MODAL_CONTRIBUTION);
+
     // Register the beam element
     KRATOS_REGISTER_ELEMENT( "SmallDisplacementBeamElement3D2N", mSmallDisplacementBeamElement3D2N )
 

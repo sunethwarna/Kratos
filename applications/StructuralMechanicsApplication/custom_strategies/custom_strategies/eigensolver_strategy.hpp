@@ -31,6 +31,7 @@
 
 // Application includes
 #include "structural_mechanics_application_variables.h"
+#include "custom_utilities/modal_mass_contribution_utilities.hpp"
 
 namespace Kratos
 {
@@ -298,7 +299,10 @@ public:
 
         this->AssignVariables(Eigenvalues,Eigenvectors);
 
-        this->FinalizeSolutionStep();
+        if (BaseType::GetModelPart().GetProcessInfo()[COMPUTE_MODAL_CONTRIBUTION] == true)
+            ComputeModalContribution(rMassMatrix,Eigenvalues,Eigenvectors);
+
+        this->FinalizeSolutionStep();      
 
         return 0.0;
 
@@ -626,6 +630,48 @@ private:
         }
     }
 
+
+    void ComputeModalContribution(SparseMatrixType& rMassMatrix, DenseVectorType& rEigenvalues, DenseMatrixType& rEigenvectors)
+    {
+        KRATOS_TRY
+        
+        //Computing modal contribution
+        const auto NumEigenvalues = rEigenvalues.size();
+        const auto SystemSize = rMassMatrix.size1();
+        Matrix Mass = ZeroMatrix(NumEigenvalues,NumEigenvalues);
+        Vector Mode_contribution = ZeroVector(NumEigenvalues);
+        Vector Ratio_Mass_Mode_contribution = ZeroVector(NumEigenvalues);
+        Matrix EigenContribution = ZeroMatrix(NumEigenvalues, SystemSize);
+
+        double Total_Mass= 0.0;
+        for (std::size_t i = 0; i < SystemSize; i++)
+        {
+            for (std::size_t j = 0; j < SystemSize; j++)
+            {
+                Total_Mass += rMassMatrix(i,j);
+            }
+        }
+
+        EigenContribution = prod(rEigenvectors,rMassMatrix);
+        Mass = prod(EigenContribution,trans(rEigenvectors));
+        double Total_Mass_Contribution =0.0;
+
+        for (std::size_t i = 0; i < NumEigenvalues; i++)
+        {
+            for (std::size_t j = 0; j < SystemSize; j++)
+            {
+                Mode_contribution[i] += EigenContribution(i,j);
+            }
+
+            Ratio_Mass_Mode_contribution[i] =  (Mode_contribution[i]*Mode_contribution[i])/(Mass(i,i)*Total_Mass)*100.0;
+            Total_Mass_Contribution += Ratio_Mass_Mode_contribution[i];
+        }
+
+        KRATOS_WATCH(Ratio_Mass_Mode_contribution)
+        KRATOS_WATCH(Total_Mass_Contribution)
+
+        KRATOS_CATCH("")
+    }
     ///@}
     ///@name Private  Access
     ///@{

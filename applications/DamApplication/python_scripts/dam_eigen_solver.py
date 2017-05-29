@@ -96,6 +96,7 @@ class DamEigenSolver():
         self.eigensolver_settings = self.settings["eigensolver_settings"] 
         solver_type = self.eigensolver_settings["solver_type"].GetString()
         solution_type = self.settings["solution_type"].GetString()
+        self.main_model_part.ProcessInfo.SetValue(KratosStructural.COMPUTE_MODAL_CONTRIBUTION, False)
        
         if solver_type == "FEAST":
             self.linear_solver = KratosExternal.FEASTSolver(self.eigensolver_settings)
