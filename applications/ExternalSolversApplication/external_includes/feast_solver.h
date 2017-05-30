@@ -248,6 +248,8 @@ public:
             DenseVectorType& Eigenvalues,
             DenseMatrixType& Eigenvectors)
     {
+		std::cout << "In symm solve function" << std::endl;
+
         const auto SystemSize = K.size1();
 
         Parameters& FEAST_Settings = *mpParam;

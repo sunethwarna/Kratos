@@ -245,30 +245,41 @@ public:
 
     /// Solve the generalized eigenvalue problem.
     /**
-     * K is a symmetric matrix. M is a symmetric positive-definite matrix.
+	 * det(K - lamda M)z = 0
+     * K are M are both real square matrices.
      */
     virtual void Solve(
-            SparseMatrixType& K,
-            SparseMatrixType& M,
-            DenseVectorType& Eigenvalues,
-            DenseMatrixType& Eigenvectors)
+			SparseMatrixType& K,
+			SparseMatrixType& M,
+			DenseVectorType& rEigenvalues,				// changed
+			DenseMatrixType& rEigenvectors)		// changed
     {
+		std::cout << "In solve function" << std::endl;
+
         const auto SystemSize = K.size1();
 
         Parameters& FEAST_Settings = *mpParam;
         const double EigenvalueRangeMin = FEAST_Settings["lambda_min"].GetDouble();
         const double EigenvalueRangeMax = FEAST_Settings["lambda_max"].GetDouble();
+		//const double Emid = (EigenvalueRangeMin + EigenvalueRangeMax) / 2.0;
+		const ComplexType Emid = ComplexType((EigenvalueRangeMin + EigenvalueRangeMax) / 2.0, 0.0);
+		const double Eradius = EigenvalueRangeMax - Emid.real();
 
         int SearchDimension = FEAST_Settings["search_dimension"].GetInt();
         int NumEigenvalues = FEAST_Settings["number_of_eigenvalues"].GetInt();
 
-        Eigenvalues.resize(SearchDimension,false);
-        Eigenvectors.resize(SearchDimension,SystemSize,false);
+        rEigenvalues.resize(SearchDimension,false);
+        rEigenvectors.resize(SearchDimension,2*SystemSize,false);
+
+		ComplexVectorType Eigenvalues = ComplexVectorType(SearchDimension);
+		Eigenvalues.clear();
+		ComplexDenseMatrixType Eigenvectors = ComplexDenseMatrixType(SearchDimension, SystemSize);
+		Eigenvectors.clear();
 
         if (FEAST_Settings["perform_stochastic_estimate"].GetBool())
         {
-            // this estimates the number of eigenvalues in the interval [lambda_min, lambda_max]
-            Calculate(M,K,EigenvalueRangeMin,EigenvalueRangeMax,SearchDimension,
+            // this estimates the number of eigenvalues in the area of Emid and Eradius
+            Calculate(M,K,Emid,Eradius,SearchDimension,
                     NumEigenvalues,Eigenvalues,Eigenvectors,true);
 
             std::cout << "Estimated number of eigenvalues = " << NumEigenvalues << std::endl;
@@ -280,7 +291,7 @@ public:
         if (FEAST_Settings["solve_eigenvalue_problem"].GetBool())
         {
             // this attempts to solve the generalized eigenvalue problem
-            Calculate(M,K,EigenvalueRangeMin,EigenvalueRangeMax,SearchDimension,
+            Calculate(M,K,Emid,Eradius,SearchDimension,
                     NumEigenvalues,Eigenvalues,Eigenvectors,false);
 
             Eigenvalues.resize(NumEigenvalues,true);
@@ -297,7 +308,7 @@ public:
     /// Print information about this object.
     void PrintInfo(std::ostream& rOStream) const
     {
-        rOStream << "FEAST solver.";
+        rOStream << "FEAST solver (general).";
     }
 
     /// Print object's data.
@@ -323,26 +334,28 @@ private:
     void Calculate(
             SparseMatrixType& rMassMatrix,
             SparseMatrixType& rStiffnessMatrix,
-            double EigenvalueRangeMin,
-            double EigenvalueRangeMax,
+			ComplexType Emid,
+            double Eradius,
             int SearchDimension,
             int& rNumEigenvalues,
-            DenseVectorType& rEigenvalues,
-            DenseMatrixType& rEigenvectors,
-            bool PerformStochasticEstimate)
+			ComplexVectorType& rEigenvalues,
+			ComplexDenseMatrixType& rEigenvectors,
+            const bool PerformStochasticEstimate)
     {
-        KRATOS_TRY
+		KRATOS_TRY
+
+		std::cout << "In calculate function" << std::endl;
 
         int FEAST_Params[64] = {};
         int NumIter, Info, SystemSize;
         double Epsout;
-        DenseVectorType Residual(SearchDimension);
+        DenseVectorType Residual(2*SearchDimension);										// good
         std::vector<std::complex<double> > IntegrationNodes, IntegrationWeights;
         SystemSize = static_cast<int>(rMassMatrix.size1());
-        matrix<double,column_major> work(SystemSize,SearchDimension);
-        matrix<std::complex<double>,column_major> zwork(SystemSize,SearchDimension);
-        matrix<double,column_major> Aq(SearchDimension,SearchDimension);
-        matrix<double,column_major> Bq(SearchDimension,SearchDimension);
+		matrix<std::complex<double>, column_major> work(SystemSize,2*SearchDimension);	// good?
+        matrix<std::complex<double>, column_major> zwork(SystemSize,SearchDimension);	// good?
+        matrix<std::complex<double>, column_major> Aq(SearchDimension,SearchDimension);				// good?
+        matrix<std::complex<double>, column_major> Bq(SearchDimension,SearchDimension);				// good?
         std::complex<double> Ze;
         ComplexSparseMatrixType Az;
         ComplexVectorType b(SystemSize);
@@ -368,6 +381,7 @@ private:
         IntegrationWeights.resize(FEAST_Params[1]);
 
         // get quadrature nodes and weights
+		/*
         zfeast_contour(&EigenvalueRangeMin,
                 &EigenvalueRangeMax,
                 &FEAST_Params[1],
@@ -375,12 +389,25 @@ private:
                 &FEAST_Params[17],
                 (double *)IntegrationNodes.data(),
                 (double *)IntegrationWeights.data());
+				*/
+
+		// get quadrature nodes and weights
+		zfeast_gcontour((double *)&Emid,
+				&Eradius,
+				&FEAST_Params[7],
+				&FEAST_Params[16],
+				&FEAST_Params[17],
+				&FEAST_Params[18],
+				(double *)IntegrationNodes.data(),
+				(double *)IntegrationWeights.data());
 
         int ijob = -1;
         // solve the eigenvalue problem
         while (ijob != 0)
         {
             // FEAST's reverse communication interface
+
+			/*
             dfeast_srcix(&ijob,&SystemSize,(double *)&Ze,(double *)work.data().begin(),
                     (double *)zwork.data().begin(),(double *)Aq.data().begin(),
                     (double *)Bq.data().begin(),FEAST_Params,&Epsout,&NumIter,
@@ -389,7 +416,33 @@ private:
                     (double *)rEigenvectors.data().begin(),
                     &rNumEigenvalues,(double *)Residual.data().begin(),&Info,
                     (double *)IntegrationNodes.data(),
-                    (double *)IntegrationWeights.data());
+                    (double *)IntegrationWeights.data());*/
+
+			std::cout << "Before grcix call" << std::endl;
+
+			// FEAST's reverse communication interface
+			dfeast_grcix(&ijob,								// 
+				&SystemSize,								// 
+				(double *)&Ze,								// 
+				(double *)work.data().begin(),				// workr - check?
+				(double *)zwork.data().begin(),				// workc - check?
+				(double *)Aq.data().begin(),				// Aq - check?
+				(double *)Bq.data().begin(),				// Bq - check?
+				FEAST_Params,								//
+				&Epsout,									// 
+				&NumIter,									// 
+				(double *)&Emid,							// 
+				&Eradius,									// 
+				&SearchDimension,							// 
+				(double *)rEigenvalues.data().begin(),		// lambda - check
+				(double *)rEigenvectors.data().begin(),		// Q - check
+				&rNumEigenvalues,							// 
+				(double *)Residual.data().begin(),			// res - check
+				&Info,										// 
+				(double *)IntegrationNodes.data(),			// 
+				(double *)IntegrationWeights.data());		// 
+			
+			std::cout << "After grcix call" << std::endl;
 
             switch (ijob)
             {
@@ -403,7 +456,8 @@ private:
                 } break;
                 case 11:
                 {
-                    // solve the linear system for one quadrature point
+                    // solve the linear system for one quadrature point:
+					// Az * Qz = zwork
                     for (int j=0; j < FEAST_Params[22]; j++)
                     {
                         for (int i=0; i < SystemSize; i++)
@@ -413,6 +467,22 @@ private:
                             zwork(i,j) = x[i];
                     }
                 } break;
+				case 20:
+					std::cout << "\n\n ----------- I'VE ENDED UP IN CASE 20! ------------- \n\n" << std::endl;
+					// Nothing programmed here so far.
+					break;
+				case 21:
+					// solve the linear system for one quadrature point
+					// Az^H * Qz = zwork. SAME AS CASE 11 ATM ????????????????????
+					for (int j = 0; j < FEAST_Params[22]; j++)
+					{
+						for (int i = 0; i < SystemSize; i++)
+							b[i] = zwork(i, j);
+						mpLinearSolver->Solve(Az, x, b);
+						for (int i = 0; i < SystemSize; i++)
+							zwork(i, j) = x[i];
+					}
+					break; 
                 case 30:
                 {
                     // multiply Kx
@@ -422,6 +492,15 @@ private:
                         noalias(column(work,k)) = prod(rStiffnessMatrix,row(rEigenvectors,k));
                     }
                 } break;
+				case 31:
+					// SAME AS 30 BUT WITH INDICES CHANGED????????????????
+					for (int i = 0; i < FEAST_Params[34]; i++)
+					{
+						int k = FEAST_Params[33] - 1 + i;
+						noalias(column(work, k)) = prod(rStiffnessMatrix, row(rEigenvectors, k));
+					}
+					break;
+
                 case 40:
                 {
                     // multiply Mx
@@ -430,7 +509,16 @@ private:
                         int k = FEAST_Params[23]-1+i;
                         noalias(column(work,k)) = prod(rMassMatrix,row(rEigenvectors,k));
                     }
-                }
+				} break;
+				case 41:
+					// multiply Mx
+					// SAME AS 40 BUT WITH INDICES CHANGED??????
+					for (int i = 0; i < FEAST_Params[34]; i++)
+					{
+						int k = FEAST_Params[33] - 1 + i;
+						noalias(column(work, k)) = prod(rMassMatrix, row(rEigenvectors, k));
+					}
+					break;
             } // switch
         } // while
 

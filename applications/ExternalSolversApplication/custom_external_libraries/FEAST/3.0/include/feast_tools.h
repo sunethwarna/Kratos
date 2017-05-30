@@ -36,7 +36,13 @@ extern void cfeast_customcontour_(int *feastparam2,int *N,int *Nedge,int *Tedge,
 extern void zfeast_customcontour_(int *feastparam2,int *N,int *Nedge,int *Tedge,double *Zedge,double *Zne,double *Wne);
 extern void zfeast_contour_(double *Emin, double *Emax, int *fpm2, int *fpm16, int *fpm18, double *Zne, double *Wne);
 extern void cfeast_contour_(float *Emin, float *Emax, int *fpm2, int *fpm16, int *fpm18, float *Zne, float *Wne);
-extern void zfeast_gcontour_(double *Emid, double *r, int *fpm2, int *fpm17, int *fpm19, double *Zne, double *Wne);
+
+// original declaration
+//extern void zfeast_gcontour_(double *Emid, double *r, int *fpm2, int *fpm17, int *fpm19, double *Zne, double *Wne);
+
+// declaration modified to match fortran arg list (refer feast_tools.90)
+extern void zfeast_gcontour_(double *Emid, double *r, int *fpm2, int *fpm17, int *fpm18, int *fpm19, double *Zne, double *Wne);
+
 extern void dfeast_rational_(double *Emin, double *Emax, int *fpm2, int *fpm16, int *fpm18,double *Eig, int *M0,double *f);
 extern void sfeast_rational_(float *Emin,float *Emax,int *fpm2,int *fpm16,int *fpm18,float *Eig,int *M0,float *f);
 extern void sfeast_rationalx_(float *Zne,float *Wne,int *fpm2,float *Eig,int *M0,float *f);
@@ -72,9 +78,18 @@ void zfeast_contour(double *Emin, double *Emax, int *fpm2, int *fpm16, int *fpm1
 void cfeast_contour(float *Emin,float *Emax, int *fpm2, int *fpm16, int *fpm18, float *Zne, float *Wne){
      cfeast_contour_(Emin,Emax,fpm2,fpm16,fpm18,Zne,Wne);
 }
-void zfeast_gcontour(double *Emid, double *r, int *fpm2, int *fpm17, int *fpm19, double *Zne, double *Wne){
-     zfeast_gcontour_(Emid,r,fpm2,fpm17,fpm19,Zne,Wne);
+
+// original declaration
+//void zfeast_gcontour(double *Emid, double *r, int *fpm2, int *fpm17, int *fpm19, double *Zne, double *Wne){
+//     zfeast_gcontour_(Emid,r,fpm2,fpm17,fpm19,Zne,Wne);
+//}
+
+// declaration modified to match fortran arg list (refer feast_tools.90)
+void zfeast_gcontour(double *Emid, double *r, int *fpm2, int *fpm17, int *fpm18, int *fpm19, double *Zne, double *Wne){
+     zfeast_gcontour_(Emid,r,fpm2,fpm17,fpm18,fpm19,Zne,Wne);
 }
+
+
 void cfeast_gcontour(float *Emid, float *r, int *fpm2, int *fpm17, int *fpm19, float *Zne, float *Wne){
      cfeast_gcontour_(Emid,r,fpm2,fpm17,fpm19,Zne,Wne);
 }
