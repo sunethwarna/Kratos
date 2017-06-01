@@ -41,6 +41,7 @@ extern "C" {
 #include "linear_solvers/direct_solver.h"
 #include "includes/ublas_interface.h"
 #include "spaces/ublas_space.h"
+//#include "feast_solver.h"
 
 #if !defined(KRATOS_FEAST_SOLVER_GENERAL)
 #define  KRATOS_FEAST_SOLVER_GENERAL
@@ -50,78 +51,82 @@ namespace Kratos {
 ///@name Kratos Classes
 ///@{
 
-/*
+	template <class TSparseSpaceType, class TDenseSpaceType, class TReordererType = Reorderer<TSparseSpaceType, TDenseSpaceType>>
+	class SkylineLUSolver
+		: public DirectSolver<TSparseSpaceType, TDenseSpaceType, TReordererType>
+	{
+	public:
+		KRATOS_CLASS_POINTER_DEFINITION(SkylineLUSolver);
 
-template <class TSparseSpaceType, class TDenseSpaceType, class TReordererType = Reorderer<TSparseSpaceType, TDenseSpaceType>>
-class SkylineLUSolver
-    : public DirectSolver<TSparseSpaceType, TDenseSpaceType, TReordererType>
-{
-public:
-    KRATOS_CLASS_POINTER_DEFINITION(SkylineLUSolver);
+		typedef typename TSparseSpaceType::MatrixType SparseMatrixType;
 
-    typedef typename TSparseSpaceType::MatrixType SparseMatrixType;
+		typedef typename TSparseSpaceType::VectorType VectorType;
 
-    typedef typename TSparseSpaceType::VectorType VectorType;
+		typedef typename TDenseSpaceType::MatrixType DenseMatrixType;
 
-    typedef typename TDenseSpaceType::MatrixType DenseMatrixType;
+		typedef typename TSparseSpaceType::DataType DataType;
 
-    typedef typename TSparseSpaceType::DataType DataType;
-    
-    typedef typename amgcl::backend::builtin<DataType>::matrix BuiltinMatrixType;
-    
-    typedef amgcl::solver::skyline_lu<DataType> SolverType;
+		typedef typename amgcl::backend::builtin<DataType>::matrix BuiltinMatrixType;
 
-    ~SkylineLUSolver()
-    {
-        Clear();
-    }
+		typedef amgcl::solver::skyline_lu<DataType> SolverType;
 
-    void InitializeSolutionStep(SparseMatrixType& rA, VectorType& rX, VectorType& rB) override
-    {
-        Clear();
+		~SkylineLUSolver()
+		{
+			Clear();
+		}
 
-        pBuiltinMatrix = amgcl::adapter::zero_copy(
-                rA.size1(),
-                rA.index1_data().begin(),
-                rA.index2_data().begin(),
-                rA.value_data().begin());
+		void InitializeSolutionStep(SparseMatrixType& rA, VectorType& rX, VectorType& rB) override
+		{
+			//std::cout << "In InitializeSolutionStep" << std::endl;
 
-        pSolver = boost::make_shared<SolverType>(*pBuiltinMatrix);
-    }
+			Clear();
 
-    bool Solve(SparseMatrixType& rA, VectorType& rX, VectorType& rB) override
-    {
-        std::vector<DataType> x(rX.size());
-        std::vector<DataType> b(rB.size());
+			pBuiltinMatrix = amgcl::adapter::zero_copy(
+				rA.size1(),
+				rA.index1_data().begin(),
+				rA.index2_data().begin(),
+				rA.value_data().begin());
 
-        std::copy(std::begin(rB), std::end(rB), std::begin(b));
+			//std::cout << "In InitializeSolutionStep, after pbuiltinMatrix" << std::endl;
 
-        (*pSolver)(b, x);
+			pSolver = boost::make_shared<SolverType>(*pBuiltinMatrix);
 
-        std::copy(std::begin(x), std::end(x), std::begin(rX));
+			//std::cout << "In InitializeSolutionStep, end" << std::endl;
+		}
 
-        return true;
-    }
+		bool Solve(SparseMatrixType& rA, VectorType& rX, VectorType& rB) override
+		{
+			std::vector<DataType> x(rX.size());
+			std::vector<DataType> b(rB.size());
 
-    void FinalizeSolutionStep(SparseMatrixType& rA, VectorType& rX, VectorType& rB) override
-    {
-        Clear();
-    }
+			std::copy(std::begin(rB), std::end(rB), std::begin(b));
 
-    void Clear() override
-    {
-        pSolver.reset();
-        pBuiltinMatrix.reset();
-    }
+			(*pSolver)(b, x);
 
-private:
+			std::copy(std::begin(x), std::end(x), std::begin(rX));
 
-    boost::shared_ptr<BuiltinMatrixType> pBuiltinMatrix;
+			return true;
+		}
 
-    boost::shared_ptr<SolverType> pSolver;
-};
+		void FinalizeSolutionStep(SparseMatrixType& rA, VectorType& rX, VectorType& rB) override
+		{
+			Clear();
+		}
 
-*/
+		void Clear() override
+		{
+			pSolver.reset();
+			pBuiltinMatrix.reset();
+		}
+
+	private:
+
+		boost::shared_ptr<BuiltinMatrixType> pBuiltinMatrix;
+
+		boost::shared_ptr<SolverType> pSolver;
+	};
+
+
 
 /// Adapter to FEAST eigenvalue problem solver.
 template<class TSparseSpaceType, class TDenseSpaceType,
@@ -257,7 +262,7 @@ public:
 
 		Parameters& FEAST_Settings = *mpParam;
 
-		bool b_test = true;
+		bool b_test = false;
 		if (b_test)
 		{
 			std::cout << "Using custom matrix system" << std::endl;
@@ -277,11 +282,11 @@ public:
 			std::cout << "rMassMatrix = " << M << std::endl;
 		}
 		
-		//const double EigenvalueRangeMin = FEAST_Settings["lambda_min"].GetDouble();
-		//const double EigenvalueRangeMax = FEAST_Settings["lambda_max"].GetDouble();
+		const double EigenvalueRangeMin = FEAST_Settings["lambda_min"].GetDouble();
+		const double EigenvalueRangeMax = FEAST_Settings["lambda_max"].GetDouble();
 
-		const double EigenvalueRangeMin = 0.0;
-		const double EigenvalueRangeMax = 50.0;
+		//const double EigenvalueRangeMin = 0.0;
+		//const double EigenvalueRangeMax = 50.0;
 
         
 		const auto SystemSize = K.size1();
@@ -294,16 +299,13 @@ public:
         int SearchDimension = FEAST_Settings["search_dimension"].GetInt();
         int NumEigenvalues = FEAST_Settings["number_of_eigenvalues"].GetInt();
 
-		SearchDimension = 2; // TODO delete
+		//SearchDimension = 2; // TODO delete
 
-        rEigenvalues.resize(SearchDimension,false);
-		rEigenvalues.clear();
-        rEigenvectors.resize(SearchDimension,2*SystemSize,false);
-		rEigenvectors.clear();
+        
 
 		ComplexVectorType Eigenvalues = ComplexVectorType(SearchDimension);
 		Eigenvalues.clear();
-		ComplexDenseMatrixType Eigenvectors = ComplexDenseMatrixType(SearchDimension, SystemSize);
+		ComplexDenseMatrixType Eigenvectors = ComplexDenseMatrixType(SearchDimension, 2*SystemSize);
 		Eigenvectors.clear();
 
         if (FEAST_Settings["perform_stochastic_estimate"].GetBool())
@@ -325,7 +327,20 @@ public:
                     NumEigenvalues,Eigenvalues,Eigenvectors,false);
 
             Eigenvalues.resize(NumEigenvalues,true);
-            Eigenvectors.resize(NumEigenvalues,SystemSize,true);
+            Eigenvectors.resize(NumEigenvalues,2*SystemSize,true);
+
+			rEigenvalues.resize(NumEigenvalues, false);
+			rEigenvectors.resize(NumEigenvalues, SystemSize, false);
+
+			for (size_t i = 0; i < NumEigenvalues; i++)
+			{
+				rEigenvalues[i] = Eigenvalues[i].real();
+				for (size_t j = 0; j < SystemSize; j++)
+				{
+					rEigenvectors(i,j) = Eigenvectors(i,j).real();
+				}
+				
+			}
 
         }
         FEAST_Settings["number_of_eigenvalues"].SetInt(NumEigenvalues);
@@ -374,13 +389,15 @@ private:
     {
 		KRATOS_TRY
 
+		//std::cout << "\nIn calculate\n" << std::endl;
+
         int FEAST_Params[64] = {};
         int NumIter, Info, SystemSize;
         double Epsout;
-        DenseVectorType Residual(2*SearchDimension);										// good
+        DenseVectorType Residual(2*SearchDimension);										// good?
         std::vector<std::complex<double> > IntegrationNodes, IntegrationWeights;
         SystemSize = static_cast<int>(rMassMatrix.size1());
-		matrix<std::complex<double>, column_major> work(SystemSize,SearchDimension);	// good?
+		matrix<std::complex<double>, column_major> work(SystemSize,2*SearchDimension);	// good?
         matrix<std::complex<double>, column_major> zwork(SystemSize,SearchDimension);	// good
         matrix<std::complex<double>, column_major> Aq(SearchDimension,SearchDimension);				// good?
         matrix<std::complex<double>, column_major> Bq(SearchDimension,SearchDimension);				// good?
@@ -411,6 +428,8 @@ private:
         IntegrationNodes.resize(FEAST_Params[7]);		// changed from 1 to 7
         IntegrationWeights.resize(FEAST_Params[7]);		// changed from 1 to 7
 
+		//std::cout << "\nBefore gcontour\n" << std::endl;
+
 		// get quadrature nodes and weights
 		zfeast_gcontour((double *)&Emid,
 				&Eradius,
@@ -420,6 +439,8 @@ private:
 				&FEAST_Params[18],
 				(double *)IntegrationNodes.data(),
 				(double *)IntegrationWeights.data());
+
+		//std::cout << "\nAfter gcontour\n" << std::endl;
 
         int ijob = -1;
         // solve the eigenvalue problem
@@ -447,20 +468,26 @@ private:
 				(double *)IntegrationNodes.data(),			// 
 				(double *)IntegrationWeights.data());		// 
 
+			//std::cout << "\nAfter dfeast_grcix\n" << std::endl;
+
             switch (ijob)
             {
                 case 10:
                 {
-					std::cout << "CASE 10!" << std::endl;
+					//std::cout << "CASE 10" << std::endl;
                     // set up quadrature matrix (ZeM-K) and solver
                     this->CalculateFEASTSystemMatrix(Ze, rMassMatrix, rStiffnessMatrix, Az);
+					//std::cout << "CASE 10-a" << std::endl;
                     mpLinearSolver->Clear();
+					//std::cout << "CASE 10-b" << std::endl;
                     mpLinearSolver->Initialize(Az,x,b);
+					//std::cout << "CASE 10-c" << std::endl;
                     mpLinearSolver->InitializeSolutionStep(Az, x, b);
+					//std::cout << "CASE 10-d" << std::endl;
                 } break;
                 case 11:
                 {
-					std::cout << "CASE 11!" << std::endl;
+					//std::cout << "CASE 11" << std::endl;
                     // solve the linear system for one quadrature point:
 					// Az * Qz = zwork
                     for (int j=0; j < FEAST_Params[22]; j++)
@@ -473,33 +500,36 @@ private:
                     }
                 } break;
 				case 20:
-					std::cout << "CASE 20!" << std::endl;
+					//std::cout << "CASE 20" << std::endl;
 
 					// Assemble the complex matrix Az
-					this->CalculateFEASTSystemMatrix(Ze, rMassMatrix, rStiffnessMatrix, Az);
-					mpLinearSolver->Clear();
-					mpLinearSolver->Initialize(Az, x, b);
+					//this->CalculateFEASTSystemMatrix(Ze, rMassMatrix, rStiffnessMatrix, Az);
+					//mpLinearSolver->Clear();
+					//mpLinearSolver->Initialize(Az, x, b);
 					
 					// Take the complex conjugate of Az and put into Azh
-					AzH.clear();
-					AzH = boost::numeric::ublas::conj(Az);
+					AzH.clear();	// TODO check if needed
+					AzH = boost::numeric::ublas::herm(Az);
 
 					// Factorize Azh
+					mpLinearSolver->Clear();
+					mpLinearSolver->Initialize(AzH, x, b);//
 					mpLinearSolver->InitializeSolutionStep(AzH, x, b);
 					break;
 				case 21:
-					std::cout << "CASE 21!" << std::endl;
+					//std::cout << "CASE 21" << std::endl;
 					for (int j = 0; j < FEAST_Params[22]; j++)
 					{
 						for (int i = 0; i < SystemSize; i++)
 							b[i] = zwork(i, j);
-						mpLinearSolver->Solve(AzH, x, b);
+						mpLinearSolver->Solve(AzH, x, b);//
 						for (int i = 0; i < SystemSize; i++)
 							zwork(i, j) = x[i];
 					}
 					break; 
                 case 30:
                 {
+					//std::cout << "Case 30" << std::endl;
                     // multiply Kx
                     for (int i=0; i < FEAST_Params[24]; i++)
                     {
@@ -509,15 +539,17 @@ private:
                 } break;
 				case 31:
 					// SAME AS 30 BUT WITH INDICES CHANGED????????????????
+					//std::cout << "Case 31" << std::endl;
 					for (int i = 0; i < FEAST_Params[34]; i++)
 					{
 						int k = FEAST_Params[33] - 1 + i;
-						noalias(column(work, k)) = prod(rStiffnessMatrix, row(rEigenvectors, k));
+						noalias(column(work, k)) = prod(boost::numeric::ublas::herm(rStiffnessMatrix), row(rEigenvectors, k));
 					}
 					break;
 
                 case 40:
                 {
+					//std::cout << "Case 40" << std::endl;
                     // multiply Mx
                     for (int i=0; i < FEAST_Params[24]; i++)
                     {
@@ -526,12 +558,13 @@ private:
                     }
 				} break;
 				case 41:
+					//std::cout << "Case 41" << std::endl;
 					// multiply Mx
 					// SAME AS 40 BUT WITH INDICES CHANGED??????
 					for (int i = 0; i < FEAST_Params[34]; i++)
 					{
 						int k = FEAST_Params[33] - 1 + i;
-						noalias(column(work, k)) = prod(rMassMatrix, row(rEigenvectors, k));
+						noalias(column(work, k)) = prod(boost::numeric::ublas::herm(rMassMatrix), row(rEigenvectors, k));
 					}
 					break;
             } // switch

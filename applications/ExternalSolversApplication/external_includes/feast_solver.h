@@ -41,6 +41,7 @@ extern "C" {
 #include "linear_solvers/direct_solver.h"
 #include "includes/ublas_interface.h"
 #include "spaces/ublas_space.h"
+#include "feast_solver_general.h"
 
 #if !defined(KRATOS_FEAST_SOLVER)
 #define  KRATOS_FEAST_SOLVER
@@ -49,6 +50,8 @@ namespace Kratos {
 
 ///@name Kratos Classes
 ///@{
+
+/*
 
 template <class TSparseSpaceType, class TDenseSpaceType, class TReordererType = Reorderer<TSparseSpaceType, TDenseSpaceType>>
 class SkylineLUSolver
@@ -76,6 +79,8 @@ public:
 
     void InitializeSolutionStep(SparseMatrixType& rA, VectorType& rX, VectorType& rB) override
     {
+		std::cout << "In InitializeSolutionStep" << std::endl;
+
         Clear();
 
         pBuiltinMatrix = amgcl::adapter::zero_copy(
@@ -84,7 +89,11 @@ public:
                 rA.index2_data().begin(),
                 rA.value_data().begin());
 
+		std::cout << "In InitializeSolutionStep, after pbuiltinMatrix" << std::endl;
+
         pSolver = boost::make_shared<SolverType>(*pBuiltinMatrix);
+
+		std::cout << "In InitializeSolutionStep, end" << std::endl;
     }
 
     bool Solve(SparseMatrixType& rA, VectorType& rX, VectorType& rB) override
@@ -118,6 +127,8 @@ private:
 
     boost::shared_ptr<SolverType> pSolver;
 };
+
+*/
 
 /// Adapter to FEAST eigenvalue problem solver.
 template<class TSparseSpaceType, class TDenseSpaceType,
@@ -250,7 +261,7 @@ public:
     {
 		std::cout << "In symm solve function" << std::endl;
 
-		bool b_test = true;
+		bool b_test = false;
 		if (b_test)
 		{
 			std::cout << "Using custom matrix system" << std::endl;
@@ -270,18 +281,17 @@ public:
 			std::cout << "rMassMatrix = " << M << std::endl;
 		}
 		Parameters& FEAST_Settings = *mpParam;
-		//const double EigenvalueRangeMin = FEAST_Settings["lambda_min"].GetDouble();
-		//const double EigenvalueRangeMax = FEAST_Settings["lambda_max"].GetDouble();
 
-		const double EigenvalueRangeMin = 0.0;	// TODO delete
-		const double EigenvalueRangeMax = 50.0;	// TODO delete
+		int SearchDimension = FEAST_Settings["search_dimension"].GetInt();
+		int NumEigenvalues = FEAST_Settings["number_of_eigenvalues"].GetInt();
 
-        const auto SystemSize = K.size1();
+		const auto SystemSize = K.size1();
 
-        int SearchDimension = FEAST_Settings["search_dimension"].GetInt();
-        int NumEigenvalues = FEAST_Settings["number_of_eigenvalues"].GetInt();
-
-		SearchDimension = 2; // TODO delete
+		const double EigenvalueRangeMin = FEAST_Settings["lambda_min"].GetDouble();
+		const double EigenvalueRangeMax = FEAST_Settings["lambda_max"].GetDouble();
+		//const double EigenvalueRangeMin = 0.0;	// TODO delete
+		//const double EigenvalueRangeMax = 50.0;	// TODO delete
+		//SearchDimension = 2; // TODO delete
 
         Eigenvalues.resize(SearchDimension,false);
         Eigenvectors.resize(SearchDimension,SystemSize,false);
@@ -401,8 +411,6 @@ private:
         // solve the eigenvalue problem
         while (ijob != 0)
         {
-			std::cout << "Before grcix call" << std::endl;
-
             // FEAST's reverse communication interface
             dfeast_srcix(&ijob,&SystemSize,(double *)&Ze,(double *)work.data().begin(),
                     (double *)zwork.data().begin(),(double *)Aq.data().begin(),
