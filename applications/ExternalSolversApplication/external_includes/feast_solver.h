@@ -41,7 +41,6 @@ extern "C" {
 #include "linear_solvers/direct_solver.h"
 #include "includes/ublas_interface.h"
 #include "spaces/ublas_space.h"
-#include "feast_solver_general.h"
 
 #if !defined(KRATOS_FEAST_SOLVER)
 #define  KRATOS_FEAST_SOLVER
@@ -50,8 +49,6 @@ namespace Kratos {
 
 ///@name Kratos Classes
 ///@{
-
-/*
 
 template <class TSparseSpaceType, class TDenseSpaceType, class TReordererType = Reorderer<TSparseSpaceType, TDenseSpaceType>>
 class SkylineLUSolver
@@ -79,8 +76,6 @@ public:
 
     void InitializeSolutionStep(SparseMatrixType& rA, VectorType& rX, VectorType& rB) override
     {
-		std::cout << "In InitializeSolutionStep" << std::endl;
-
         Clear();
 
         pBuiltinMatrix = amgcl::adapter::zero_copy(
@@ -89,11 +84,7 @@ public:
                 rA.index2_data().begin(),
                 rA.value_data().begin());
 
-		std::cout << "In InitializeSolutionStep, after pbuiltinMatrix" << std::endl;
-
         pSolver = boost::make_shared<SolverType>(*pBuiltinMatrix);
-
-		std::cout << "In InitializeSolutionStep, end" << std::endl;
     }
 
     bool Solve(SparseMatrixType& rA, VectorType& rX, VectorType& rB) override
@@ -127,8 +118,6 @@ private:
 
     boost::shared_ptr<SolverType> pSolver;
 };
-
-*/
 
 /// Adapter to FEAST eigenvalue problem solver.
 template<class TSparseSpaceType, class TDenseSpaceType,

@@ -41,7 +41,7 @@ extern "C" {
 #include "linear_solvers/direct_solver.h"
 #include "includes/ublas_interface.h"
 #include "spaces/ublas_space.h"
-//#include "feast_solver.h"
+#include "feast_solver.h"
 
 #if !defined(KRATOS_FEAST_SOLVER_GENERAL)
 #define  KRATOS_FEAST_SOLVER_GENERAL
@@ -50,6 +50,7 @@ namespace Kratos {
 
 ///@name Kratos Classes
 ///@{
+/*
 
 	template <class TSparseSpaceType, class TDenseSpaceType, class TReordererType = Reorderer<TSparseSpaceType, TDenseSpaceType>>
 	class SkylineLUSolver
@@ -126,7 +127,7 @@ namespace Kratos {
 		boost::shared_ptr<SolverType> pSolver;
 	};
 
-
+*/
 
 /// Adapter to FEAST eigenvalue problem solver.
 template<class TSparseSpaceType, class TDenseSpaceType,
@@ -292,9 +293,9 @@ public:
 		const auto SystemSize = K.size1();
 
 		
-
-		const ComplexType Emid = ComplexType((EigenvalueRangeMin + EigenvalueRangeMax) / 2.0, 0.0);
-		const double Eradius = EigenvalueRangeMax - Emid.real();
+		const double Eradius = (EigenvalueRangeMax - EigenvalueRangeMin) / 2.0;
+		const ComplexType Emid = ComplexType((EigenvalueRangeMin + Eradius), 0.0);
+		
 
         int SearchDimension = FEAST_Settings["search_dimension"].GetInt();
         int NumEigenvalues = FEAST_Settings["number_of_eigenvalues"].GetInt();
