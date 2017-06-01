@@ -311,7 +311,9 @@ proc GenerateNewFractures { dir problemtypedir PropagationData } {
         dict set BodySurfacesDict $BodySurfaceId Lines $BodySurfaceLines
 
         ### TODO
-        GiD_EntitiesGroups assign Tip_Node points [GiD_Info Geometry MaxNumPoints]
+        if {[GiD_AccessValue get gendata Write_Propagation_Length] eq true} {
+            GiD_EntitiesGroups assign Tip_Node points [GiD_Info Geometry MaxNumPoints]
+        }
         ### TODO
 
     }

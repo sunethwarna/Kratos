@@ -138,11 +138,13 @@ fracture_utility = poromechanics_fracture_propagation_utility.FracturePropagatio
                                                                                          problem_name,
                                                                                          ProjectParameters["solver_settings"]["move_mesh_flag"].GetBool())
 ####TODO
-GraphFileName = "graphs.csv"
-GraphFile = open(str(GraphFileName),'w')
-GraphFile.write("Time Xt Yt Xl Yl Pwl Xr Yr Pwr\n")
-GraphFile.write("0.0 80.0 -9.375 79.99975 -9.5 0.0 80.00025 -9.5 0.0\n")
-GraphFile.close()
+WritePropLength = ProjectParameters["problem_data"]["write_prop_length"].GetBool()
+if WritePropLength:
+    GraphFileName = "graphs.csv"
+    GraphFile = open(str(GraphFileName),'w')
+    GraphFile.write("Time Xt Yt Xl Yl Pwl Xr Yr Pwr\n")
+    GraphFile.write("0.0 80.0 -9.375 79.99975 -9.5 0.0 80.00025 -9.5 0.0\n")
+    GraphFile.close()
 ####TODO
 
 ## Temporal loop ---------------------------------------------------------------------------------------------
@@ -176,29 +178,30 @@ while( (time+tol) <= end_time ):
         gid_output.PrintOutput()
 
     ####TODO
-    GraphFile = open(str(GraphFileName),'a')
-    GraphFile.write(str(time))
-    GraphFile.write(" ")
-    for node in main_model_part.GetSubModelPart("Tip_Node").Nodes:
-        GraphFile.write(str(node.X))
+    if WritePropLength:
+        GraphFile = open(str(GraphFileName),'a')
+        GraphFile.write(str(time))
         GraphFile.write(" ")
-        GraphFile.write(str(node.Y))
-    GraphFile.write(" ")
-    for node in main_model_part.GetSubModelPart("Mouth_Left_Node").Nodes:
-        GraphFile.write(str(node.X))
+        for node in main_model_part.GetSubModelPart("Tip_Node").Nodes:
+            GraphFile.write(str(node.X))
+            GraphFile.write(" ")
+            GraphFile.write(str(node.Y))
         GraphFile.write(" ")
-        GraphFile.write(str(node.Y))
+        for node in main_model_part.GetSubModelPart("Mouth_Left_Node").Nodes:
+            GraphFile.write(str(node.X))
+            GraphFile.write(" ")
+            GraphFile.write(str(node.Y))
+            GraphFile.write(" ")
+            GraphFile.write(str(node.GetSolutionStepValue(KratosMultiphysics.WATER_PRESSURE)))
         GraphFile.write(" ")
-        GraphFile.write(str(node.GetSolutionStepValue(KratosMultiphysics.WATER_PRESSURE)))
-    GraphFile.write(" ")
-    for node in main_model_part.GetSubModelPart("Mouth_Right_Node").Nodes:
-        GraphFile.write(str(node.X))
-        GraphFile.write(" ")
-        GraphFile.write(str(node.Y))
-        GraphFile.write(" ")
-        GraphFile.write(str(node.GetSolutionStepValue(KratosMultiphysics.WATER_PRESSURE)))
-    GraphFile.write("\n")
-    GraphFile.close()
+        for node in main_model_part.GetSubModelPart("Mouth_Right_Node").Nodes:
+            GraphFile.write(str(node.X))
+            GraphFile.write(" ")
+            GraphFile.write(str(node.Y))
+            GraphFile.write(" ")
+            GraphFile.write(str(node.GetSolutionStepValue(KratosMultiphysics.WATER_PRESSURE)))
+        GraphFile.write("\n")
+        GraphFile.close()
     ####
 
     for process in list_of_processes:

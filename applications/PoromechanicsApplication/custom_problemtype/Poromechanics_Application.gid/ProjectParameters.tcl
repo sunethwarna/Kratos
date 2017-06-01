@@ -19,6 +19,7 @@ proc WriteProjectParameters { basename dir problemtypedir TableDict} {
     puts $FileVar "        \"time_step\":            [GiD_AccessValue get gendata Delta_Time],"
     puts $FileVar "        \"parallel_type\":        \"[GiD_AccessValue get gendata Parallel_Configuration]\","
     puts $FileVar "        \"number_of_threads\":    [GiD_AccessValue get gendata Number_of_threads],"
+    puts $FileVar "        \"write_prop_length\":    [GiD_AccessValue get gendata Write_Propagation_Length],"
     if {[GiD_AccessValue get gendata Parallel_Configuration] eq "MPI"} {
         puts $FileVar "        \"fracture_propagation\": false"
     } else {
