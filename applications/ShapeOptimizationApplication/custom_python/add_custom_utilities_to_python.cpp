@@ -164,6 +164,7 @@ void  AddCustomUtilitiesToPython()
             .def("output_surface_points", &CADMapper::output_surface_points)
             .def("output_boundary_loop_points", &CADMapper::output_boundary_loop_points)
             .def("output_control_point_displacements", &CADMapper::output_control_point_displacements)
+            .def("evaluate_geometric_deviations", &CADMapper::evaluate_geometric_deviations)
             ;                      
 }
 
