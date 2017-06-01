@@ -251,25 +251,55 @@ public:
     virtual void Solve(
 			SparseMatrixType& K,
 			SparseMatrixType& M,
-			DenseVectorType& rEigenvalues,				// changed
-			DenseMatrixType& rEigenvectors)		// changed
+			DenseVectorType& rEigenvalues,				
+			DenseMatrixType& rEigenvectors)
     {
-		std::cout << "In solve function" << std::endl;
 
-        const auto SystemSize = K.size1();
+		Parameters& FEAST_Settings = *mpParam;
 
-        Parameters& FEAST_Settings = *mpParam;
-        const double EigenvalueRangeMin = FEAST_Settings["lambda_min"].GetDouble();
-        const double EigenvalueRangeMax = FEAST_Settings["lambda_max"].GetDouble();
-		//const double Emid = (EigenvalueRangeMin + EigenvalueRangeMax) / 2.0;
+		bool b_test = true;
+		if (b_test)
+		{
+			std::cout << "Using custom matrix system" << std::endl;
+			K.resize(2, 2, false);
+			K.clear();
+			K(0, 0) = 200.0;
+			K(0, 1) = -200.0;
+			K(1, 0) = -200.0;
+			K(1, 1) = 200.0 + 125.0;
+
+			M.resize(2, 2, false);
+			M.clear();
+			M(0, 0) = 80.0;
+			M(1, 1) = 8.0;
+
+			std::cout << "rStiffnessMatrix = " << K << std::endl;
+			std::cout << "rMassMatrix = " << M << std::endl;
+		}
+		
+		//const double EigenvalueRangeMin = FEAST_Settings["lambda_min"].GetDouble();
+		//const double EigenvalueRangeMax = FEAST_Settings["lambda_max"].GetDouble();
+
+		const double EigenvalueRangeMin = 0.0;
+		const double EigenvalueRangeMax = 50.0;
+
+        
+		const auto SystemSize = K.size1();
+
+		
+
 		const ComplexType Emid = ComplexType((EigenvalueRangeMin + EigenvalueRangeMax) / 2.0, 0.0);
 		const double Eradius = EigenvalueRangeMax - Emid.real();
 
         int SearchDimension = FEAST_Settings["search_dimension"].GetInt();
         int NumEigenvalues = FEAST_Settings["number_of_eigenvalues"].GetInt();
 
+		SearchDimension = 2; // TODO delete
+
         rEigenvalues.resize(SearchDimension,false);
+		rEigenvalues.clear();
         rEigenvectors.resize(SearchDimension,2*SystemSize,false);
+		rEigenvectors.clear();
 
 		ComplexVectorType Eigenvalues = ComplexVectorType(SearchDimension);
 		Eigenvalues.clear();
@@ -344,16 +374,14 @@ private:
     {
 		KRATOS_TRY
 
-		std::cout << "In calculate function" << std::endl;
-
         int FEAST_Params[64] = {};
         int NumIter, Info, SystemSize;
         double Epsout;
         DenseVectorType Residual(2*SearchDimension);										// good
         std::vector<std::complex<double> > IntegrationNodes, IntegrationWeights;
         SystemSize = static_cast<int>(rMassMatrix.size1());
-		matrix<std::complex<double>, column_major> work(SystemSize,2*SearchDimension);	// good?
-        matrix<std::complex<double>, column_major> zwork(SystemSize,SearchDimension);	// good?
+		matrix<std::complex<double>, column_major> work(SystemSize,SearchDimension);	// good?
+        matrix<std::complex<double>, column_major> zwork(SystemSize,SearchDimension);	// good
         matrix<std::complex<double>, column_major> Aq(SearchDimension,SearchDimension);				// good?
         matrix<std::complex<double>, column_major> Bq(SearchDimension,SearchDimension);				// good?
         std::complex<double> Ze;
@@ -362,8 +390,11 @@ private:
         ComplexVectorType x(SystemSize);
 
         this->InitializeFEASTSystemMatrix(rMassMatrix, rStiffnessMatrix, Az);
+		ComplexSparseMatrixType AzH = ComplexSparseMatrixType(Az);
 
         Parameters& FEAST_Settings = *mpParam;
+
+		
 
         // initialize FEAST eigenvalue solver (see FEAST documentation for details)
         feastinit(FEAST_Params);
@@ -377,19 +408,8 @@ private:
             FEAST_Params[13] = 2;
         }
 
-        IntegrationNodes.resize(FEAST_Params[1]);
-        IntegrationWeights.resize(FEAST_Params[1]);
-
-        // get quadrature nodes and weights
-		/*
-        zfeast_contour(&EigenvalueRangeMin,
-                &EigenvalueRangeMax,
-                &FEAST_Params[1],
-                &FEAST_Params[15],
-                &FEAST_Params[17],
-                (double *)IntegrationNodes.data(),
-                (double *)IntegrationWeights.data());
-				*/
+        IntegrationNodes.resize(FEAST_Params[7]);		// changed from 1 to 7
+        IntegrationWeights.resize(FEAST_Params[7]);		// changed from 1 to 7
 
 		// get quadrature nodes and weights
 		zfeast_gcontour((double *)&Emid,
@@ -405,21 +425,6 @@ private:
         // solve the eigenvalue problem
         while (ijob != 0)
         {
-            // FEAST's reverse communication interface
-
-			/*
-            dfeast_srcix(&ijob,&SystemSize,(double *)&Ze,(double *)work.data().begin(),
-                    (double *)zwork.data().begin(),(double *)Aq.data().begin(),
-                    (double *)Bq.data().begin(),FEAST_Params,&Epsout,&NumIter,
-                    &EigenvalueRangeMin,&EigenvalueRangeMax,&SearchDimension,
-                    (double *)rEigenvalues.data().begin(),
-                    (double *)rEigenvectors.data().begin(),
-                    &rNumEigenvalues,(double *)Residual.data().begin(),&Info,
-                    (double *)IntegrationNodes.data(),
-                    (double *)IntegrationWeights.data());*/
-
-			std::cout << "Before grcix call" << std::endl;
-
 			// FEAST's reverse communication interface
 			dfeast_grcix(&ijob,								// 
 				&SystemSize,								// 
@@ -441,13 +446,12 @@ private:
 				&Info,										// 
 				(double *)IntegrationNodes.data(),			// 
 				(double *)IntegrationWeights.data());		// 
-			
-			std::cout << "After grcix call" << std::endl;
 
             switch (ijob)
             {
                 case 10:
                 {
+					std::cout << "CASE 10!" << std::endl;
                     // set up quadrature matrix (ZeM-K) and solver
                     this->CalculateFEASTSystemMatrix(Ze, rMassMatrix, rStiffnessMatrix, Az);
                     mpLinearSolver->Clear();
@@ -456,6 +460,7 @@ private:
                 } break;
                 case 11:
                 {
+					std::cout << "CASE 11!" << std::endl;
                     // solve the linear system for one quadrature point:
 					// Az * Qz = zwork
                     for (int j=0; j < FEAST_Params[22]; j++)
@@ -468,17 +473,27 @@ private:
                     }
                 } break;
 				case 20:
-					std::cout << "\n\n ----------- I'VE ENDED UP IN CASE 20! ------------- \n\n" << std::endl;
-					// Nothing programmed here so far.
+					std::cout << "CASE 20!" << std::endl;
+
+					// Assemble the complex matrix Az
+					this->CalculateFEASTSystemMatrix(Ze, rMassMatrix, rStiffnessMatrix, Az);
+					mpLinearSolver->Clear();
+					mpLinearSolver->Initialize(Az, x, b);
+					
+					// Take the complex conjugate of Az and put into Azh
+					AzH.clear();
+					AzH = boost::numeric::ublas::conj(Az);
+
+					// Factorize Azh
+					mpLinearSolver->InitializeSolutionStep(AzH, x, b);
 					break;
 				case 21:
-					// solve the linear system for one quadrature point
-					// Az^H * Qz = zwork. SAME AS CASE 11 ATM ????????????????????
+					std::cout << "CASE 21!" << std::endl;
 					for (int j = 0; j < FEAST_Params[22]; j++)
 					{
 						for (int i = 0; i < SystemSize; i++)
 							b[i] = zwork(i, j);
-						mpLinearSolver->Solve(Az, x, b);
+						mpLinearSolver->Solve(AzH, x, b);
 						for (int i = 0; i < SystemSize; i++)
 							zwork(i, j) = x[i];
 					}

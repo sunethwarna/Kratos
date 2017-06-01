@@ -250,14 +250,38 @@ public:
     {
 		std::cout << "In symm solve function" << std::endl;
 
-        const auto SystemSize = K.size1();
+		bool b_test = true;
+		if (b_test)
+		{
+			std::cout << "Using custom matrix system" << std::endl;
+			K.resize(2, 2, false);
+			K.clear();
+			K(0, 0) = 200.0;
+			K(0, 1) = -200.0;
+			K(1, 0) = -200.0;
+			K(1, 1) = 200.0 + 125.0;
 
-        Parameters& FEAST_Settings = *mpParam;
-        const double EigenvalueRangeMin = FEAST_Settings["lambda_min"].GetDouble();
-        const double EigenvalueRangeMax = FEAST_Settings["lambda_max"].GetDouble();
+			M.resize(2, 2, false);
+			M.clear();
+			M(0, 0) = 80.0;
+			M(1, 1) = 8.0;
+
+			std::cout << "rStiffnessMatrix = " << K << std::endl;
+			std::cout << "rMassMatrix = " << M << std::endl;
+		}
+		Parameters& FEAST_Settings = *mpParam;
+		//const double EigenvalueRangeMin = FEAST_Settings["lambda_min"].GetDouble();
+		//const double EigenvalueRangeMax = FEAST_Settings["lambda_max"].GetDouble();
+
+		const double EigenvalueRangeMin = 0.0;	// TODO delete
+		const double EigenvalueRangeMax = 50.0;	// TODO delete
+
+        const auto SystemSize = K.size1();
 
         int SearchDimension = FEAST_Settings["search_dimension"].GetInt();
         int NumEigenvalues = FEAST_Settings["number_of_eigenvalues"].GetInt();
+
+		SearchDimension = 2; // TODO delete
 
         Eigenvalues.resize(SearchDimension,false);
         Eigenvectors.resize(SearchDimension,SystemSize,false);
@@ -377,6 +401,8 @@ private:
         // solve the eigenvalue problem
         while (ijob != 0)
         {
+			std::cout << "Before grcix call" << std::endl;
+
             // FEAST's reverse communication interface
             dfeast_srcix(&ijob,&SystemSize,(double *)&Ze,(double *)work.data().begin(),
                     (double *)zwork.data().begin(),(double *)Aq.data().begin(),
