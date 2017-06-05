@@ -16,7 +16,7 @@
 #include "includes/kratos_parameters.h"
 
 #include "custom_utilities/streamlines_output_3D_utilities.hpp"
-
+#include "custom_utilities/global_joint_stress_utility.hpp"
 
 namespace Kratos
 {
@@ -30,6 +30,10 @@ void  AddCustomUtilitiesToPython()
     
     class_< StreamlinesOutput3DUtilities > ("StreamlinesOutput3DUtilities", init<>())
     .def("ComputeOutputStep",&StreamlinesOutput3DUtilities::ComputeOutputStep)
+    ;
+
+    class_< GlobalJointStressUtility > ("GlobalJointStressUtility", init<>())
+    .def("ComputingGlobalStress",&GlobalJointStressUtility::ComputingGlobalStress)
     ;
   
 }
