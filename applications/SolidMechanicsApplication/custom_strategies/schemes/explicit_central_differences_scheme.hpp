@@ -371,8 +371,6 @@ namespace Kratos
           }
         }
       }
-
-	  KRATOS_WATCH(this->mRotDof3D);
     KRATOS_CATCH("")
 	}
 

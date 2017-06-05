@@ -121,7 +121,6 @@ public:
             TSystemMatrixType& A)
     {
         KRATOS_TRY
-
          //Set Nodal Mass to zero
          NodesArrayType& pNodes             = r_model_part.Nodes();
          ElementsArrayType& pElements       = r_model_part.Elements();
@@ -188,22 +187,26 @@ public:
                  for (unsigned int i = 0; i <geometry.size(); i++)
                  {
                      index = i*dimension;
+					 if (MassMatrix.size1() == 12) index = index * 2; //beam,shells...
 
                      double& mass = geometry(i)->FastGetSolutionStepValue(NODAL_MASS);
 
                      geometry(i)->SetLock();
 		     
-		     if(!CalculateLumpedMassMatrix){
-		       for (unsigned int j = 0; j <MassMatrix.size2(); j++)
-			 {
-			   mass += MassMatrix(index,j);
-			 }
-		     }
-		     else{
-		       mass += MassMatrix(index,index);
-		     }
+					 if(!CalculateLumpedMassMatrix)
+					 {
+						  for (unsigned int j = 0; j <MassMatrix.size2(); j++)
+							 {
+								  mass += MassMatrix(index,j);
+							 }
+					}
 
-                     geometry(i)->UnSetLock();
+				   else
+				   {
+						mass += MassMatrix(index,index);
+				   }
+
+                    geometry(i)->UnSetLock();
                  }
              }
          }
@@ -222,7 +225,7 @@ public:
         TSystemVectorType& b)
     {
 		KRATOS_TRY
-        // Compute condition contributions to RHS.
+			// Compute condition contributions to RHS.
         CalculateAndAddConditionsRHS(pScheme, r_model_part);
         // Compute element contributions to RHS.
         CalculateAndAddElementsRHS(pScheme, r_model_part);   
