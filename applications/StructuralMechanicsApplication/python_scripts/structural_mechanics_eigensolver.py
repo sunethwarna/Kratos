@@ -59,6 +59,7 @@ class EigenSolver(solid_mechanics_solver.MechanicalSolver):
                 # default built-in feast system solver
                 if self.settings["solution_type"].GetString() == "Stability":
                     print("\n\n PYTHON FEAST GENERAL SOLVER\n\n")
+                    #self.eigen_solver = ExternalSolversApplication.FEASTSolver(self.eigensolver_settings)
                     self.eigen_solver = ExternalSolversApplication.FEASTSolverGeneral(self.eigensolver_settings)
                 else:
                     self.eigen_solver = ExternalSolversApplication.FEASTSolver(self.eigensolver_settings)            
@@ -66,6 +67,7 @@ class EigenSolver(solid_mechanics_solver.MechanicalSolver):
                 # external feast system solver
                 feast_system_solver = self._GetFEASTSystemSolver(linear_solver_settings)
                 if self.settings["solution_type"].GetString() == "Stability":
+                    #self.eigen_solver = ExternalSolversApplication.FEASTSolver(self.eigensolver_settings, feast_system_solver)
                     self.eigen_solver = ExternalSolversApplication.FEASTSolverGeneral(self.eigensolver_settings, feast_system_solver)
                 else:
                     self.eigen_solver = ExternalSolversApplication.FEASTSolver(self.eigensolver_settings, feast_system_solver)

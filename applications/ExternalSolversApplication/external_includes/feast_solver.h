@@ -250,16 +250,19 @@ public:
     {
 		std::cout << "In symm solve function" << std::endl;
 
+		Parameters& FEAST_Settings = *mpParam;
+
 		bool b_test = false;
+		bool b_largertest = true;
 		if (b_test)
 		{
 			std::cout << "Using custom matrix system" << std::endl;
 			K.resize(2, 2, false);
 			K.clear();
 			K(0, 0) = 200.0;
-			K(0, 1) = -200.0;
-			K(1, 0) = -200.0;
-			K(1, 1) = 200.0 + 125.0;
+			//K(0, 1) = -200.0;
+			//K(1, 0) = -200.0;
+			K(1, 1) = 325.0;
 
 			M.resize(2, 2, false);
 			M.clear();
@@ -268,8 +271,41 @@ public:
 
 			std::cout << "rStiffnessMatrix = " << K << std::endl;
 			std::cout << "rMassMatrix = " << M << std::endl;
+
+			FEAST_Settings["search_dimension"].SetInt(2);
+			FEAST_Settings["lambda_min"].SetDouble(0.0);
+			FEAST_Settings["lambda_max"].SetDouble(20.0);		// 100.0
+			FEAST_Settings["number_of_eigenvalues"].SetInt(1);	//2
+			FEAST_Settings["perform_stochastic_estimate"].SetBool(false);
 		}
-		Parameters& FEAST_Settings = *mpParam;
+
+		if (b_largertest)
+		{
+			std::cout << "Using custom matrix system" << std::endl;
+			K.resize(4, 4, false);
+			K.clear();
+			K(0, 0) = 200.0;
+			K(1, 1) = 325.0;
+			K(2, 2) = 220.0;
+			K(3, 3) = 100.0;
+
+			M.resize(4, 4, false);
+			M.clear();
+			M(0, 0) = 80.0;
+			M(1, 1) = 8.0;
+			M(2, 2) = 50.0;
+			M(3, 3) = 1.0;
+
+			std::cout << "rStiffnessMatrix = " << K << std::endl;
+			std::cout << "rMassMatrix = " << M << std::endl;
+
+			FEAST_Settings["search_dimension"].SetInt(4);
+			FEAST_Settings["lambda_min"].SetDouble(0.0);
+			FEAST_Settings["lambda_max"].SetDouble(500.0);
+			FEAST_Settings["number_of_eigenvalues"].SetInt(2);
+			FEAST_Settings["perform_stochastic_estimate"].SetBool(false);
+		}
+		
 
 		int SearchDimension = FEAST_Settings["search_dimension"].GetInt();
 		int NumEigenvalues = FEAST_Settings["number_of_eigenvalues"].GetInt();
@@ -411,18 +447,23 @@ private:
                     (double *)IntegrationNodes.data(),
                     (double *)IntegrationWeights.data());
 
+			//std::cout << "AFTER FEAST :" << Az << "\n" << std::endl;
+
             switch (ijob)
             {
                 case 10:
                 {
+					//std::cout << "case10" << std::endl;
                     // set up quadrature matrix (ZeM-K) and solver
                     this->CalculateFEASTSystemMatrix(Ze, rMassMatrix, rStiffnessMatrix, Az);
                     mpLinearSolver->Clear();
                     mpLinearSolver->Initialize(Az,x,b);
                     mpLinearSolver->InitializeSolutionStep(Az, x, b);
+					//std::cout << Az << "\n" << std::endl;
                 } break;
                 case 11:
                 {
+					//std::cout << "case11" << std::endl;
                     // solve the linear system for one quadrature point
                     for (int j=0; j < FEAST_Params[22]; j++)
                     {
@@ -432,25 +473,30 @@ private:
                         for (int i=0; i < SystemSize; i++)
                             zwork(i,j) = x[i];
                     }
+					//std::cout << Az << "\n" << std::endl;
                 } break;
                 case 30:
                 {
+					//std::cout << "case30" << std::endl;
                     // multiply Kx
                     for (int i=0; i < FEAST_Params[24]; i++)
                     {
                         int k = FEAST_Params[23]-1+i;
                         noalias(column(work,k)) = prod(rStiffnessMatrix,row(rEigenvectors,k));
                     }
+					//std::cout << work << "\n" << std::endl;
                 } break;
                 case 40:
                 {
                     // multiply Mx
+					//std::cout << "case40" << std::endl;
                     for (int i=0; i < FEAST_Params[24]; i++)
                     {
                         int k = FEAST_Params[23]-1+i;
                         noalias(column(work,k)) = prod(rMassMatrix,row(rEigenvectors,k));
                     }
                 }
+				//std::cout << work << "\n" << std::endl;
             } // switch
         } // while
 
