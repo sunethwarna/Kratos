@@ -166,7 +166,7 @@ Matrix StructuralMeshMovingElement::SetAndModifyConstitutiveLaw(
     KRATOS_TRY;
 
     double YoungsModulus = 1.0f;
-    const double PoissonCoefficient = 0.3f;
+    const double PoissonCoefficient = 0.0f;
 
     Vector DetJ;
     this->GetGeometry().DeterminantOfJacobian(DetJ);
