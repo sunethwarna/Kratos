@@ -3,7 +3,7 @@
         "problem_name"    : "tetrahedra_3D4N_test",
         "model_part_name" : "MainModelPart",
         "domain_size"     : 3,
-        "parallel_type"   : "OpenMP",
+        "parallel_type"   : "MPI",
         "echo_level"      : 0,
         "start_time"      : 0.0,
         "end_time"        : 0.5
@@ -35,7 +35,7 @@
         "Restart_Step"     : 0
     },
     "solver_settings"                  : {
-        "solver_type"                  : "ale_navier_stokes_solver_vmsmonolithic",
+        "solver_type"                  : "ale_trilinos_navier_stokes_solver_vmsmonolithic",
         "ale_solver_type"              : "mesh_solver_structural_similarity",
         "model_import_settings"         : {
             "input_type"     : "mdpa",
