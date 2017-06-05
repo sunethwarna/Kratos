@@ -52,7 +52,7 @@ class ExplicitMechanicalSolver(solid_mechanics_explicit_dynamic_solver.ExplicitM
             "time_step_prediction_level": 0,
             "rayleigh_damping": false,
             "linear_solver_settings":{
-                "solver_type": "SuperLU",
+                "solver_type": "Super_LU",
                 "max_iteration": 500,
                 "tolerance": 1e-9,
                 "scaling": false,

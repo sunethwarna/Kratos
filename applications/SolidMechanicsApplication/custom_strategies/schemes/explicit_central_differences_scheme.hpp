@@ -122,7 +122,6 @@ namespace Kratos
       //mVector.a.resize(NumThreads);
       //mVector.ap.resize(NumThreads);
       mSchemeIsInitialized = false;
-
     }
 
     
@@ -341,11 +340,14 @@ namespace Kratos
       vector<unsigned int> node_partition;
       OpenMPUtils::CreatePartition(number_of_threads, pNodes.size(), node_partition);
 
+	  this->mRotDof3D = true;
+
 #pragma omp parallel for
       for(int k=0; k<number_of_threads; k++)
       {
         typename NodesArrayType::iterator i_begin = pNodes.ptr_begin()+node_partition[k];
         typename NodesArrayType::iterator i_end   = pNodes.ptr_begin()+node_partition[k+1];
+
 
         for(ModelPart::NodeIterator i=i_begin; i!= i_end; ++i)
         {
@@ -353,6 +355,12 @@ namespace Kratos
           array_1d<double,3>& current_velocity      = i->FastGetSolutionStepValue(VELOCITY);
           array_1d<double,3>& current_residual      = i->FastGetSolutionStepValue(FORCE_RESIDUAL);
           array_1d<double,3>& current_displacement  = i->FastGetSolutionStepValue(DISPLACEMENT);
+		  if (i->HasDofFor(ROTATION_X) && i->HasDofFor(ROTATION_Y) &&
+			  i->HasDofFor(ROTATION_Z) && this->mRotDof3D == true)
+		  {
+			  this->mRotDof3D = true;
+		  }
+		  else this->mRotDof3D = false;
           
           for (unsigned int j =0; j<3; j++)
           {
@@ -364,6 +372,7 @@ namespace Kratos
         }
       }
 
+	  KRATOS_WATCH(this->mRotDof3D);
     KRATOS_CATCH("")
 	}
 
@@ -554,24 +563,17 @@ virtual void Update(ModelPart& r_model_part,
   {
 
     KRATOS_TRY
-
     int thread = OpenMPUtils::ThisThread();
-
     //basic operations for the element considered
     (rCurrentElement) -> CalculateRightHandSide(RHS_Contribution,rCurrentProcessInfo);
-
-
     if(mRayleighDamping)
     {
       (rCurrentElement) -> CalculateDampingMatrix(mMatrix.D[thread],rCurrentProcessInfo);
-
       AddDynamicsToRHS (rCurrentElement, RHS_Contribution, mMatrix.D[thread], rCurrentProcessInfo);
-
     }
-
     //add explicit contribution of the Element Residual (RHS) to nodal Force Residual (nodal RHS)
+    
     (rCurrentElement) -> AddExplicitContribution(RHS_Contribution, RESIDUAL_VECTOR, FORCE_RESIDUAL, rCurrentProcessInfo);
-
     KRATOS_CATCH( "" )
   }
 
@@ -606,22 +608,34 @@ virtual void Update(ModelPart& r_model_part,
     const unsigned int dimension       = rCurrentElement->GetGeometry().WorkingSpaceDimension();
     unsigned int       element_size    = number_of_nodes * dimension;
 
+	if (this->mRotDof3D == true) element_size = element_size * 2;
+
+
     if ( rValues.size() != element_size ) rValues.resize( element_size, false );
 
     for ( unsigned int i = 0; i < number_of_nodes; i++ )
       {
-  unsigned int index = i * dimension;
+		 unsigned int index = i * dimension;
+		 if (this->mRotDof3D == true) index = index * 2;
 
+		 rCurrentElement->GetGeometry()[i].FastGetSolutionStepValue(MIDDLE_VELOCITY);
 
-  rCurrentElement->GetGeometry()[i].FastGetSolutionStepValue(MIDDLE_VELOCITY);
+	     rValues[index]     = rCurrentElement->GetGeometry()[i].FastGetSolutionStepValue( MIDDLE_VELOCITY )[0];
+		 rValues[index + 1] = rCurrentElement->GetGeometry()[i].FastGetSolutionStepValue( MIDDLE_VELOCITY )[1];
 
-  rValues[index]     = rCurrentElement->GetGeometry()[i].FastGetSolutionStepValue( MIDDLE_VELOCITY )[0];
-  rValues[index + 1] = rCurrentElement->GetGeometry()[i].FastGetSolutionStepValue( MIDDLE_VELOCITY )[1];
+		 if (dimension == 3)
+		 {
+			 rValues[index + 2] = rCurrentElement->GetGeometry()[i].FastGetSolutionStepValue(MIDDLE_VELOCITY)[2];
+		 }
 
-  if ( dimension == 3 )
-    rValues[index + 2] = rCurrentElement->GetGeometry()[i].FastGetSolutionStepValue( MIDDLE_VELOCITY )[2];
-
-      }
+		 if (this->mRotDof3D == true)
+		 {
+			 for (int i = 3; i < 6; ++i)
+			 {
+				 rValues[index + i] = 0.00;
+			 }
+		 }		 
+	 }
   }
 
 
@@ -656,19 +670,31 @@ virtual void Update(ModelPart& r_model_part,
     const unsigned int dimension       = rCurrentCondition->GetGeometry().WorkingSpaceDimension();
     unsigned int       condition_size    = number_of_nodes * dimension;
 
+	if (this->mRotDof3D == true) condition_size = condition_size * 2;
+
     if ( rValues.size() != condition_size ) rValues.resize( condition_size, false );
 
     for ( unsigned int i = 0; i < number_of_nodes; i++ )
     {
       unsigned int index = i * dimension;
+	  if (this->mRotDof3D == true) index = index * 2;
 
       rCurrentCondition->GetGeometry()[i].FastGetSolutionStepValue(MIDDLE_VELOCITY);
 
       rValues[index]     = rCurrentCondition->GetGeometry()[i].FastGetSolutionStepValue( MIDDLE_VELOCITY )[0];
       rValues[index + 1] = rCurrentCondition->GetGeometry()[i].FastGetSolutionStepValue( MIDDLE_VELOCITY )[1];
 
-      if ( dimension == 3 )
-        rValues[index + 2] = rCurrentCondition->GetGeometry()[i].FastGetSolutionStepValue( MIDDLE_VELOCITY )[2];
+	  if (dimension == 3)
+	  {
+		  rValues[index + 2] = rCurrentCondition->GetGeometry()[i].FastGetSolutionStepValue(MIDDLE_VELOCITY)[2];
+	  }
+	  if (this->mRotDof3D == true)
+	  {
+		  for (int i = 3; i < 6; ++i)
+		  {
+			  rValues[index + i] = 0.00;
+		  }
+	  }
     }
     
   }
@@ -782,6 +808,7 @@ virtual void Update(ModelPart& r_model_part,
     TimeVariables       mTime;
     DeltaTimeParameters mDeltaTime;   
     bool                mRayleighDamping;
+	bool				mRotDof3D;
 
 
     /*@} */

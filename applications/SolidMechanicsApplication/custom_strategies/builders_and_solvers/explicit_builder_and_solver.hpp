@@ -209,7 +209,6 @@ public:
          }
 
 	rCurrentProcessInfo[COMPUTE_LUMPED_MASS_MATRIX] = CalculateLumpedMassMatrix;
-
         KRATOS_CATCH( "" )
 
     }
@@ -222,15 +221,11 @@ public:
         ModelPart& r_model_part,
         TSystemVectorType& b)
     {
-        KRATOS_TRY
-        
+		KRATOS_TRY
         // Compute condition contributions to RHS.
         CalculateAndAddConditionsRHS(pScheme, r_model_part);
-
         // Compute element contributions to RHS.
-        CalculateAndAddElementsRHS(pScheme, r_model_part);
-
-        
+        CalculateAndAddElementsRHS(pScheme, r_model_part);   
         KRATOS_CATCH( "" )
 
     }
@@ -278,7 +273,6 @@ public:
 
        }
     }
-
     KRATOS_CATCH("")
     }
 
@@ -300,7 +294,6 @@ public:
 #else
         int number_of_threads = 1;
 #endif
-
         vector<unsigned int> element_partition;
         OpenMPUtils::CreatePartition(number_of_threads, pElements.size(), element_partition);
 
@@ -311,15 +304,11 @@ public:
             typename ElementsArrayType::ptr_iterator it_end=pElements.ptr_begin()+element_partition[k+1];
             for (typename ElementsArrayType::ptr_iterator it= it_begin; it!=it_end; ++it)
             {
-
-                LocalSystemVectorType RHS_Contribution = LocalSystemVectorType(0);
+				LocalSystemVectorType RHS_Contribution = LocalSystemVectorType(0);
                 Element::EquationIdVectorType EquationId; //Dummy
-
                 pScheme->Calculate_RHS_Contribution(*it, RHS_Contribution, EquationId, rCurrentProcessInfo);
-
             }
         }
-
         KRATOS_CATCH("")
     }
     

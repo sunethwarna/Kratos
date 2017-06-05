@@ -39,7 +39,7 @@ class ApplyLocalProcess(Process, KratosUnittest.TestCase):
         EI = 210e9 * 0.00001
         L = 1.0
         for node in self.model_part.Nodes:
-            sum_loadfy = sum_loadfy + node.GetSolutionStepValue(POINT_LOAD_Y,0)                   
+            sum_loadfy = sum_loadfy + node.GetSolutionStepValue(POINT_LOAD_Y,0)    
         self.assertAlmostEqual(sum_loadfy,-Fy)
         
         for node in self.model_part.Nodes:
