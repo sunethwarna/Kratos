@@ -1046,8 +1046,6 @@ namespace Kratos
 			rRightHandSideVector = ZeroVector(LocalSize);
 			rRightHandSideVector -= prod(rLeftHandSideMatrix, NodalDeformation);
 		}
-		//assign global element variables
-		this->mLHS = rLeftHandSideMatrix;
 		//add bodyforces 
 		rRightHandSideVector += this->CalculateBodyForces();
 		this->mIterationCount++;
@@ -1163,6 +1161,8 @@ namespace Kratos
 			rLeftHandSideMatrix = prod(aux_matrix,
 				Matrix(trans(TransformationMatrix)));
 		}
+		//assign global element variables
+		this->mLHS = rLeftHandSideMatrix;
 		KRATOS_CATCH("")
 	}
 
@@ -1638,9 +1638,6 @@ namespace Kratos
 		const ProcessInfo& rCurrentProcessInfo)
 	{
 		KRATOS_TRY;
-		/////////////////////////////////////////////////
-		//NOT FINISHED YET !!!!
-		/////////////////////////////////////////////////
 		const int number_of_nodes = this->GetGeometry().PointsNumber();
 		const int dimension = this->GetGeometry().WorkingSpaceDimension();
 		const int element_size = number_of_nodes * dimension;
