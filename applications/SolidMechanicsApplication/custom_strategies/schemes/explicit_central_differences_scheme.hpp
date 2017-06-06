@@ -235,6 +235,12 @@ namespace Kratos
             {
               array_1d<double,3>& node_rhs  = (i->FastGetSolutionStepValue(FORCE_RESIDUAL));  
               noalias(node_rhs)             = ZeroVector(3);
+
+			  //if (this->mRotDof3D == true)
+			  //{
+				 // array_1d<double, 3>& node_rhs_moment = (i->FastGetSolutionStepValue(MOMENT_RESIDUAL));
+				 // noalias(node_rhs_moment) = ZeroVector(3);
+			  //}
             }
         }
 
@@ -340,7 +346,7 @@ namespace Kratos
       vector<unsigned int> node_partition;
       OpenMPUtils::CreatePartition(number_of_threads, pNodes.size(), node_partition);
 
-	  this->mRotDof3D = true;
+	  this->mRotDof3D = false;
 
 #pragma omp parallel for
       for(int k=0; k<number_of_threads; k++)
@@ -355,16 +361,35 @@ namespace Kratos
           array_1d<double,3>& current_velocity      = i->FastGetSolutionStepValue(VELOCITY);
           array_1d<double,3>& current_residual      = i->FastGetSolutionStepValue(FORCE_RESIDUAL);
           array_1d<double,3>& current_displacement  = i->FastGetSolutionStepValue(DISPLACEMENT);
+
+
 		  if (i->HasDofFor(ROTATION_X) && i->HasDofFor(ROTATION_Y) &&
 			  i->HasDofFor(ROTATION_Z) && this->mRotDof3D == true)
 		  {
 			  this->mRotDof3D = true;
 		  }
 		  else this->mRotDof3D = false;
+
+
+		  if (this->mRotDof3D == true)
+		  {
+			  array_1d<double, 3>& middle_velocity_angular = i->FastGetSolutionStepValue(ANGULAR_MIDDLE_VELOCITY);
+			  array_1d<double, 3>& current_velocity_angular = i->FastGetSolutionStepValue(ANGULAR_VELOCITY);
+			  array_1d<double, 3>& current_residual_moment = i->FastGetSolutionStepValue(MOMENT_RESIDUAL);
+			  array_1d<double, 3>& current_rotation = i->FastGetSolutionStepValue(ROTATION);
+
+			  for (int j = 0; j < 3; ++j)
+			  {
+				  middle_velocity_angular[j] = current_velocity_angular[j];
+				  current_residual_moment[j] = 0.00;
+				  current_rotation[j] = 0.00;
+			  }
+
+		  }
+
           
           for (unsigned int j =0; j<3; j++)
-          {
-            
+          {        
             middle_velocity[j]      = current_velocity[j] ;
             current_residual[j]     = 0.0;
             current_displacement[j] = 0.0;
@@ -455,9 +480,48 @@ virtual void Update(ModelPart& r_model_part,
               
               current_velocity[j]      = middle_velocity[j] + (mTime.Previous - mTime.PreviousMiddle) * current_acceleration[j]; //+ actual_velocity;
               middle_velocity[j]       = current_velocity[j] + (mTime.Middle - mTime.Previous) * current_acceleration[j] ; 
-              current_displacement[j]  = current_displacement[j] + mTime.Delta * middle_velocity[j];      
-              
+              current_displacement[j]  = current_displacement[j] + mTime.Delta * middle_velocity[j];          
           }//for DoF
+
+
+		  if (this->mRotDof3D == true)
+		  {
+			  array_1d<double, 3>& middle_velocity_angular = i->FastGetSolutionStepValue(ANGULAR_MIDDLE_VELOCITY);
+			  array_1d<double, 3>& current_velocity_angular = i->FastGetSolutionStepValue(ANGULAR_VELOCITY);
+			  array_1d<double, 3>& current_residual_moment = i->FastGetSolutionStepValue(MOMENT_RESIDUAL);
+			  array_1d<double, 3>& current_rotation = i->FastGetSolutionStepValue(ROTATION);
+
+			  //test rot mass entry
+			  const double RotMass = 0.01;
+
+			  array_1d<double, 3>& current_acceleration_angular = i->FastGetSolutionStepValue(ANGULAR_ACCELERATION);
+
+
+			  current_acceleration_angular = current_residual_moment / RotMass;
+			  int Dof = 3;
+			  bool Fix_rot[3] = { false, false, false };
+
+			  Fix_rot[0] = (i->pGetDof(ROTATION_X))->IsFixed();
+			  Fix_rot[1] = (i->pGetDof(ROTATION_Y))->IsFixed();
+			  Fix_rot[2] = (i->pGetDof(ROTATION_Z))->IsFixed();
+
+			  for (int j = 0; j < DoF; j++)
+			  {
+
+				  if (Fix_rot[j] == true)
+				  {
+
+					  current_acceleration_angular[j] = 0.0;
+					  middle_velocity_angular[j] = 0.0;
+
+				  }
+
+				  current_velocity_angular[j] = middle_velocity_angular[j] + (mTime.Previous - mTime.PreviousMiddle) * current_acceleration_angular[j]; //+ actual_velocity;
+				  middle_velocity_angular[j] = current_velocity_angular[j] + (mTime.Middle - mTime.Previous) * current_acceleration_angular[j];
+				  current_rotation[j] = current_rotation[j] + mTime.Delta * middle_velocity_angular[j];
+			  }
+
+		  }
           
         }//for Node 
 
@@ -506,7 +570,6 @@ virtual void Update(ModelPart& r_model_part,
 
           array_1d<double,3>& current_acceleration    = i->FastGetSolutionStepValue(ACCELERATION);
 
-
           //Solution of the explicit equation:
           current_acceleration = current_residual/nodal_mass;
 
@@ -539,6 +602,45 @@ virtual void Update(ModelPart& r_model_part,
               
           }//for DoF
 
+
+		  if (this->mRotDof3D == true)
+		  {
+
+		      array_1d<double, 3>& middle_velocity_angular = i->FastGetSolutionStepValue(ANGULAR_MIDDLE_VELOCITY);
+			  array_1d<double, 3>& current_velocity_angular = i->FastGetSolutionStepValue(ANGULAR_VELOCITY);
+			  array_1d<double, 3>& current_residual_moment = i->FastGetSolutionStepValue(MOMENT_RESIDUAL);
+			  array_1d<double, 3>& current_rotation = i->FastGetSolutionStepValue(ROTATION);
+
+			  //test rot mass entry
+			  const double RotMass = 0.01;
+
+			  array_1d<double, 3>& current_acceleration_angular = i->FastGetSolutionStepValue(ANGULAR_ACCELERATION);
+			  current_acceleration_angular = current_residual_moment / RotMass;
+			  int Dof = 3;
+			  bool Fix_rot[3] = { false, false, false };
+
+			  Fix_rot[0] = (i->pGetDof(ROTATION_X))->IsFixed();
+			  Fix_rot[1] = (i->pGetDof(ROTATION_Y))->IsFixed();
+			  Fix_rot[2] = (i->pGetDof(ROTATION_Z))->IsFixed();
+
+			  for (int j = 0; j < DoF; j++)
+			  {
+
+				  if (Fix_rot[j] == true)
+				  {
+
+					  current_acceleration_angular[j] = 0.0;
+					  middle_velocity_angular[j] = 0.0;
+
+				  }
+
+				  current_velocity_angular[j] = middle_velocity_angular[j] + (mTime.Previous - mTime.PreviousMiddle) * current_acceleration_angular[j]; //+ actual_velocity;
+				  middle_velocity_angular[j] = 0.00 + (mTime.Middle - mTime.Previous) * current_acceleration_angular[j];
+				  current_rotation[j] = 0.00;
+			  }
+
+		  }
+
         }//for node
 
       }//parallel
@@ -564,6 +666,7 @@ virtual void Update(ModelPart& r_model_part,
     int thread = OpenMPUtils::ThisThread();
     //basic operations for the element considered
     (rCurrentElement) -> CalculateRightHandSide(RHS_Contribution,rCurrentProcessInfo);
+
     if(mRayleighDamping)
     {
       (rCurrentElement) -> CalculateDampingMatrix(mMatrix.D[thread],rCurrentProcessInfo);
@@ -572,6 +675,11 @@ virtual void Update(ModelPart& r_model_part,
     //add explicit contribution of the Element Residual (RHS) to nodal Force Residual (nodal RHS)
     
     (rCurrentElement) -> AddExplicitContribution(RHS_Contribution, RESIDUAL_VECTOR, FORCE_RESIDUAL, rCurrentProcessInfo);
+
+	if (this->mRotDof3D == true)
+	{
+		(rCurrentElement)->AddExplicitContribution(RHS_Contribution, RESIDUAL_VECTOR, MOMENT_RESIDUAL, rCurrentProcessInfo);
+	}
     KRATOS_CATCH( "" )
   }
 
@@ -728,7 +836,10 @@ virtual void Update(ModelPart& r_model_part,
 
     //add explicit contribution of the Condition Residual (RHS) to nodal Force Residual (nodal RHS)
     (rCurrentCondition) -> AddExplicitContribution(RHS_Contribution, RESIDUAL_VECTOR, FORCE_RESIDUAL, rCurrentProcessInfo);
-
+	if (this->mRotDof3D == true)
+	{
+		(rCurrentCondition)->AddExplicitContribution(RHS_Contribution, RESIDUAL_VECTOR, MOMENT_RESIDUAL, rCurrentProcessInfo);
+	}
 
     KRATOS_CATCH( "" )
   }

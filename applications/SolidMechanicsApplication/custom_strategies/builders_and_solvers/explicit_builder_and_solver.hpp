@@ -187,7 +187,7 @@ public:
                  for (unsigned int i = 0; i <geometry.size(); i++)
                  {
                      index = i*dimension;
-					 if (MassMatrix.size1() == 12) index = index * 2; //beam,shells...
+					 if (MassMatrix.size1() == 12) index = index * 2; //beam,rocco
 
                      double& mass = geometry(i)->FastGetSolutionStepValue(NODAL_MASS);
 
@@ -225,7 +225,7 @@ public:
         TSystemVectorType& b)
     {
 		KRATOS_TRY
-			// Compute condition contributions to RHS.
+		// Compute condition contributions to RHS.
         CalculateAndAddConditionsRHS(pScheme, r_model_part);
         // Compute element contributions to RHS.
         CalculateAndAddElementsRHS(pScheme, r_model_part);   

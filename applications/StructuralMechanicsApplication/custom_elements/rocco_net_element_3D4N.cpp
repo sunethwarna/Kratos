@@ -926,6 +926,18 @@ void RoccoNetElement3D4N::CalculateMassMatrix(MatrixType& rMassMatrix, ProcessIn
 		rMassMatrix.resize(element_size, element_size, false);
 	}
 
+
+	const double NodalMass_custom = 10.00; /// ----> paramter to be adjusted
+
+
+	for (int i = 0; i < element_size; ++i)
+	{
+		rMassMatrix(i, i) = NodalMass_custom;
+	}
+
+
+
+
 	rMassMatrix = ZeroMatrix(element_size, element_size);
 	KRATOS_CATCH("")
 }
