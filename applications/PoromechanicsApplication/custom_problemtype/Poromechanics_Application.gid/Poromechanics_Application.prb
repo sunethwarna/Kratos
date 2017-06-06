@@ -35,7 +35,7 @@ HELP: Length defining the domain of interaction between non-local damaged points
 QUESTION: Fracture_Propagation#CB#(true,false)
 VALUE: false
 HELP: Only for pre-defined crack-tips defined with interface elements.
-DEPENDENCIES: (true,RESTORE,Propagation_Length,#CURRENT#,RESTORE,Propagation_Damage,#CURRENT#,RESTORE,Propagation_Frequency,#CURRENT#,RESTORE,Propagation_Width,#CURRENT#,RESTORE,Propagation_Height,#CURRENT#,RESTORE,Correction_Tolerance,#CURRENT#)(false,HIDE,Propagation_Length,#CURRENT#,HIDE,Propagation_Damage,#CURRENT#,HIDE,Propagation_Frequency,#CURRENT#,HIDE,Propagation_Width,#CURRENT#,HIDE,Propagation_Height,#CURRENT#,HIDE,Correction_Tolerance,#CURRENT#)
+DEPENDENCIES: (true,RESTORE,Propagation_Length,#CURRENT#,RESTORE,Propagation_Damage,#CURRENT#,RESTORE,Propagation_Frequency,#CURRENT#,RESTORE,Propagation_Width,#CURRENT#,RESTORE,Propagation_Height,#CURRENT#,RESTORE,Correction_Tolerance,#CURRENT#,RESTORE,Write_Propagation_Length,#CURRENT#)(false,HIDE,Propagation_Length,#CURRENT#,HIDE,Propagation_Damage,#CURRENT#,HIDE,Propagation_Frequency,#CURRENT#,HIDE,Propagation_Width,#CURRENT#,HIDE,Propagation_Height,#CURRENT#,HIDE,Correction_Tolerance,#CURRENT#,HIDE,Write_Propagation_Length,#CURRENT#)
 QUESTION: Propagation_Damage
 VALUE: 0.5
 HELP: Damage threshold after which propagation occurs.
