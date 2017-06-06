@@ -339,7 +339,16 @@ protected:
 
     void DeactivateFullNegativeElements()
     {
+        ModelPart::NodesContainerType& rNodes = mrModelPart.Nodes();
         ModelPart::ElementsContainerType& rElements = mrModelPart.Elements();
+
+        // Initialize all nodes as inactive
+        #pragma omp parallel for
+        for (int k = 0; k < static_cast<int>(rNodes.size()); ++k)
+        {
+            ModelPart::NodesContainerType::iterator itNode = rNodes.begin() + k;
+            itNode->Set(ACTIVE, false);
+        }
 
         // Deactivate those elements whose fixed nodes and negative distance nodes summation is equal (or larger) to their number of nodes
         #pragma omp parallel for
@@ -351,15 +360,37 @@ protected:
             GeometryType& rGeometry = itElement->GetGeometry();
 
             // Check the distance function sign at the element nodes
-            for (unsigned int itNode=0; itNode<rGeometry.size(); itNode++)
+            for (unsigned int iNode=0; iNode<rGeometry.size(); ++iNode)
             {
-                if (rGeometry[itNode].GetSolutionStepValue(DISTANCE)<0.0)
+                if (rGeometry[iNode].GetSolutionStepValue(DISTANCE)<0.0)
                     inside++;
-                if (rGeometry[itNode].IsFixed(VELOCITY_X) && rGeometry[itNode].IsFixed(VELOCITY_Y) && rGeometry[itNode].IsFixed(VELOCITY_Z))
+                if (rGeometry[iNode].IsFixed(VELOCITY_X) && rGeometry[iNode].IsFixed(VELOCITY_Y) && rGeometry[iNode].IsFixed(VELOCITY_Z))
                     fixed++;
             }
 
-            (inside+fixed >= rGeometry.size()) ? itElement->Set(ACTIVE, false) : itElement->Set(ACTIVE, true);
+            // If proceeds, deactivate the element
+            const bool deactivate = (inside+fixed >= rGeometry.size()) ? true : false;
+            (deactivate) ? itElement->Set(ACTIVE, false) : itElement->Set(ACTIVE, true);
+
+            // If the element has not been deactivated, set its nodes as active
+            if (!deactivate)
+            {
+                for (unsigned int iNode=0; iNode<rGeometry.size(); ++iNode)
+                    rGeometry[iNode].Set(ACTIVE,true);
+            }
+        }
+
+        // Set both velocity and pressure to zero in those nodes that remain as inactive
+        const array_1d<double, 3> aux_zero = ZeroVector(3);
+        #pragma omp parallel for firstprivate(aux_zero)
+        for (int k = 0; k < static_cast<int>(rNodes.size()); ++k)
+        {
+            ModelPart::NodesContainerType::iterator itNode = rNodes.begin() + k;
+            if (itNode->IsNot(ACTIVE))
+            {
+                itNode->FastGetSolutionStepValue(PRESSURE) = 0.0;
+                itNode->FastGetSolutionStepValue(VELOCITY) = aux_zero;
+            }
         }
     }
 
