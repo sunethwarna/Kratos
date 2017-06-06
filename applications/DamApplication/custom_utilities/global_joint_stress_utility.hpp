@@ -54,7 +54,6 @@ public:
         array_1d<double, 3> pmid1;
         array_1d<double, 3> pmid2;
 
-        // TODO: si necesitas las fuerzas en dos bloques de la presa, deberás modificar esto para cada caso
         // Coordinates of interest plane
         pmid0[0]=247.67;
         pmid0[1]=-368.92;
@@ -69,11 +68,9 @@ public:
         pmid2[2]=242.6;
 
         this->CalculateRotationMatrix(RotationPlane,pmid0,pmid1,pmid2);
-        
-        array_1d<double,3> GlobalTotalStress = ZeroVector(3);
-        array_1d<double,3> LocalTotalStress;
+        array_1d<double,3> GlobalVectorForceinPlane;
+        array_1d<double,3> GlobalElementVectorForce;
 
-        // TODO: estos elementos deben ser sólo los que estan en el plano de interes
         for(int k = 0; k<nelements; k++)
         {
             ModelPart::ElementsContainerType::iterator it = el_begin + k;
@@ -90,18 +87,27 @@ public:
             const Element::GeometryType::IntegrationPointsArrayType& IntegrationPoints = Geom.IntegrationPoints(MyIntegrationMethod);
             unsigned int NumGPoints = IntegrationPoints.size();
             std::vector<array_1d<double,3>> LocalStressVector;
-            array_1d<double,3> GlobalStressVector;
+            array_1d<double,3> LocalElementStress;
+            array_1d<double,3> LocalElementVectorForce;
             it->GetValueOnIntegrationPoints(LOCAL_STRESS_VECTOR,LocalStressVector,CurrentProcessInfo);
             
             for(unsigned int GPoint=0; GPoint<NumGPoints; GPoint++)
             {
-                noalias(GlobalStressVector) = prod(trans(RotationMatrix),LocalStressVector[GPoint]);
-                noalias(GlobalTotalStress) += GlobalStressVector;
+                noalias(LocalElementStress) += LocalStressVector[GPoint];
             }
-        }
-        noalias(LocalTotalStress) = prod(RotationPlane,GlobalTotalStress);
 
-        //TODO: multiplicar tension total local por el área del plano para obtener las fuerzas
+            // Computing area at mid plane
+            double Area;
+            this->AreaMidPlane(Area,pmid0,pmid1,pmid2);
+            noalias(LocalElementVectorForce) = LocalElementStress*Area;
+            noalias(GlobalElementVectorForce) += prod(trans(RotationMatrix),LocalElementVectorForce);
+        }
+
+        noalias(GlobalVectorForceinPlane) = prod(RotationPlane,GlobalElementVectorForce);
+        double TangentialForce = sqrt(GlobalVectorForceinPlane[0]*GlobalVectorForceinPlane[0] + GlobalVectorForceinPlane[1]*GlobalVectorForceinPlane[1]);
+        
+        std::cout<< " Tangential Force (N) "<<TangentialForce<<std::endl;
+        std::cout<< " Normal Force (N) "<<GlobalVectorForceinPlane[2]<<std::endl;
     }
 
 ///----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -152,6 +158,27 @@ protected:
         rRotationMatrix(2,1) = Vz[1];
         rRotationMatrix(2,2) = Vz[2];
     
+        KRATOS_CATCH( "" )
+        
+    }
+
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    
+    void AreaMidPlane(double& rArea, array_1d<double, 3>& pmid0, array_1d<double, 3>& pmid1, array_1d<double, 3>& pmid2 )
+    {
+        KRATOS_TRY
+        
+        //Vector declarations
+        array_1d<double, 3> Vx;
+        array_1d<double, 3> Vy;
+        array_1d<double, 3> Vz;
+
+        // Computing distances and area
+        noalias(Vx) = pmid1 - pmid0;        
+        noalias(Vy) = pmid2 - pmid0;
+        MathUtils<double>::CrossProduct(Vz, Vx, Vy);
+        rArea = sqrt(Vz[0]*Vz[0]+ Vz[1]*Vz[1]+Vz[2]*Vz[2])/2.0;
+
         KRATOS_CATCH( "" )
         
     }
