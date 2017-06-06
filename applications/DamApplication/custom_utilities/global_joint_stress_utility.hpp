@@ -43,7 +43,7 @@ public:
 // Transforming local stress vector in global coordinates 
     void ComputingGlobalStress( ModelPart& r_model_part)
     {
-        const int nelements = r_model_part.GetMesh().Elements().size();
+        const int nelements = static_cast<int>(r_model_part.Elements().size());
         ModelPart::ElementsContainerType::iterator el_begin = r_model_part.ElementsBegin();
         GeometryData::IntegrationMethod MyIntegrationMethod;
         const ProcessInfo& CurrentProcessInfo = r_model_part.GetProcessInfo();
@@ -54,6 +54,7 @@ public:
         array_1d<double, 3> pmid1;
         array_1d<double, 3> pmid2;
 
+        // TODO: si necesitas las fuerzas en dos bloques de la presa, deberás modificar esto para cada caso
         // Coordinates of interest plane
         pmid0[0]=247.67;
         pmid0[1]=-368.92;
@@ -68,7 +69,11 @@ public:
         pmid2[2]=242.6;
 
         this->CalculateRotationMatrix(RotationPlane,pmid0,pmid1,pmid2);
-            
+        
+        array_1d<double,3> GlobalTotalStress = ZeroVector(3);
+        array_1d<double,3> LocalTotalStress;
+
+        // TODO: estos elementos deben ser sólo los que estan en el plano de interes
         for(int k = 0; k<nelements; k++)
         {
             ModelPart::ElementsContainerType::iterator it = el_begin + k;
@@ -87,18 +92,16 @@ public:
             std::vector<array_1d<double,3>> LocalStressVector;
             array_1d<double,3> GlobalStressVector;
             it->GetValueOnIntegrationPoints(LOCAL_STRESS_VECTOR,LocalStressVector,CurrentProcessInfo);
-            array_1d<double,3> TotalStressElement;
-
+            
             for(unsigned int GPoint=0; GPoint<NumGPoints; GPoint++)
             {
-                GlobalStressVector= prod(RotationMatrix,LocalStressVector[GPoint]);
-                noalias(TotalStressElement) += GlobalStressVector;
+                noalias(GlobalStressVector) = prod(trans(RotationMatrix),LocalStressVector[GPoint]);
+                noalias(GlobalTotalStress) += GlobalStressVector;
             }
-
-            GlobalStressVector = prod(RotationPlane,GlobalStressVector);
-
         }
+        noalias(LocalTotalStress) = prod(RotationPlane,GlobalTotalStress);
 
+        //TODO: multiplicar tension total local por el área del plano para obtener las fuerzas
     }
 
 ///----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
