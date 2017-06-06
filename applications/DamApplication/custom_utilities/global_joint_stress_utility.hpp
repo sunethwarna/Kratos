@@ -68,8 +68,8 @@ public:
         pmid2[2]=242.6;
 
         this->CalculateRotationMatrix(RotationPlane,pmid0,pmid1,pmid2);
-        array_1d<double,3> GlobalVectorForceinPlane;
-        array_1d<double,3> GlobalElementVectorForce;
+        array_1d<double,3> VectorForceinPlane;
+        array_1d<double,3> GlobalElementVectorForce = ZeroVector(3);
 
         for(int k = 0; k<nelements; k++)
         {
@@ -87,7 +87,7 @@ public:
             const Element::GeometryType::IntegrationPointsArrayType& IntegrationPoints = Geom.IntegrationPoints(MyIntegrationMethod);
             unsigned int NumGPoints = IntegrationPoints.size();
             std::vector<array_1d<double,3>> LocalStressVector;
-            array_1d<double,3> LocalElementStress;
+            array_1d<double,3> LocalElementStress = ZeroVector(3);
             array_1d<double,3> LocalElementVectorForce;
             it->GetValueOnIntegrationPoints(LOCAL_STRESS_VECTOR,LocalStressVector,CurrentProcessInfo);
             
@@ -97,17 +97,21 @@ public:
             }
 
             // Computing area at mid plane
+            double InvNumGP = 1.0/static_cast<double>(NumGPoints);
+            LocalElementStress[0] *= InvNumGP;
+            LocalElementStress[1] *= InvNumGP;
+            LocalElementStress[2] *= InvNumGP;
             double Area;
             this->AreaMidPlane(Area,pmid0,pmid1,pmid2);
             noalias(LocalElementVectorForce) = LocalElementStress*Area;
             noalias(GlobalElementVectorForce) += prod(trans(RotationMatrix),LocalElementVectorForce);
         }
 
-        noalias(GlobalVectorForceinPlane) = prod(RotationPlane,GlobalElementVectorForce);
-        double TangentialForce = sqrt(GlobalVectorForceinPlane[0]*GlobalVectorForceinPlane[0] + GlobalVectorForceinPlane[1]*GlobalVectorForceinPlane[1]);
+        noalias(VectorForceinPlane) = prod(RotationPlane,GlobalElementVectorForce);
+        double TangentialForce = sqrt(VectorForceinPlane[0]*VectorForceinPlane[0] + VectorForceinPlane[1]*VectorForceinPlane[1]);
         
         std::cout<< " Tangential Force (N) "<<TangentialForce<<std::endl;
-        std::cout<< " Normal Force (N) "<<GlobalVectorForceinPlane[2]<<std::endl;
+        std::cout<< " Normal Force (N) "<<fabs(VectorForceinPlane[2])<<std::endl;
     }
 
 ///----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
