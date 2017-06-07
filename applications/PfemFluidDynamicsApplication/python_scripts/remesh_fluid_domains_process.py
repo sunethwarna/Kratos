@@ -72,8 +72,6 @@ class RemeshFluidDomainsProcess(KratosMultiphysics.Process):
     #
     def ExecuteInitialize(self):
 
-        self.fileTotalVolume = None
-
         # check restart
         self.restart = False
         if( self.main_model_part.ProcessInfo[KratosMultiphysics.IS_RESTARTED] == True ):
@@ -166,24 +164,21 @@ class RemeshFluidDomainsProcess(KratosMultiphysics.Process):
         currentTime=self.main_model_part.ProcessInfo[KratosMultiphysics.TIME]
         currentStep=self.main_model_part.ProcessInfo[KratosMultiphysics.STEP]                
 
-        if currentStep >= 2 and self.fileTotalVolume is None:
-            self.fileTotalVolume = open("totalVolumeBeforeMeshing.txt",'w')
-
-        if(currentStep > 1 and self.fileTotalVolume is not None):
+        if(currentStep > 1):
             for domain in self.meshing_domains:
                 if(domain.Active()):
                     domain.ComputeAverageMeshParameters()  
                     meanVolumeBeforeMeshing=domain.GetMeanVolume()
                     totalVolumeBeforeMeshing=domain.GetTotalVolume()
-                    outstring = str(currentTime) + " " +  str(totalVolumeBeforeMeshing) + " "
-                    self.fileTotalVolume.write(outstring)
-                    #fileTotalVolume = open("totalVolumeBeforeMeshing.txt", 'a')
-                    #if(currentStep==2):
-                        #fileTotalVolume.seek(0)
-                        #fileTotalVolume.truncate()
 
-                    #fileTotalVolume.write(outstring)    
-                    #fileTotalVolume.close
+                    fileTotalVolume = open("totalVolumeBeforeMeshing.ods", 'a')
+                    if(currentStep==2):
+                        fileTotalVolume.seek(0)
+                        fileTotalVolume.truncate()
+
+                    outstring = str(currentTime) + " " +  str(totalVolumeBeforeMeshing) + " "
+                    fileTotalVolume.write(outstring)    
+                    fileTotalVolume.close
 
         volume_acceleration=self.main_model_part.ProcessInfo[KratosMultiphysics.GRAVITY]
         if(currentStep == 1):
@@ -197,7 +192,7 @@ class RemeshFluidDomainsProcess(KratosMultiphysics.Process):
                         print("::[Remesh_Fluid_Domains_Process]:: RemeshFluidDomains ")
                     self.RemeshFluidDomains()
 
-        if(currentStep > 1 and self.fileTotalVolume is not None):
+        if(currentStep > 1):
             for domain in self.meshing_domains:
                 if(domain.Active()):
                     domain.ComputeAverageMeshParameters()  
@@ -205,20 +200,11 @@ class RemeshFluidDomainsProcess(KratosMultiphysics.Process):
                     totalVolumeAfterMeshing=domain.GetTotalVolume()
                     diffMeanVolume=meanVolumeAfterMeshing-meanVolumeBeforeMeshing
                     diffTotalVolume=totalVolumeAfterMeshing-totalVolumeBeforeMeshing
-                    #fileTotalVolume = open("totalVolumeBeforeMeshing.txt", 'a')
+                    fileTotalVolume = open("totalVolumeBeforeMeshing.ods", 'a')
                     
                     outstring =  str(totalVolumeAfterMeshing) + " " +  str(diffTotalVolume) + "\n"
-                    #fileTotalVolume.write(outstring)    
-                    #fileTotalVolume.close
-                    self.fileTotalVolume.write(outstring)
-        if self.fileTotalVolume is not None:
-            self.fileTotalVolume.flush()
-
-
-    def ExecuteFinalize(self):
-        if self.fileTotalVolume is not None:
-            self.fileTotalVolume.close()
-
+                    fileTotalVolume.write(outstring)    
+                    fileTotalVolume.close
 
       #if(self.main_model_part.ProcessInfo[KratosMultiphysics.STEP] == 1):
           #  for node in self.main_model_part.Nodes:

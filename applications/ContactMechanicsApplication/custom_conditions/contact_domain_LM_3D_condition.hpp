@@ -69,6 +69,7 @@ public:
     typedef ContactDomainUtilities::BaseLengths          BaseLengths;
 
     ///For 3D contact surfaces definition
+    typedef ContactDomainUtilities::TangentSurfaceScalar  TangentSurfaceScalar;
     typedef ContactDomainUtilities::SurfaceBase           SurfaceBase;
 
     /// Counted pointer of ContactDomainLM3DCondition
@@ -185,35 +186,12 @@ protected:
      */
     void CalculatePreviousGap();
 
-    /**
-     * Calculation of the Contact Previous Gap EdgeType
-     */
-    void CalculatePreviousGapEdgeType();
 
-    /**
-     * Calculation of the Contact Previous Gap FaceType
-     */
-    void CalculatePreviousGapFaceType();
-  
     /**
      * Calculation of the Contact Multipliers or Penalty Factors
      */
     virtual void CalculateExplicitFactors(GeneralVariables& rVariables,
 					  ProcessInfo& rCurrentProcessInfo);
-
-    /**
-     * Calculation of the Contact Multipliers or Penalty Factors EdgeType element
-     */
-    virtual void CalculateExplicitFactorsEdgeType(GeneralVariables& rVariables,
-						  ProcessInfo& rCurrentProcessInfo);
-
-    /**
-     * Calculation of the Contact Multipliers or Penalty Factors EdgeType element
-     */
-    virtual void CalculateExplicitFactorsFaceType(GeneralVariables& rVariables,
-						  ProcessInfo& rCurrentProcessInfo);
-  
-
     /**
      * Tangent Matrix construction methods:
      */
@@ -258,13 +236,11 @@ protected:
 
     PointType& CalculateCurrentTangent(PointType &rTangent);
 
-    void FSigmaP(GeneralVariables& rVariables, std::vector<Vector > &SigmaP, PointType& DirVector,unsigned int &ndi,unsigned int &ndj,unsigned int &ndk,unsigned int &ndl,unsigned int &ndm,unsigned int &ndn);
+    void FSigmaP(GeneralVariables& rVariables, std::vector<Vector > &SigmaP, PointType& AuxVector,unsigned int &ndi,unsigned int &ndj,unsigned int &ndk,unsigned int &ndr);
 
-    void FSigmaPnd(GeneralVariables& rVariables, std::vector<Vector > &SigmaP, PointType& DirVector,unsigned int &ndi,unsigned int &ndj);
+    void FSigmaPnd(GeneralVariables& rVariables, std::vector<Vector > &SigmaP, PointType& AuxVector,unsigned int &ndi,unsigned int &ndj);
 
 
-
-    void TransformCovariantToContravariantBase(SurfaceBase& Covariant,SurfaceBase& Contravariant);
 
     ///@}
     ///@name Protected  Access

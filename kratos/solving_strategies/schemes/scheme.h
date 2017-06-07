@@ -702,102 +702,94 @@ public:
       of the system
      */
     virtual void CalculateSystemContributions(
-        Element::Pointer pCurrentElement,
+        Element::Pointer rCurrentElement,
         LocalSystemMatrixType& LHS_Contribution,
         LocalSystemVectorType& RHS_Contribution,
         Element::EquationIdVectorType& EquationId,
         ProcessInfo& CurrentProcessInfo)
     {
-        pCurrentElement->CalculateLocalSystem(
-            LHS_Contribution, RHS_Contribution, CurrentProcessInfo);
     }
 
     virtual void Calculate_RHS_Contribution(
-        Element::Pointer pCurrentElement,
+        Element::Pointer rCurrentElement,
         LocalSystemVectorType& RHS_Contribution,
         Element::EquationIdVectorType& EquationId,
         ProcessInfo& CurrentProcessInfo)
     {
-        pCurrentElement->CalculateRightHandSide(RHS_Contribution, CurrentProcessInfo);
     }
 
     virtual void Calculate_LHS_Contribution(
-        Element::Pointer pCurrentElement,
+        Element::Pointer rCurrentElement,
         LocalSystemMatrixType& LHS_Contribution,
         Element::EquationIdVectorType& EquationId,
         ProcessInfo& CurrentProcessInfo)
     {
-        pCurrentElement->CalculateLeftHandSide(LHS_Contribution, CurrentProcessInfo);
     }
 
     virtual void EquationId(
-        Element::Pointer pCurrentElement,
+        Element::Pointer rCurrentElement,
         Element::EquationIdVectorType& EquationId,
         ProcessInfo& CurrentProcessInfo)
     {
-        (pCurrentElement)->EquationIdVector(EquationId, CurrentProcessInfo);
+        (rCurrentElement)->EquationIdVector(EquationId, CurrentProcessInfo);
     }
 
     /** functions totally analogous to the precedent but applied to
     the "condition" objects
      */
     virtual void Condition_CalculateSystemContributions(
-        Condition::Pointer pCurrentCondition,
+        Condition::Pointer rCurrentCondition,
         LocalSystemMatrixType& LHS_Contribution,
         LocalSystemVectorType& RHS_Contribution,
         Element::EquationIdVectorType& EquationId,
         ProcessInfo& CurrentProcessInfo)
     {
-        pCurrentCondition->CalculateLocalSystem(
-            LHS_Contribution, RHS_Contribution, CurrentProcessInfo);
     }
 
     virtual void Condition_Calculate_RHS_Contribution(
-        Condition::Pointer pCurrentCondition,
+        Condition::Pointer rCurrentCondition,
         LocalSystemVectorType& RHS_Contribution,
         Element::EquationIdVectorType& EquationId,
         ProcessInfo& CurrentProcessInfo)
     {
-        pCurrentCondition->CalculateRightHandSide(RHS_Contribution, CurrentProcessInfo);
     }
 
     virtual void Condition_Calculate_LHS_Contribution(
-        Condition::Pointer pCurrentCondition,
+        Condition::Pointer rCurrentCondition,
         LocalSystemMatrixType& LHS_Contribution,
         Element::EquationIdVectorType& EquationId,
         ProcessInfo& CurrentProcessInfo)
     {
-        pCurrentCondition->CalculateLeftHandSide(LHS_Contribution, CurrentProcessInfo);
     }
 
     virtual void Condition_EquationId(
-        Condition::Pointer pCurrentCondition,
+        Condition::Pointer rCurrentCondition,
         Element::EquationIdVectorType& EquationId,
         ProcessInfo& CurrentProcessInfo)
     {
-        (pCurrentCondition)->EquationIdVector(EquationId, CurrentProcessInfo);
+        (rCurrentCondition)->EquationIdVector(EquationId, CurrentProcessInfo);
     }
 
     /** Function that returns the list of Degrees of freedom to be
     assembled in the system for a Given Element
      */
     virtual void GetElementalDofList(
-        Element::Pointer pCurrentElement,
+        Element::Pointer rCurrentElement,
         Element::DofsVectorType& ElementalDofList,
         ProcessInfo& CurrentProcessInfo)
     {
-        pCurrentElement->GetDofList(ElementalDofList, CurrentProcessInfo);
+        rCurrentElement->GetDofList(ElementalDofList, CurrentProcessInfo);
     }
 
     /** Function that returns the list of Degrees of freedom to be
     assembled in the system for a Given Element
      */
     virtual void GetConditionDofList(
-        Condition::Pointer pCurrentCondition,
+        Condition::Pointer rCurrentCondition,
         Element::DofsVectorType& ConditionDofList,
         ProcessInfo& CurrentProcessInfo)
     {
-        pCurrentCondition->GetDofList(ConditionDofList, CurrentProcessInfo);
+        rCurrentCondition->GetDofList(ConditionDofList, CurrentProcessInfo);
     }
 
     /*@} */

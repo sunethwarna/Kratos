@@ -25,7 +25,6 @@
 #include "processes/process.h"
 #include "includes/cfd_variables.h"
 #include "processes/find_nodal_h_process.h"
-#include "utilities/openmp_utils.h"
 
 // Application includes
 
@@ -73,12 +72,11 @@ public:
     ///@{
 
     /// Constructor.
-    DistanceModificationProcess(ModelPart& rModelPart, const bool& rCheckAtEachStep, const bool& rRecoverOriginalDistance)
+    DistanceModificationProcess(ModelPart& rModelPart, const bool& rCheckAtEachStep)
     {
         mFactorCoeff = 2.0;
         mrModelPart = rModelPart;
         mrCheckAtEachStep = rCheckAtEachStep;
-        mrRecoverOriginalDistance = rRecoverOriginalDistance;
     }
 
     /// Destructor.
@@ -120,6 +118,7 @@ public:
         while (bad_cuts > 0)
         {
             this->ModifyDistance(factor, bad_cuts);
+            std::cout << "Distance modification iteration: " << counter << " Total bad cuts: " << bad_cuts << " Factor: " << factor << std::endl;
             factor /= mFactorCoeff;
             counter++;
         }
@@ -139,9 +138,9 @@ public:
     }
 
 
-    void ExecuteFinalizeSolutionStep() override
+    void ExecuteFinalize() override
     {
-        if(mrRecoverOriginalDistance == true)
+        if(mrCheckAtEachStep == true)
         {
             RecoverOriginalDistance();
         }
@@ -185,12 +184,11 @@ protected:
     ///@name Protected member Variables
     ///@{
 
-    ModelPart                                               mrModelPart;
-    double                                                 mFactorCoeff;
-    bool                                              mrCheckAtEachStep;
-    bool                                      mrRecoverOriginalDistance;
-    std::vector<std::vector<unsigned int>>        mModifiedDistancesIDs;
-    std::vector<std::vector<double>>           mModifiedDistancesValues;
+    ModelPart                                  mrModelPart;
+    double                                    mFactorCoeff;
+    bool                                 mrCheckAtEachStep;
+    std::vector<unsigned int>        mModifiedDistancesIDs;
+    std::vector<double>           mModifiedDistancesValues;
 
     ///@}
     ///@name Protected Operators
@@ -199,8 +197,8 @@ protected:
     void ModifyDistance(const double& factor,
                         unsigned int& bad_cuts)
     {
-        ModelPart::NodesContainerType& rNodes = mrModelPart.Nodes();
-        ModelPart::ElementsContainerType& rElements = mrModelPart.Elements();
+        double tol_d;
+        bad_cuts = 0;
 
         // Simple check
         if( mrModelPart.NodesBegin()->SolutionStepsDataHas( DISTANCE ) == false )
@@ -209,124 +207,99 @@ protected:
             KRATOS_ERROR << "Nodes do not have NODAL_H variable!";
 
         // Distance modification
-        if (mrRecoverOriginalDistance == false) // Case in where the original distance does not need to be preserved (e.g. CFD)
+        if (mrCheckAtEachStep == false) // Case in where the original distance does not need to be recomputed (e.g. CFD)
         {
-            #pragma omp parallel for
-            for (int k = 0; k < static_cast<int>(rNodes.size()); ++k)
+            for (auto itNode=mrModelPart.NodesBegin(); itNode!=mrModelPart.NodesEnd(); itNode++)
             {
-                ModelPart::NodesContainerType::iterator itNode = rNodes.begin() + k;
                 const double h = itNode->FastGetSolutionStepValue(NODAL_H);
-                const double tol_d = factor*h;
                 double& d = itNode->FastGetSolutionStepValue(DISTANCE);
+                tol_d = factor*h;
 
-                // Modify the distance to avoid almost empty fluid elements
                 if((d >= 0.0) && (d < tol_d))
+                {
+                    // Modify the distance to avoid almost empty fluid elements
+                    std::cout << "Node: " << itNode->Id() << " distance " << d;
                     d = -0.001*tol_d;
+                    std::cout << " modified to " << d << std::endl;
+                }
             }
+
+            // Syncronize data between partitions (the modified distance has always a lower value)
+            mrModelPart.GetCommunicator().SynchronizeCurrentDataToMin(DISTANCE);
         }
         else // Case in where the original distance needs to be kept to track the interface (e.g. FSI)
         {
-            const unsigned int NumThreads = OpenMPUtils::GetNumThreads();
-            std::vector<std::vector<unsigned int>> AuxModifiedDistancesIDs(NumThreads);
-            std::vector<std::vector<double>> AuxModifiedDistancesValues(NumThreads);
-
-            #pragma omp parallel shared(AuxModifiedDistancesIDs, AuxModifiedDistancesValues)
+            for (auto itNode=mrModelPart.NodesBegin(); itNode!=mrModelPart.NodesEnd(); itNode++)
             {
-                const int ThreadId = OpenMPUtils::ThisThread();             // Get the thread id
-                std::vector<unsigned int>   LocalModifiedDistancesIDs;      // Local modified distances nodes id vector
-                std::vector<double>      LocalModifiedDistancesValues;      // Local modified distances original values vector
+                const double h = itNode->FastGetSolutionStepValue(NODAL_H);
+                double& d = itNode->FastGetSolutionStepValue(DISTANCE);
+                tol_d = factor*h;
 
-                #pragma omp for
-                for (int k = 0; k < static_cast<int>(rNodes.size()); ++k)
+                if((d >= 0.0) && (d < tol_d))
                 {
-                    ModelPart::NodesContainerType::iterator itNode = rNodes.begin() + k;
-                    const double h = itNode->FastGetSolutionStepValue(NODAL_H);
-                    const double tol_d = factor*h;
-                    double& d = itNode->FastGetSolutionStepValue(DISTANCE);
+                    // Store the original distance to be recovered at the end of the step
+                    mModifiedDistancesIDs.push_back(itNode->Id());
+                    mModifiedDistancesValues.push_back(d);
 
-                    if((d >= 0.0) && (d < tol_d))
-                    {
-                        // Store the original distance to be recovered at the end of the step
-                        LocalModifiedDistancesIDs.push_back(d);
-                        LocalModifiedDistancesValues.push_back(itNode->Id());
-
-                        // Modify the distance to avoid almost empty fluid elements
-                        d = -0.001*tol_d;
-                    }
+                    // Modify the distance to avoid almost empty fluid elements
+                    std::cout << "Node: " << itNode->Id() << " distance " << d;
+                    d = -0.001*tol_d;
+                    std::cout << " modified to " << d << std::endl;
                 }
-
-                AuxModifiedDistancesIDs[ThreadId] = LocalModifiedDistancesIDs;
-                AuxModifiedDistancesValues[ThreadId] = LocalModifiedDistancesValues;
             }
 
-            mModifiedDistancesIDs = AuxModifiedDistancesIDs;
-            mModifiedDistancesValues = AuxModifiedDistancesValues;
+            // Syncronize data between partitions (the modified distance has always a lower value)
+            mrModelPart.GetCommunicator().SynchronizeCurrentDataToMin(DISTANCE);
         }
 
-        // Syncronize data between partitions (the modified distance has always a lower value)
-        mrModelPart.GetCommunicator().SynchronizeCurrentDataToMin(DISTANCE);
-
         // Check if there still exist bad cuts
-        unsigned int num_bad_cuts = 0;
-        /* Note: I'm defining a temporary variable because 'num_bad_cuts'
-        *  instead of writing directly into input argument 'bad_cuts'
-        *  because using a reference variable in a reduction pragma does
-        *  not compile in MSVC 2015 nor in clang-3.8 (Is it even allowed by omp?)
-        */
-        #pragma omp parallel for reduction(+ : num_bad_cuts)
-        for (int k = 0; k < static_cast<int>(rElements.size()); ++k)
+        for (auto itElement=mrModelPart.ElementsBegin(); itElement!=mrModelPart.ElementsEnd(); itElement++)
         {
             unsigned int npos = 0;
             unsigned int nneg = 0;
 
-            ModelPart::ElementsContainerType::iterator itElement = rElements.begin() + k;
             GeometryType& rGeometry = itElement->GetGeometry();
 
-            for (unsigned int iNode=0; iNode<rGeometry.size(); iNode++)
+            for (unsigned int itNode=0; itNode<rGeometry.size(); itNode++)
             {
-                const double d = rGeometry[iNode].FastGetSolutionStepValue(DISTANCE);
-                (d > 0.0) ? npos++ : nneg++;
+                double d = rGeometry[itNode].FastGetSolutionStepValue(DISTANCE);
+
+                if(d > 0.0)
+                {
+                    npos++;
+                }
+                else
+                {
+                    nneg++;
+                }
             }
 
             if((nneg > 0) && (npos > 0)) // The element is cut
             {
-                for(unsigned int iNode=0; iNode<rGeometry.size(); iNode++)
+                for(unsigned int itNode=0; itNode<rGeometry.size(); itNode++)
                 {
-                    const Node<3> &rConstNode = rGeometry[iNode];
-                    const double h = rConstNode.GetValue(NODAL_H);
-                    const double tol_d = (factor*mFactorCoeff)*h;
-                    const double d = rConstNode.FastGetSolutionStepValue(DISTANCE);
+                    const double h = rGeometry[itNode].GetValue(NODAL_H);
+                    double d = rGeometry[itNode].FastGetSolutionStepValue(DISTANCE);
+                    tol_d = (factor*mFactorCoeff)*h;
 
                     if((d >= 0.0) && (d < tol_d))
                     {
-                        num_bad_cuts++;
+                        bad_cuts++;
                         break;
                     }
                 }
             }
         }
-
-        bad_cuts = num_bad_cuts;
     }
 
 
     void RecoverOriginalDistance()
     {
-        #pragma omp parallel
+        for(unsigned int i=0; i<mModifiedDistancesIDs.size(); i++)
         {
-            const int ThreadId = OpenMPUtils::ThisThread();
-            const std::vector<unsigned int> LocalModifiedDistancesIDs = mModifiedDistancesIDs[ThreadId];
-            const std::vector<double> LocalModifiedDistancesValues = mModifiedDistancesValues[ThreadId];
-
-            for(unsigned int i=0; i<LocalModifiedDistancesIDs.size(); ++i)
-            {
-                const unsigned int nodeId = LocalModifiedDistancesIDs[i];
-                mrModelPart.GetNode(nodeId).FastGetSolutionStepValue(DISTANCE) = LocalModifiedDistancesValues[i];
-            }
+            unsigned int nodeId = mModifiedDistancesIDs[i];
+            mrModelPart.GetNode(nodeId).FastGetSolutionStepValue(DISTANCE) = mModifiedDistancesValues[i];
         }
-
-        // Syncronize data between partitions (the modified distance has always a lower value)
-        mrModelPart.GetCommunicator().SynchronizeCurrentDataToMin(DISTANCE);
 
         // Empty the modified distance vectors
         mModifiedDistancesIDs.resize(0);
@@ -339,27 +312,32 @@ protected:
 
     void DeactivateFullNegativeElements()
     {
-        ModelPart::ElementsContainerType& rElements = mrModelPart.Elements();
-
-        // Deactivate those elements whose fixed nodes and negative distance nodes summation is equal (or larger) to their number of nodes
-        #pragma omp parallel for
-        for (int k = 0; k < static_cast<int>(rElements.size()); ++k)
+        // Deactivate the full negative distance elements
+        for (auto itElement=mrModelPart.ElementsBegin(); itElement!=mrModelPart.ElementsEnd(); itElement++)
         {
-            unsigned int fixed = 0;
             unsigned int inside = 0;
-            ModelPart::ElementsContainerType::iterator itElement = rElements.begin() + k;
+
             GeometryType& rGeometry = itElement->GetGeometry();
 
             // Check the distance function sign at the element nodes
             for (unsigned int itNode=0; itNode<rGeometry.size(); itNode++)
             {
-                if (rGeometry[itNode].GetSolutionStepValue(DISTANCE)<0.0)
+                if(rGeometry[itNode].GetSolutionStepValue(DISTANCE)<0.0)
+                {
                     inside++;
-                if (rGeometry[itNode].IsFixed(VELOCITY_X) && rGeometry[itNode].IsFixed(VELOCITY_Y) && rGeometry[itNode].IsFixed(VELOCITY_Z))
-                    fixed++;
+                }
             }
 
-            (inside+fixed >= rGeometry.size()) ? itElement->Set(ACTIVE, false) : itElement->Set(ACTIVE, true);
+            // If all the nodes have negative distance value (non-fluid domain) deactivate the element
+            if (inside == rGeometry.size())
+            {
+                itElement->Set(ACTIVE, false);
+            }
+            // Otherwise, activate the element (it might have been deactivated in a previous time step)
+            else
+            {
+                itElement->Set(ACTIVE, true);
+            }
         }
     }
 

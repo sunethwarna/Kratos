@@ -12,9 +12,8 @@ import os
 
 # Import kratos core and applications
 import KratosMultiphysics
-import KratosMultiphysics.ExternalSolversApplication as KratosSolvers 
-# import KratosMultiphysics.TrilinosApplication as TrilinosApplication
-import KratosMultiphysics.FluidDynamicsApplication as KratosCFD
+import KratosMultiphysics.ExternalSolversApplication as KratosSolvers
+#~ import KratosMultiphysics.TrilinosApplication as TrilinosApplication
 import KratosMultiphysics.SolidMechanicsApplication  as KratosSolid
 import KratosMultiphysics.PoromechanicsApplication as KratosPoro
     

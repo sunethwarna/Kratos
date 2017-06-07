@@ -47,9 +47,6 @@ for i in range(1,31):
 
 list_processors.extend([40, 50])
 
-os.system("export OMP_NUM_THREADS=1")
-print("OMP thread set to 1")
-
 # serial execution
 WriteInfo(kratos_output_file, tests_output_file, "w", "Serial Execution")
 system_cmd = "python3.5 " + input_file + " >> " + kratos_output_file + " 2>> " + tests_output_file
@@ -64,7 +61,7 @@ for num_processors in list_processors:
 tests_success = True
 
 keyword_array = ["FAIL", "mpiexec", "mpirun", "Segmentation", "signal", "not"]
-keyword_array.extend(["Traceback", "RuntimeError", "ERROR", "Error", "WARNING", "Errno"])
+keyword_array.extend(["Traceback", "RuntimeError", "ERROR", "Error", "WARNING"])
 
 tests_success = CheckOutputFile(tests_output_file, keyword_array, tests_success)
 tests_success = CheckOutputFile(kratos_output_file, keyword_array, tests_success)

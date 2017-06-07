@@ -1232,7 +1232,7 @@ protected:
     {
 		ModelPart & model = BaseType::GetModelPart();
 
-        mpBuilderAndSolver->ResizeAndInitializeVectors(mpScheme, 
+        mpBuilderAndSolver->ResizeAndInitializeVectors(
 					mpA, mpDx, mpb, 
 					model.Elements(), 
 					model.Conditions(), 

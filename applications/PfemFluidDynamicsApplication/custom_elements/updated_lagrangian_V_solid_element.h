@@ -321,12 +321,14 @@ namespace Kratos
       
       bool CalcMechanicsUpdated(ElementalVariables & rElementalVariables,
 				const ProcessInfo& rCurrentProcessInfo,
-				unsigned int g);
+				unsigned int g,
+				const ShapeFunctionsType& N);
 
 	
       void CalcElasticPlasticCauchySplitted(ElementalVariables & rElementalVariables,
 					    double TimeStep,
-					    unsigned int g);
+					    unsigned int g,
+					    const ShapeFunctionsType& rN);
 
 
       
@@ -335,10 +337,6 @@ namespace Kratos
 							 ProcessInfo& rCurrentProcessInfo);
 
 
-
-      double GetThetaMomentum (){return 1.0;};
-
-      double GetThetaContinuity (){return 1.0;};
 
 
       ///@}

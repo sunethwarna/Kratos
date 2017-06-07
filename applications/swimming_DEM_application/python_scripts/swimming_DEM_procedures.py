@@ -343,13 +343,12 @@ class Counter:
         if steps_in_cycle <= 0 or not isinstance(steps_in_cycle , int):
             raise ValueError("Error: The input steps_in_cycle must be a strictly positive integer")
 
-        self.beginning_step    = beginning_step
-        self.step              = 1
-        self.steps_in_cycle    = steps_in_cycle
-        self.step_in_cycle     = steps_in_cycle
-        self.is_active         = is_active
-        self.is_dead           = is_dead
-        self.accumulated_ticks = 0
+        self.beginning_step = beginning_step
+        self.step           = 1
+        self.steps_in_cycle = steps_in_cycle
+        self.step_in_cycle  = steps_in_cycle
+        self.is_active      = is_active
+        self.is_dead        = is_dead
 
     def Tick(self):
         
@@ -368,14 +367,6 @@ class Counter:
         else:
             self.step += 1
             self.step_in_cycle += 1
-            return False
-
-    def SuperTick(self, n_ticks = 1):
-        self.accumulated_ticks += 1
-        if self.accumulated_ticks >= n_ticks:
-            self.accumulated_ticks = 0
-            return True
-        else:
             return False
 
     def SetActivation(self, is_active):
@@ -401,8 +392,6 @@ class Counter:
     
     def Kill(self):
         self.is_dead = True
-
-
 
 
 class Averager:

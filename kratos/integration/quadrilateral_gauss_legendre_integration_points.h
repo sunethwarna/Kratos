@@ -222,18 +222,14 @@ public:
 
 	static IntegrationPointsArrayType& IntegrationPoints()
 	{
-            const double a[] = {-0.906179845938664, -0.538469310105683, 0.000000000000000, 0.538469310105683, 0.906179845938664};
-            const double w[] = {0.236926885056189, 0.478628670499366, 0.568888888888889, 0.478628670499366, 0.236926885056189};
+        double a[] = {-0.906179845938664, -0.538469310105683, 0.000000000000000, 0.538469310105683, 0.906179845938664};
+        double w[] = {0.236926885056189, 0.478628670499366, 0.568888888888889, 0.478628670499366, 0.236926885056189};
 
-            for(unsigned int i = 0; i < 5; ++i)
-            {
-                for(unsigned int j = 0; j < 5; ++j)
-                {
-                    msIntegrationPoints[5*i + j] = IntegrationPointType( a[i], a[j], w[i] * w[j]);
-                }
-            }
+        for(int i = 0; i < 5; ++i)
+            for(int j = 0; j < 5; ++j)
+                msIntegrationPoints[5*i + j] = IntegrationPointType( a[i], a[j], w[i] * w[j]);
             
-            return msIntegrationPoints;
+		return msIntegrationPoints;
 	}
 
 	std::string Info() const

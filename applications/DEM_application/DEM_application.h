@@ -36,7 +36,6 @@
 #include "custom_conditions/mapping_condition.h"
 #include "custom_conditions/SolidFace.h"
 #include "custom_conditions/RigidFace.h"
-#include "custom_conditions/analytic_RigidFace.h"
 #include "custom_conditions/RigidEdge.h"
 
 namespace Kratos
@@ -103,7 +102,6 @@ private:
     const SolidFace3D  mSolidFace3D3N;
     const SolidFace3D  mSolidFace3D4N;
     const RigidFace3D  mRigidFace3D3N;
-    const AnalyticRigidFace3D  mAnalyticRigidFace3D3N;
     const RigidFace3D  mRigidFace3D4N;
     const RigidEdge3D  mRigidEdge3D2N;
     const Cluster3D  mCluster3D;

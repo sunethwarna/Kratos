@@ -472,15 +472,10 @@ public:
 	  this->HermiteTriangleInterpolation(pCondition, position_correction);
 
 	}
-
-	//correct only if not self contact
-	ModelerUtilities ModelerUtils;
-	if( !ModelerUtils.CheckSubdomain(pCondition->GetGeometry()) )
-	  {
-	    xc += position_correction[0];
-	    yc += position_correction[1];
-	    zc += position_correction[2];
-	  }
+	
+	xc += position_correction[0];
+	yc += position_correction[1];
+	zc += position_correction[2];
 
       }
       

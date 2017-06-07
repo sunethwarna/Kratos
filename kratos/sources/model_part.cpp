@@ -158,14 +158,8 @@ ModelPart::IndexType ModelPart::CloneSolutionStep()
         KRATOS_ERROR << "Calling the CloneSolutionStep method of the sub model part " << Name()
                      << " please call the one of the parent modelpart : " << mpParentModelPart->Name() << std::endl;
 
-    const int nnodes = static_cast<int>(Nodes().size());
-    auto nodes_begin = NodesBegin();
-    #pragma omp parallel for firstprivate(nodes_begin,nnodes)
-    for(int i = 0; i<nnodes; ++i)
-    {
-        auto node_iterator = nodes_begin + i;
+    for (NodeIterator node_iterator = NodesBegin(); node_iterator != NodesEnd(); node_iterator++)
         node_iterator->CloneSolutionStepData();
-    }
 
     mpProcessInfo->CloneSolutionStepInfo();
 
@@ -1224,14 +1218,8 @@ void ModelPart::SetBufferSize(ModelPart::IndexType NewBufferSize)
 
     mBufferSize = NewBufferSize;
 
-    auto nodes_begin = NodesBegin();
-    const int nnodes = static_cast<int>(Nodes().size());
-    #pragma omp parallel for firstprivate(nodes_begin,nnodes)
-    for(int i = 0; i<nnodes; ++i)
-    {
-        auto node_iterator = nodes_begin + i;
+    for (NodeIterator node_iterator = NodesBegin(); node_iterator != NodesEnd(); node_iterator++)
         node_iterator->SetBufferSize(mBufferSize);
-    }
 
 }
 

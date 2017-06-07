@@ -7,284 +7,288 @@
 //  License:		 BSD License
 //					 Kratos default license: kratos/license.txt
 //
-//  Main authors:    Philipp Bucher, Jordi Cotela
-//
-// See Master-Thesis P.Bucher
-// "Development and Implementation of a Parallel
-//  Framework for Non-Matching Grid Mapping"
+//  Main authors:    Philipp Bucher
 
 #if !defined(KRATOS_INTERFACE_NODE_INCLUDED_H_INCLUDED )
 #define  KRATOS_INTERFACE_NODE_INCLUDED_H_INCLUDED
 
+
+
 // System includes
+#include <string>
+#include <iostream>
+
 
 // External includes
 
+
 // Project includes
+#include "includes/define.h"
 #include "interface_object.h"
 
 
 namespace Kratos
 {
-///@addtogroup ApplicationNameApplication
-///@{
+  ///@addtogroup ApplicationNameApplication
+  ///@{
 
-///@name Kratos Globals
-///@{
+  ///@name Kratos Globals
+  ///@{
 
-///@}
-///@name Type Definitions
-///@{
+  ///@}
+  ///@name Type Definitions
+  ///@{
 
-///@}
-///@name  Enum's
-///@{
+  ///@}
+  ///@name  Enum's
+  ///@{
 
-///@}
-///@name  Functions
-///@{
+  ///@}
+  ///@name  Functions
+  ///@{
 
-///@}
-///@name Kratos Classes
-///@{
+  ///@}
+  ///@name Kratos Classes
+  ///@{
 
-/// Short class definition.
-/** Detail class definition.
-*/
-class InterfaceNode : public InterfaceObject
-{
-public:
-    ///@name Type Definitions
-    ///@{
-
-    /// Pointer definition of InterfaceNode
-    KRATOS_CLASS_POINTER_DEFINITION(InterfaceNode);
-
-    ///@}
-    ///@name Life Cycle
-    ///@{
-
-    /// Default constructor.
-    InterfaceNode(Node<3>& rNode) : mpNode(&rNode)
+  /// Short class definition.
+  /** Detail class definition.
+  */
+  class InterfaceNode : public InterfaceObject
     {
-        SetCoordinates();
-    }
+    public:
+      ///@name Type Definitions
+      ///@{
 
-    /// Destructor.
-    virtual ~InterfaceNode() { }
+      /// Pointer definition of InterfaceNode
+      KRATOS_CLASS_POINTER_DEFINITION(InterfaceNode);
 
+      ///@}
+      ///@name Life Cycle
+      ///@{
 
-    ///@}
-    ///@name Operators
-    ///@{
+      /// Default constructor.
+      InterfaceNode(Node<3>& i_node) : InterfaceObject(i_node),  m_p_node(&i_node) {  }
 
-
-    ///@}
-    ///@name Operations
-    ///@{
-
-    Node<3>* pGetBase()
-    {
-        return mpNode;
-    }
-
-    bool EvaluateResult(const array_1d<double, 3>& GlobalCooords,
-                        double& rMinDistance, const double Distance,
-                        std::vector<double>& rShapeFunctionValues) override   // I am an object in the bins
-    {
-        bool is_closer = false;
-
-        if (Distance < rMinDistance)
-        {
-            rMinDistance = Distance;
-            is_closer = true;
-        }
-
-        return is_closer;
-    }
-
-    // Functions used for Debugging
-    void PrintNeighbors(const int CommRank) override
-    {
-        array_1d<double, 3> neighbor_coordinates = mpNode->GetValue(NEIGHBOR_COORDINATES);
-        double neighbor_comm_rank = mpNode->GetValue(NEIGHBOR_RANK);
-
-        PrintMatchInfo("InterfaceNode", CommRank,
-                       neighbor_comm_rank, neighbor_coordinates);
-    }
-
-    void WriteRankAndCoordinatesToVariable(const int CommRank) override
-    {
-        // This function writes the coordinates and the rank of the
-        // InterfaceObject to the variables "NEIGHBOR_COORDINATES"
-        // and "NEIGHBOR_RANK", for debugging
-        array_1d<double, 3> neighbor_coordinates;
-        // TODO exchange with "Coordinates()"
-        neighbor_coordinates[0] = this->X();
-        neighbor_coordinates[1] = this->Y();
-        neighbor_coordinates[2] = this->Z();
-        mpNode->SetValue(NEIGHBOR_COORDINATES, neighbor_coordinates);
-        mpNode->SetValue(NEIGHBOR_RANK, CommRank);
-    }
-
-    ///@}
-    ///@name Access
-    ///@{
+      /// Destructor.
+      virtual ~InterfaceNode() { }
 
 
-    ///@}
-    ///@name Inquiry
-    ///@{
+      ///@}
+      ///@name Operators
+      ///@{
 
 
-    ///@}
-    ///@name Input and output
-    ///@{
+      ///@}
+      ///@name Operations
+      ///@{
 
-    /// Turn back information as a string.
-    virtual std::string Info() const override
-    {
-        std::stringstream buffer;
-        buffer << "InterfaceNode" ;
-        return buffer.str();
-    }
+      int GetObjectId() override {
+          return m_p_node->Id();
+      }
 
-    /// Print information about this object.
-    virtual void PrintInfo(std::ostream& rOStream) const override
-    {
-        rOStream << "InterfaceNode";
-    }
+      void PrintMatchInfo() override {
+          std::cout << "InteraceNode; Id = " << GetObjectId()
+                    << "; Coordinates = [" << this->X() << " "
+                    << this->Y() << " " << this->Z() << "]";
+      }
 
-    /// Print object's data.
-    virtual void PrintData(std::ostream& rOStream) const override {}
+      // Scalars
+      double GetObjectValue(const Variable<double>& variable) override {
+          return m_p_node->FastGetSolutionStepValue(variable);
+      }
 
+      void SetObjectValue(const Variable<double>& variable,
+                          const double value,
+                          const Kratos::Flags& options,
+                          const double factor) override {
+          if (options.Is(MapperFlags::ADD_VALUES)) {
+              m_p_node->FastGetSolutionStepValue(variable) += value * factor;
+          } else {
+              m_p_node->FastGetSolutionStepValue(variable) = value * factor;
+          }
+      }
 
-    ///@}
-    ///@name Friends
-    ///@{
+      // Vectors
+      array_1d<double,3> GetObjectValue(const Variable< array_1d<double,3> >& variable) override {
+          return m_p_node->FastGetSolutionStepValue(variable);
+      }
 
-
-    ///@}
-
-protected:
-    ///@name Protected static Member Variables
-    ///@{
-
-
-    ///@}
-    ///@name Protected member Variables
-    ///@{
-
-
-    ///@}
-    ///@name Protected Operators
-    ///@{
-
-
-    ///@}
-    ///@name Protected Operations
-    ///@{
+      void SetObjectValue(const Variable< array_1d<double,3> >& variable,
+                          const array_1d<double,3>& value,
+                          const Kratos::Flags& options,
+                          const double factor) override {
+          if (options.Is(MapperFlags::ADD_VALUES)) {
+              m_p_node->FastGetSolutionStepValue(variable) += value * factor;
+          } else {
+              m_p_node->FastGetSolutionStepValue(variable) = value * factor;
+          }
+      }
 
 
-    ///@}
-    ///@name Protected  Access
-    ///@{
+      bool EvaluateResult(array_1d<double, 3> global_coords, double& min_distance,
+                          double distance, array_1d<double,2>& local_coords,
+                          std::vector<double>& shape_function_values) override { // I am an object in the bins
+          bool is_closer = false;
+
+          if (distance < min_distance){
+              min_distance = distance;
+              is_closer = true;
+          }
+
+          return is_closer;
+      }
+
+      ///@}
+      ///@name Access
+      ///@{
 
 
-    ///@}
-    ///@name Protected Inquiry
-    ///@{
+      ///@}
+      ///@name Inquiry
+      ///@{
 
 
-    ///@}
-    ///@name Protected LifeCycle
-    ///@{
+      ///@}
+      ///@name Input and output
+      ///@{
+
+      /// Turn back information as a string.
+      virtual std::string Info() const
+      {
+	       std::stringstream buffer;
+         buffer << "InterfaceNode" ;
+         return buffer.str();
+      }
+
+      /// Print information about this object.
+      virtual void PrintInfo(std::ostream& rOStream) const {rOStream << "InterfaceNode";}
+
+      /// Print object's data.
+      virtual void PrintData(std::ostream& rOStream) const {}
 
 
-    ///@}
-
-private:
-    ///@name Static Member Variables
-    ///@{
+      ///@}
+      ///@name Friends
+      ///@{
 
 
-    ///@}
-    ///@name Member Variables
-    ///@{
+      ///@}
 
-    Node<3>* mpNode;
-
-    ///@}
-    ///@name Private Operators
-    ///@{
+    protected:
+      ///@name Protected static Member Variables
+      ///@{
 
 
-    ///@}
-    ///@name Private Operations
-    ///@{
-
-    void SetCoordinates() override
-    {
-        this->Coordinates() = mpNode->Coordinates();
-    }
+      ///@}
+      ///@name Protected member Variables
+      ///@{
 
 
-    ///@}
-    ///@name Private  Access
-    ///@{
+      ///@}
+      ///@name Protected Operators
+      ///@{
 
 
-    ///@}
-    ///@name Private Inquiry
-    ///@{
+      ///@}
+      ///@name Protected Operations
+      ///@{
 
 
-    ///@}
-    ///@name Un accessible methods
-    ///@{
+      ///@}
+      ///@name Protected  Access
+      ///@{
 
-    /// Assignment operator.
-    InterfaceNode& operator=(InterfaceNode const& rOther);
+
+      ///@}
+      ///@name Protected Inquiry
+      ///@{
+
+
+      ///@}
+      ///@name Protected LifeCycle
+      ///@{
+
+
+      ///@}
+
+    private:
+      ///@name Static Member Variables
+      ///@{
+
+
+      ///@}
+      ///@name Member Variables
+      ///@{
+
+      Node<3>* m_p_node;
+
+      ///@}
+      ///@name Private Operators
+      ///@{
+
+
+      ///@}
+      ///@name Private Operations
+      ///@{
+
+
+      ///@}
+      ///@name Private  Access
+      ///@{
+
+
+      ///@}
+      ///@name Private Inquiry
+      ///@{
+
+
+      ///@}
+      ///@name Un accessible methods
+      ///@{
+
+      /// Assignment operator.
+      InterfaceNode& operator=(InterfaceNode const& rOther);
 
     //   /// Copy constructor.
     //   InterfaceNode(InterfaceNode const& rOther){}
 
 
-    ///@}
+      ///@}
 
-}; // Class InterfaceNode
+    }; // Class InterfaceNode
 
-///@}
+  ///@}
 
-///@name Type Definitions
-///@{
-
-
-///@}
-///@name Input and output
-///@{
+  ///@name Type Definitions
+  ///@{
 
 
-/// input stream function
-inline std::istream& operator >> (std::istream& rIStream,
-                                  InterfaceNode& rThis)
-{
-    return rIStream;
-}
+  ///@}
+  ///@name Input and output
+  ///@{
 
-/// output stream function
-inline std::ostream& operator << (std::ostream& rOStream,
-                                  const InterfaceNode& rThis)
-{
-    rThis.PrintInfo(rOStream);
-    rOStream << std::endl;
-    rThis.PrintData(rOStream);
 
-    return rOStream;
-}
-///@}
+  /// input stream function
+  inline std::istream& operator >> (std::istream& rIStream,
+				    InterfaceNode& rThis)
+  {
+      return rIStream;
+  }
 
-///@} addtogroup block
+  /// output stream function
+  inline std::ostream& operator << (std::ostream& rOStream,
+				    const InterfaceNode& rThis)
+  {
+      rThis.PrintInfo(rOStream);
+      rOStream << std::endl;
+      rThis.PrintData(rOStream);
+
+      return rOStream;
+  }
+  ///@}
+
+  ///@} addtogroup block
 
 }  // namespace Kratos.
 

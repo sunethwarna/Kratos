@@ -76,6 +76,8 @@ class MonolithicSolver:
     #
     def Initialize(self):
         
+        
+        
         # check if slip conditions are defined
         if self.use_slip_conditions == False:
             for cond in self.model_part.Conditions:
@@ -97,8 +99,7 @@ class MonolithicSolver:
         # creating the solution strategy
         self.conv_criteria = VelPrCriteria(self.rel_vel_tol, self.abs_vel_tol,
                                            self.rel_pres_tol, self.abs_pres_tol)
-        
-        self.conv_criteria.SetEchoLevel(self.echo_level)
+        #self.conv_criteria.SetEchoLevel(self.echo_level)
             
         self.time_scheme = ResidualBasedIncrementalUpdateStaticScheme() 
         

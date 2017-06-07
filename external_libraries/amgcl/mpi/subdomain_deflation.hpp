@@ -4,7 +4,7 @@
 /*
 The MIT License
 
-Copyright (c) 2012-2017 Denis Demidov <dennis.demidov@gmail.com>
+Copyright (c) 2012-2016 Denis Demidov <dennis.demidov@gmail.com>
 Copyright (c) 2014-2015, Riccardo Rossi, CIMNE (International Center for Numerical Methods in Engineering)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -33,11 +33,10 @@ THE SOFTWARE.
  */
 
 #include <vector>
-#include <algorithm>
-#include <numeric>
 
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
+#include <boost/range/numeric.hpp>
 #include <boost/multi_array.hpp>
 #include <boost/function.hpp>
 
@@ -153,7 +152,7 @@ class subdomain_deflation {
             // Lets see how many deflation vectors are there.
             std::vector<ptrdiff_t> dv_size(comm.size);
             MPI_Allgather(&ndv, 1, datatype<ptrdiff_t>(), &dv_size[0], 1, datatype<ptrdiff_t>(), comm);
-            std::partial_sum(dv_size.begin(), dv_size.end(), dv_start.begin() + 1);
+            boost::partial_sum(dv_size, dv_start.begin() + 1);
             nz = dv_start.back();
 
             df.resize(ndv);
@@ -188,7 +187,9 @@ class subdomain_deflation {
             // First pass over Astrip rows:
             // 1. Count local and remote nonzeros,
             // 3. Build sparsity pattern of matrix AZ.
-            az->set_size(nrows, nz, true);
+            az->nrows = nrows;
+            az->ncols = nz;
+            az->ptr.resize(nrows + 1, 0);
 
             std::vector<ptrdiff_t> marker(nz, -1);
 
@@ -209,7 +210,7 @@ class subdomain_deflation {
                         ++loc_nnz;
                     } else {
                         ++rem_nnz;
-                        d = std::upper_bound(domain.begin(), domain.end(), c) - domain.begin() - 1;
+                        d = boost::upper_bound(domain, c) - domain.begin() - 1;
                     }
 
                     if (marker[d] != i) {
@@ -224,20 +225,27 @@ class subdomain_deflation {
             // Second pass over Astrip rows:
             // 1. Build local and remote matrix parts.
             // 2. Build local part of AZ matrix.
-            aloc->set_size(nrows, nrows);
-            aloc->set_nonzeros(loc_nnz);
-            aloc->ptr[0] = 0;
+            aloc->nrows = nrows;
+            aloc->ncols = nrows;
+            aloc->ptr.reserve(nrows + 1);
+            aloc->col.reserve(loc_nnz);
+            aloc->val.reserve(loc_nnz);
+            aloc->ptr.push_back(0);
 
-            arem->set_size(nrows, nrows/*ncols is not known at this point, does not matter*/);
-            arem->set_nonzeros(rem_nnz);
-            arem->ptr[0] = 0;
+            arem->nrows = nrows;
+            // arem->ncols = <not known at this point, does not matter>
 
-            std::partial_sum(az->ptr, az->ptr + nrows + 1, az->ptr);
-            az->set_nonzeros(az->ptr[nrows]);
+            arem->ptr.reserve(nrows + 1);
+            arem->col.reserve(rem_nnz);
+            arem->val.reserve(rem_nnz);
+            arem->ptr.push_back(0);
 
-            std::fill(marker.begin(), marker.end(), -1);
+            boost::partial_sum(az->ptr, az->ptr.begin());
+            az->col.resize(az->ptr.back());
+            az->val.resize(az->ptr.back());
+            boost::fill(marker, -1);
 
-            for(ptrdiff_t i = 0, loc_head = 0, rem_head = 0; i < nrows; ++i) {
+            for(ptrdiff_t i = 0; i < nrows; ++i) {
                 ptrdiff_t az_row_beg = az->ptr[i];
                 ptrdiff_t az_row_end = az_row_beg;
 
@@ -247,9 +255,8 @@ class subdomain_deflation {
 
                     if (loc_beg <= c && c < loc_end) {
                         ptrdiff_t loc_c = c - loc_beg;
-                        aloc->col[loc_head] = loc_c;
-                        aloc->val[loc_head] = v;
-                        ++loc_head;
+                        aloc->col.push_back(loc_c);
+                        aloc->val.push_back(v);
 
                         for(ptrdiff_t j = 0, k = dv_start[comm.rank]; j < ndv; ++j, ++k) {
                             if (marker[k] < az_row_beg) {
@@ -262,16 +269,15 @@ class subdomain_deflation {
                             }
                         }
                     } else {
-                        arem->col[rem_head] = c;
-                        arem->val[rem_head] = v;
-                        ++rem_head;
+                        arem->col.push_back(c);
+                        arem->val.push_back(v);
                     }
                 }
 
                 az->ptr[i] = az_row_end;
 
-                aloc->ptr[i+1] = loc_head;
-                arem->ptr[i+1] = rem_head;
+                aloc->ptr.push_back(aloc->col.size());
+                arem->ptr.push_back(arem->col.size());
             }
             TOC("second pass");
 
@@ -279,8 +285,8 @@ class subdomain_deflation {
             P = boost::make_shared<LocalPrecond>( *aloc, prm.local, bprm );
 
             // Analyze communication pattern, create distributed matrix.
-            C = boost::make_shared< comm_pattern<backend_type> >(comm, nrows, arem->nnz, arem->col, bprm);
-            arem->ncols = C->renumber(arem->nnz, arem->col);
+            C = boost::make_shared< comm_pattern<backend_type> >(comm, nrows, arem->col, bprm);
+            arem->ncols = C->renumber(arem->col);
             Arem = backend_type::copy_matrix(arem, bprm);
             A = boost::make_shared<matrix>(*C, P->system_matrix(), *Arem);
 
@@ -324,7 +330,7 @@ class subdomain_deflation {
 
             MPI_Waitall(C->recv.req.size(), &C->recv.req[0], MPI_STATUSES_IGNORE);
 
-            std::fill(marker.begin(), marker.end(), -1);
+            boost::fill(marker, -1);
 
             // AZ += Arem * Z
             for(ptrdiff_t i = 0; i < nrows; ++i) {
@@ -336,9 +342,7 @@ class subdomain_deflation {
                     value_type v = a.value();
 
                     // Domain the column belongs to
-                    ptrdiff_t d = C->recv.nbr[
-                        std::upper_bound(C->recv.ptr.begin(), C->recv.ptr.end(), c) -
-                            C->recv.ptr.begin() - 1];
+                    ptrdiff_t d = C->recv.nbr[boost::upper_bound(C->recv.ptr, c) - C->recv.ptr.begin() - 1];
 
                     value_type *zval = &zrecv[ zcol_ptr[c] ];
                     for(ptrdiff_t j = 0, k = dv_start[d]; j < dv_size[d]; ++j, ++k) {
@@ -356,8 +360,8 @@ class subdomain_deflation {
                 az->ptr[i] = az_row_end;
             }
 
-            std::rotate(az->ptr, az->ptr + nrows, az->ptr + nrows + 1);
-            az->ptr[0] = 0;
+            std::rotate(az->ptr.begin(), az->ptr.end() - 1, az->ptr.end());
+            az->ptr.front() = 0;
             TOC("A*Z");
 
             MPI_Waitall(C->send.req.size(), &C->send.req[0], MPI_STATUSES_IGNORE);
@@ -416,8 +420,8 @@ class subdomain_deflation {
                     MPI_INT, 0, slaves_comm
                     );
 
-            std::partial_sum(eptr.begin(), eptr.end(), eptr.begin());
-            std::partial_sum(Eptr.begin(), Eptr.end(), Eptr.begin());
+            boost::partial_sum(eptr, eptr.begin());
+            boost::partial_sum(Eptr, Eptr.begin());
 
             // Build local strip of E.
             boost::multi_array<value_type, 2> erow(boost::extents[ndv][nz]);
@@ -665,7 +669,12 @@ class subdomain_deflation {
             coarse_solve(df, dx);
 
             // x += Z * dx
-            backend::lin_comb(ndv, &dx[dv_start[comm.rank]], Z, 1, x);
+            ptrdiff_t j = 0, k = dv_start[comm.rank];
+            for(; j + 1 < ndv; j += 2, k += 2)
+                backend::axpbypcz(dx[k], *Z[j], dx[k+1], *Z[j+1], 1, x);
+
+            for(; j < ndv; ++j, ++k)
+                backend::axpby(dx[k], *Z[j], 1, x);
 
             TOC("postprocess");
         }

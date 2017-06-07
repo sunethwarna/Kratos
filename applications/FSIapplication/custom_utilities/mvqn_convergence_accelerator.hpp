@@ -76,8 +76,8 @@ public:
     MVQNFullJacobianConvergenceAccelerator( double rOmegaInitial = 0.825 )
     {
         mOmega_0 = rOmegaInitial;
+        mConvergenceAcceleratorStep = 0;
         mConvergenceAcceleratorIteration = 0;
-        mConvergenceAcceleratorFirstCorrectionPerformed = false;
     }
 
     /**
@@ -86,8 +86,8 @@ public:
     MVQNFullJacobianConvergenceAccelerator( const MVQNFullJacobianConvergenceAccelerator& rOther )
     {
         mOmega_0 = rOther.mOmega_0;
+        mConvergenceAcceleratorStep = 0;
         mConvergenceAcceleratorIteration = 0;
-        mConvergenceAcceleratorFirstCorrectionPerformed = false;
     }
 
     /**
@@ -112,6 +112,7 @@ public:
     {
         KRATOS_TRY;
 
+        mConvergenceAcceleratorStep += 1;
         mConvergenceAcceleratorIteration = 0;
 
         KRATOS_CATCH( "" );
@@ -128,8 +129,11 @@ public:
     {
         KRATOS_TRY;
 
+        // mProblemSize = rResidualVector.size();
         mProblemSize = TSpace::Size(rResidualVector);
 
+        // mResidualVector_1 = rResidualVector;
+        // mIterationValue_1 = rIterationGuess;
         VectorPointerType pAuxResidualVector(new VectorType(rResidualVector));
         VectorPointerType pAuxIterationGuess(new VectorType(rIterationGuess));
         std::swap(mpResidualVector_1, pAuxResidualVector);
@@ -137,14 +141,16 @@ public:
 
         if (mConvergenceAcceleratorIteration == 0)
         {
-            if (mConvergenceAcceleratorFirstCorrectionPerformed == false)
+            if (mConvergenceAcceleratorStep == 1)
             {
-                // The very first correction of the problem is done with a fixed point iteration
+                // The very first correction of the problem is done with a point iteration
+                // rIterationGuess += mOmega_0*mResidualVector_1;
                 TSpace::UnaliasedAdd(rIterationGuess, mOmega_0, *mpResidualVector_1);
 
                 // Resize the Jacobian approximation
                 MatrixPointerType pNewJac_n = MatrixPointerType(new MatrixType(mProblemSize,mProblemSize));
                 std::swap(pNewJac_n,mpJac_n);
+                // mJac_n.swap(*pNewJac_n);
 
                 // Initialize the Jacobian approximation matrix (exclusively done in the very fist iteration)
                 for (unsigned int i = 0; i < mProblemSize; i++)
@@ -155,12 +161,11 @@ public:
                     }
                     (*mpJac_n)(i,i) = -1.0;
                 }
-
-                mConvergenceAcceleratorFirstCorrectionPerformed = true;
             }
             else
             {
                 // Fist step correction is done with the previous step Jacobian
+                // rIterationGuess -= prod(mJac_n,mResidualVector_1);
                 VectorType AuxVec(mProblemSize);
                 TSpace::Mult(*mpJac_n, *mpResidualVector_1, AuxVec);
                 TSpace::UnaliasedAdd(rIterationGuess, -1.0, AuxVec);
@@ -175,14 +180,18 @@ public:
                 MatrixPointerType pNewObsMatrixW = MatrixPointerType(new MatrixType(mProblemSize, 1));
 
                 std::swap(mpObsMatrixV,pNewObsMatrixV);
+                // mObsMatrixV.swap(*pNewObsMatrixV);
                 std::swap(mpObsMatrixW,pNewObsMatrixW);
+                // mObsMatrixW.swap(*pNewObsMatrixW);
 
                 //~ std::cout << "First observation matrices step fill" << std::endl;
 
                 // First observation matrices fill
                 for (unsigned int i = 0; i < mProblemSize; i++)
                 {
+                    // mObsMatrixV(i,0) = mResidualVector_1(i) - mResidualVector_0(i);
                     (*mpObsMatrixV)(i,0) = (*mpResidualVector_1)(i) - (*mpResidualVector_0)(i);
+                    // mObsMatrixW(i,0) = mIterationValue_1(i) - mIterationValue_0(i);
                     (*mpObsMatrixW)(i,0) = (*mpIterationValue_1)(i) - (*mpIterationValue_0)(i);
                 }
             }
@@ -204,7 +213,9 @@ public:
                     {
                         for (unsigned int j = 0; j < (mConvergenceAcceleratorIteration-1); j++)
                         {
+                            // NewObsMatrixV(i,j) = (mObsMatrixV)(i,j);
                             NewObsMatrixV(i,j) = (*mpObsMatrixV)(i,j);
+                            // NewObsMatrixW(i,j) = (mObsMatrixW)(i,j);
                             NewObsMatrixW(i,j) = (*mpObsMatrixW)(i,j);
                         }
                     }
@@ -216,7 +227,9 @@ public:
                         NewObsMatrixW(i, mConvergenceAcceleratorIteration-1) = (*mpIterationValue_1)(i) - (*mpIterationValue_0)(i);
                     }
 
+                    // *mpObsMatrixV = NewObsMatrixV;
                     std::swap(mpObsMatrixV,pNewObsMatrixV);
+                    // *mpObsMatrixW = NewObsMatrixW;
                     std::swap(mpObsMatrixW,pNewObsMatrixW);
                 }
                 else
@@ -227,12 +240,17 @@ public:
                     MatrixPointerType pNewObsMatrixV = MatrixPointerType(new MatrixType(mProblemSize, mProblemSize));
                     MatrixPointerType pNewObsMatrixW = MatrixPointerType(new MatrixType(mProblemSize, mProblemSize));
 
+                    // MatrixType &NewObsMatrixV = *pNewObsMatrixV;
+                    // MatrixType &NewObsMatrixW = *pNewObsMatrixW;
+
                     // Drop the oldest column and reorder data
                     for (unsigned int i = 0; i < mProblemSize; i++)
                     {
                         for (unsigned int j = 0; j < (mProblemSize-1); j++)
                         {
+                            // NewObsMatrixV(i,j) = (mObsMatrixV)(i,j+1);
                             (*pNewObsMatrixV)(i,j) = (*mpObsMatrixV)(i,j+1);
+                            // NewObsMatrixW(i,j) = (mObsMatrixW)(i,j+1);
                             (*pNewObsMatrixW)(i,j) = (*mpObsMatrixW)(i,j+1);
                         }
                     }
@@ -240,11 +258,15 @@ public:
                     // Fill the last observation matrices column
                     for (unsigned int i = 0; i < mProblemSize; i++)
                     {
+                        // NewObsMatrixV(i, mProblemSize-1) = mResidualVector_1(i) - mResidualVector_0(i);
                         (*pNewObsMatrixV)(i, mProblemSize-1) = (*mpResidualVector_1)(i) - (*mpResidualVector_0)(i);
+                        // NewObsMatrixW(i, mProblemSize-1) = mIterationValue_1(i) - mIterationValue_0(i);
                         (*pNewObsMatrixW)(i, mProblemSize-1) = (*mpIterationValue_1)(i) - (*mpIterationValue_0)(i);
                     }
 
+                    // *mpObsMatrixV = NewObsMatrixV;
                     std::swap(mpObsMatrixV,pNewObsMatrixV);
+                    // *mpObsMatrixW = NewObsMatrixW;
                     std::swap(mpObsMatrixW,pNewObsMatrixW);
                 }
 
@@ -271,13 +293,16 @@ public:
 
             MatrixPointerType pJac_k1 = MatrixPointerType(new MatrixType(mProblemSize, mProblemSize));
 
+            // mJac_k1.swap(*pJac_k1);
             std::swap(mpJac_k1,pJac_k1);
 
+            // noalias(mJac_k1) = mJac_n + prod(aux3,trans(mObsMatrixV));
             noalias(*mpJac_k1) = *mpJac_n + prod(aux3,trans(*mpObsMatrixV)); // Note: dense matrix product is not present in the space
 
             //~ std::cout << "Jacobian approximation computed" << std::endl;
 
             // Perform the correction
+            // noalias(rIterationGuess) -= prod(mJac_k1,mResidualVector_1);
             VectorType AuxVec(mProblemSize);
             TSpace::Mult(*mpJac_k1, *mpResidualVector_1, AuxVec);
             TSpace::UnaliasedAdd(rIterationGuess, -1.0, AuxVec);
@@ -295,6 +320,8 @@ public:
         KRATOS_TRY;
 
         // Variables update
+        // mIterationValue_0 = mIterationValue_1;
+        // mResidualVector_0 = mResidualVector_1;
         mpIterationValue_0 = mpIterationValue_1;
         mpResidualVector_0 = mpResidualVector_1;
         mConvergenceAcceleratorIteration += 1;
@@ -310,6 +337,7 @@ public:
         KRATOS_TRY;
 
         // Update previous time step Jacobian as the last iteration Jacobian.
+        // noalias(mJac_n) = mJac_k1;
         mpJac_n = mpJac_k1;
 
         KRATOS_CATCH( "" );
@@ -341,10 +369,21 @@ protected:
     ///@name Protected member Variables
     ///@{
 
-    double mOmega_0;                                            // Relaxation factor for the initial fixed point iteration
-    unsigned int mProblemSize;                                  // Residual to minimize size
-    unsigned int mConvergenceAcceleratorIteration;              // Convergence accelerator iteration counter
-    bool mConvergenceAcceleratorFirstCorrectionPerformed;       // Indicates that the initial fixed point iteration has been already performed
+    unsigned int mProblemSize;
+    unsigned int mConvergenceAcceleratorStep;
+    unsigned int mConvergenceAcceleratorIteration;
+
+    double mOmega_0;
+    //
+    // VectorType mResidualVector_0;           // Previous iteration residual vector
+    // VectorType mResidualVector_1;           // Current iteration residual vector
+    // VectorType mIterationValue_0;           // Previous iteration guess
+    // VectorType mIterationValue_1;           // Current iteration guess
+    //
+    // MatrixType mJac_n;                      // Previous step Jacobian approximation
+    // MatrixType mJac_k1;                     // Current iteration Jacobian approximation
+    // MatrixType mObsMatrixV;                 // Residual increment observation matrix
+    // MatrixType mObsMatrixW;                 // Solution increment observation matrix
 
     VectorPointerType mpResidualVector_0;       // Previous iteration residual vector
     VectorPointerType mpResidualVector_1;       // Current iteration residual vector

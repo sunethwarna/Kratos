@@ -7,12 +7,8 @@
 //  License:		 BSD License
 //					 Kratos default license: kratos/license.txt
 //
-//  Main authors:    Philipp Bucher, Jordi Cotela
+//  Main authors:    @{KRATOS_APP_AUTHOR}
 //
-// See Master-Thesis P.Bucher
-// "Development and Implementation of a Parallel
-//  Framework for Non-Matching Grid Mapping"
-
 
 #if !defined(KRATOS_MAPPING_APPLICATION_VARIABLES_H_INCLUDED )
 #define  KRATOS_MAPPING_APPLICATION_VARIABLES_H_INCLUDED
@@ -28,8 +24,7 @@
 
 namespace Kratos
 {
-KRATOS_DEFINE_VARIABLE(double, NEIGHBOR_RANK);
-KRATOS_DEFINE_3D_VARIABLE_WITH_COMPONENTS(NEIGHBOR_COORDINATES);
+
 }
 
 #endif	/* KRATOS_MAPPING_APPLICATION_VARIABLES_H_INCLUDED */

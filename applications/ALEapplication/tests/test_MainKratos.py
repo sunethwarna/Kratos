@@ -113,7 +113,7 @@ class MainKratos:
                 process.ExecuteBeforeOutputStep()
 
             #if self.gid_output.IsOutputStep():
-            #    self.gid_output.PrintOutput()
+                #self.gid_output.PrintOutput()
 
             for process in self.list_of_processes:
                 process.ExecuteAfterOutputStep()

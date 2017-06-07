@@ -1,5 +1,6 @@
 from KratosMultiphysics import *
 from KratosMultiphysics.ShapeOptimizationApplication import *
+import optimization_settings as opt_settings
 from math import pi, sin
 
 # This test example is from M. Hojjat, E. Stavropoulou, 
@@ -19,22 +20,15 @@ from math import pi, sin
 #
 # 
 
-# ======================================================================================================================================
-# Model part and solver
-# ======================================================================================================================================
 
-parameter_file = open("ProjectParameters.json",'r')
-ProjectParameters = Parameters( parameter_file.read())
-inputModelPart = ModelPart( ProjectParameters["optimization_settings"]["design_variables"]["input_model_part_name"].GetString() )
-
-optimizerFactory = __import__("optimizer_factory")
-optimizer = optimizerFactory.CreateOptimizer( inputModelPart, ProjectParameters["optimization_settings"] )
+import optimization_settings as optimizationSettings
+import optimizer_factory as optimizerFactory
 
 # ======================================================================================================================================
-# Analyzer
+# Solver preparation
 # ======================================================================================================================================
 
-class externalAnalyzer( (__import__("analyzer_base")).analyzerBaseClass ):
+class externalAnalyzer( optimizerFactory.analyzerBaseClass ):
 
     # --------------------------------------------------------------------------
     def analyzeDesignAndReportToCommunicator( self, currentDesign, optimizationIteration, communicator ):
@@ -91,14 +85,17 @@ class externalAnalyzer( (__import__("analyzer_base")).analyzerBaseClass ):
 
     # --------------------------------------------------------------------------        
 
+# ======================================================================================================================================
+# Optimization part
+# ======================================================================================================================================
+
+inputModelPart = ModelPart(optimizationSettings.input_model_part_name)
 newAnalyzer = externalAnalyzer()
 
-# ======================================================================================================================================
-# Optimization
-# ======================================================================================================================================
-
+optimizer = optimizerFactory.CreateOptimizer( inputModelPart, optimizationSettings )
 optimizer.importAnalyzer( newAnalyzer )
 optimizer.importModelPart()
+
 optimizer.optimize()
 
 # ======================================================================================================================================

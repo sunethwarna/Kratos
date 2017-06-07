@@ -1,15 +1,46 @@
-//    |  /           |
-//    ' /   __| _` | __|  _ \   __|
-//    . \  |   (   | |   (   |\__ `
-//   _|\_\_|  \__,_|\__|\___/ ____/
-//                   Multi-Physics
-//
-//  License:		 BSD License
-//					 Kratos default license: kratos/license.txt
-//
-//  Main authors:    Michael Andre, https://github.com/msandre
-//
+/*
+==============================================================================
+KratosFluidDynamicsApplication
+A library based on:
+Kratos
+A General Purpose Software for Multi-Physics Finite Element Analysis
+Version 1.0 (Released on march 05, 2007).
 
+Copyright 2007
+Pooyan Dadvand, Riccardo Rossi, Janosch Stascheit, Felix Nagel 
+pooyan@cimne.upc.edu 
+rrossi@cimne.upc.edu
+janosch.stascheit@rub.de
+nagel@sd.rub.de
+- CIMNE (International Center for Numerical Methods in Engineering),
+Gran Capita' s/n, 08034 Barcelona, Spain
+- Ruhr-University Bochum, Institute for Structural Mechanics, Germany
+
+
+Permission is hereby granted, free  of charge, to any person obtaining
+a  copy  of this  software  and  associated  documentation files  (the
+"Software"), to  deal in  the Software without  restriction, including
+without limitation  the rights to  use, copy, modify,  merge, publish,
+distribute,  sublicense and/or  sell copies  of the  Software,  and to
+permit persons to whom the Software  is furnished to do so, subject to
+the following condition:
+
+Distribution of this code for  any  commercial purpose  is permissible
+ONLY BY DIRECT ARRANGEMENT WITH THE COPYRIGHT OWNERS.
+
+The  above  copyright  notice  and  this permission  notice  shall  be
+included in all copies or substantial portions of the Software.
+
+THE  SOFTWARE IS  PROVIDED  "AS  IS", WITHOUT  WARRANTY  OF ANY  KIND,
+EXPRESS OR  IMPLIED, INCLUDING  BUT NOT LIMITED  TO THE  WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT  SHALL THE AUTHORS OR COPYRIGHT HOLDERS  BE LIABLE FOR ANY
+CLAIM, DAMAGES OR  OTHER LIABILITY, WHETHER IN AN  ACTION OF CONTRACT,
+TORT  OR OTHERWISE, ARISING  FROM, OUT  OF OR  IN CONNECTION  WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+==============================================================================
+ */
 
 #if !defined(KRATOS_RESIDUALBASED_SIMPLE_STEADY_SCHEME )
 #define  KRATOS_RESIDUALBASED_SIMPLE_STEADY_SCHEME
@@ -35,7 +66,7 @@ class ResidualBasedSimpleSteadyScheme : public Scheme<TSparseSpace, TDenseSpace>
 public:
   ///@name Type Definitions
   ///@{
-
+  
   KRATOS_CLASS_POINTER_DEFINITION(ResidualBasedSimpleSteadyScheme);
 
   typedef Scheme<TSparseSpace, TDenseSpace> BaseType;
@@ -79,7 +110,7 @@ public:
   {}
 
   virtual ~ResidualBasedSimpleSteadyScheme() {}
-
+  
 
   ///@}
   ///@name Operators
@@ -115,28 +146,28 @@ public:
     std::cout << "VelocityRelaxationFactor = " << mVelocityRelaxationFactor << std::endl;
     std::cout << "PressureRelaxationFactor = " << mPressureRelaxationFactor << std::endl;
     mRotationTool.RotateVelocities(rModelPart);
-
+    
     int NumThreads = OpenMPUtils::GetNumThreads();
     OpenMPUtils::PartitionVector DofSetPartition;
     OpenMPUtils::DivideInPartitions(rDofSet.size(), NumThreads, DofSetPartition);
-
+    
 #pragma omp parallel
     {
       int k = OpenMPUtils::ThisThread();
-
+      
       typename DofsArrayType::iterator DofSetBegin = rDofSet.begin() + DofSetPartition[k];
       typename DofsArrayType::iterator DofSetEnd = rDofSet.begin() + DofSetPartition[k + 1];
-
+      
       for (typename DofsArrayType::iterator itDof = DofSetBegin; itDof != DofSetEnd; itDof++)
         if (itDof->IsFree())
           itDof->GetSolutionStepValue() += TSparseSpace::GetValue(rDx, itDof->EquationId());
     }
-
+    
     mRotationTool.RecoverVelocities(rModelPart);
-
+    
     KRATOS_CATCH("");
   }
-
+  
   virtual void CalculateSystemContributions(
       Element::Pointer rCurrentElement,
       LocalSystemMatrixType& LHS_Contribution,
@@ -156,7 +187,7 @@ public:
 
     if (SteadyLHS.size1() != 0)
       noalias(LHS_Contribution) += SteadyLHS;
-
+      
     AddRelaxation(rCurrentElement, LHS_Contribution, RHS_Contribution, Mass, CurrentProcessInfo);
 
     // apply slip condition
@@ -174,7 +205,7 @@ public:
       ProcessInfo& CurrentProcessInfo)
   {
     KRATOS_TRY;
-
+    
     rCurrentCondition->InitializeNonLinearIteration(CurrentProcessInfo);
     rCurrentCondition->CalculateLocalSystem(LHS_Contribution, RHS_Contribution, CurrentProcessInfo);
     Matrix Mass;
@@ -191,7 +222,7 @@ public:
     // apply slip condition
     mRotationTool.Rotate(LHS_Contribution,RHS_Contribution,rCurrentCondition->GetGeometry());
     mRotationTool.ApplySlipCondition(LHS_Contribution,RHS_Contribution,rCurrentCondition->GetGeometry());
-
+    
     KRATOS_CATCH("");
   }
 
@@ -206,7 +237,7 @@ public:
     Matrix LHS_Contribution;
     CalculateSystemContributions(rCurrentElement,LHS_Contribution,
                                  rRHS_Contribution,rEquationId,rCurrentProcessInfo);
-
+    
     KRATOS_CATCH("");
   }
 
@@ -247,7 +278,7 @@ public:
 
     if (mpTurbulenceModel != 0) // If not null
       mpTurbulenceModel->Execute();
-
+    
     KRATOS_CATCH("");
   }
 
@@ -351,7 +382,7 @@ protected:
   {
     if (Mass.size1() == 0)
       return;
-
+    
     GeometryType& rGeom = rCurrentElement->GetGeometry();
     const unsigned int NumNodes = rGeom.PointsNumber();
     const unsigned int Dimension = rGeom.WorkingSpaceDimension();
@@ -455,7 +486,7 @@ protected:
 private:
   ///@name Member Variables
   ///@{
-
+  
   double mVelocityRelaxationFactor;
   double mPressureRelaxationFactor;
   CoordinateTransformationUtils<LocalSystemMatrixType,LocalSystemVectorType,double> mRotationTool;
@@ -469,3 +500,4 @@ private:
 } // namespace Kratos
 
 #endif /* KRATOS_RESIDUALBASED_SIMPLE_STEADY_SCHEME defined */
+

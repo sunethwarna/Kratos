@@ -23,7 +23,7 @@ class controlledExecutionScope:
         os.chdir(self.currentPath)
 
 
-class StructuralMechanichsTestFactory(KratosUnittest.TestCase):
+class StructrualMechanichsTestFactory(KratosUnittest.TestCase):
 
     def setUp(self):
         # Within this location context:
@@ -43,8 +43,5 @@ class StructuralMechanichsTestFactory(KratosUnittest.TestCase):
     def tearDown(self):
         pass
     
-class SprismPanTests(StructuralMechanichsTestFactory):
+class SprismPanTests(StructrualMechanichsTestFactory):
     file_name = "sprism_test/pan_test"
-
-class Eigen3D3NThinCircleTests(StructuralMechanichsTestFactory):
-    file_name = "eigen_test/Eigen_3D3N_Thin_Circle_test"

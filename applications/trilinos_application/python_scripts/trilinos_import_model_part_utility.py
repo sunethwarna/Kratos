@@ -16,20 +16,14 @@ class TrilinosImportModelPartUtility():
         self.main_model_part = main_model_part
         self.settings = settings
 
-        # Otherwise stated, always perform the Metis partitioning
-        if (self.settings["model_import_settings"].Has("perform_partitioning") == False):
-            self.settings["model_import_settings"].AddEmptyValue("perform_partitioning")
-            self.settings["model_import_settings"]["perform_partitioning"].SetBool(True)
-
         if KratosMPI.mpi.size < 2:
             raise NameError("MPI number of processors is 1.")
 
     def ExecutePartitioningAndReading(self):
         if(self.settings["model_import_settings"]["input_type"].GetString() == "mdpa"):
             input_filename = self.settings["model_import_settings"]["input_filename"].GetString()
-            perform_partitioning = self.settings["model_import_settings"]["perform_partitioning"].GetBool()
             ## Serial partition of the original .mdpa file
-            if ((KratosMPI.mpi.rank == 0) and (perform_partitioning == True)):
+            if KratosMPI.mpi.rank == 0 :
 
                 # Original .mdpa file reading
                 model_part_io = KratosMultiphysics.ReorderConsecutiveModelPartIO(input_filename)
@@ -43,10 +37,6 @@ class TrilinosImportModelPartUtility():
                 partitioner.Execute()
 
                 print("Metis divide finished.")
-
-            else:
-                if (KratosMPI.mpi.rank == 0):
-                    print("Metis partitioning not executed.")
 
             KratosMPI.mpi.world.barrier()
 

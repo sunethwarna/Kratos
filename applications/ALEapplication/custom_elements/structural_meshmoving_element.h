@@ -1,49 +1,17 @@
 // ==============================================================================
-/*
- KratosALEApllication
- A library based on:
- Kratos
- A General Purpose Software for Multi-Physics Finite Element Analysis
- (Released on march 05, 2007).
-
- Copyright (c) 2016: Pooyan Dadvand, Riccardo Rossi, Andreas Winterstein
-                     pooyan@cimne.upc.edu
-                     rrossi@cimne.upc.edu
-                     a.winterstein@tum.de
-- CIMNE (International Center for Numerical Methods in Engineering),
-  Gran Capita' s/n, 08034 Barcelona, Spain
-- Chair of Structural Analysis, Technical University of Munich
-  Arcisstrasse 21 80333 Munich, Germany
-
- Permission is hereby granted, free  of charge, to any person obtaining
- a  copy  of this  software  and  associated  documentation files  (the
- "Software"), to  deal in  the Software without  restriction, including
- without limitation  the rights to  use, copy, modify,  merge, publish,
- distribute,  sublicense and/or  sell copies  of the  Software,  and to
- permit persons to whom the Software  is furnished to do so, subject to
- the following condition:
-
- Distribution of this code for  any  commercial purpose  is permissible
- ONLY BY DIRECT ARRANGEMENT WITH THE COPYRIGHT OWNERS.
-
- The  above  copyright  notice  and  this permission  notice  shall  be
- included in all copies or substantial portions of the Software.
-
- THE  SOFTWARE IS  PROVIDED  "AS  IS", WITHOUT  WARRANTY  OF ANY  KIND,
- EXPRESS OR  IMPLIED, INCLUDING  BUT NOT LIMITED  TO THE  WARRANTIES OF
- MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- IN NO EVENT  SHALL THE AUTHORS OR COPYRIGHT HOLDERS  BE LIABLE FOR ANY
- CLAIM, DAMAGES OR  OTHER LIABILITY, WHETHER IN AN  ACTION OF CONTRACT,
- TORT  OR OTHERWISE, ARISING  FROM, OUT  OF OR  IN CONNECTION  WITH THE
- SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
+//      ___   __   ____             
+//     / _ | / /  / __/             
+//    / __ |/ /__/ _/               
+//   /_/ |_/____/___/  application  
+//
+// License:		     BSD License
+//					 license: ALEApplication/license.txt
 //==============================================================================
 
 /* ****************************************************************************
  *  Projectname:         $KratosALEApplication
  *  Last Modified by:    $Author: A.Winterstein@tum.de $
- *  Date:                $Date: June 2016 $
- *  Revision:            $Revision: 1.4 $
+ *  Date:                $Date: April 2017 $
  * ***************************************************************************/
 
 #if !defined(KRATOS_STRUCTURAL_MESHMOVING_ELEMENT_INCLUDED)
@@ -102,16 +70,12 @@ public:
     typedef BaseType::PropertiesType PropertiesType;
     typedef BaseType::IndexType IndexType;
     typedef BaseType::SizeType SizeType;
-    typedef BaseType::MatrixType MatrixType;
-    typedef BaseType::VectorType VectorType;
     typedef BaseType::EquationIdVectorType EquationIdVectorType;
     typedef BaseType::DofsVectorType DofsVectorType;
-    typedef GeometryData::IntegrationMethod IntegrationMethod;
 
     ///@}
     ///@name Life Cycle
     ///@{
-
     StructuralMeshMovingElement(IndexType NewId, GeometryType::Pointer pGeometry);
 
     StructuralMeshMovingElement(IndexType NewId,
@@ -149,8 +113,8 @@ public:
                              GeometryType::Pointer pGeom,
                              PropertiesType::Pointer pProperties) const;
 
-    void CalculateLocalSystem(MatrixType& rLeftHandSideMatrix,
-                              VectorType& rRightHandSideVector,
+    void CalculateLocalSystem(Matrix& rLeftHandSideMatrix,
+                              Vector& rRightHandSideVector,
                               ProcessInfo& rCurrentProcessInfo);
 
     /**
@@ -162,24 +126,27 @@ public:
     * Sets on rElementalDofList the degrees of freedom of the considered element
     * geometry
     */
-
     void GetDofList(DofsVectorType& rElementalDofList, ProcessInfo& rCurrentProcessInfo);
 
     /// Initialize initial values of the element (must be called before
     /// calculation is done)
     void Initialize();
 
-    MatrixType SetAndModifyConstitutiveLaw(const int& dimension, const double& rPointNumber);
+    void CalculateLocalSize(SizeType& LocalSize);
 
-    MatrixType CalculateBMatrix(const int& dimension, const double& rPointNumber);
+    Matrix SetAndModifyConstitutiveLaw(const int& rdimension, const double& rPointNumber);
 
-    void CheckElementMatrixDimension(MatrixType& rLeftHandSideMatrix,
-                                     VectorType& rRightHandSideVector);
+    void CalculateBMatrix(Matrix& rB, const int& rdimension, const double& rPointNumber);
 
-    void CalculateRightHandSide(VectorType& rRightHandSideVector,
+    void CheckElementMatrixDimension(Matrix& rLeftHandSideMatrix,
+                                     Vector& rRightHandSideVector);
+
+    void CalculateRightHandSide(Vector& rRightHandSideVector,
                                 ProcessInfo& rCurrentProcessInfo);
 
-    void CalculateAndAddRHS(VectorType& rRightHandSideVector);
+    void CalculateAndAddRHS(Vector& rRightHandSideVector);
+
+    void GetDisplacementValues(Vector& rValues, const int Step = 0);
 
     ///@}
     ///@name Access
@@ -213,11 +180,7 @@ protected:
     ///@name Protected Operations
     ///@{
 
-    /**
-     * Gets displacement values at nodes
-     * @param rValues: reference to vector of nodal displacements
-     */
-    void GetDisplacementValues(VectorType& rValues, const int Step = 0);
+
     ///@}
     ///@name Protected  Access
     ///@{
@@ -234,21 +197,13 @@ protected:
 private:
     ///@name Static Member Variables
     ///@{
-    IntegrationMethod mThisIntegrationMethod;
-    GeometryType::JacobiansType mJ0;
     GeometryType::JacobiansType mInvJ0;
-    VectorType mDetJ0;
+    Vector mDetJ0;
     double mTotalDomainInitialSize;
-    SizeType mLocalSize;
     ///@}
     ///@name Member Variables
     ///@{
     ///@}
-
-    StructuralMeshMovingElement()
-    {
-        mThisIntegrationMethod = GetGeometry().GetDefaultIntegrationMethod();
-    }
 
     ///@}
     ///@name Private Operators
@@ -276,6 +231,7 @@ private:
     friend class Serializer;
 
     // A private default constructor necessary for serialization
+    StructuralMeshMovingElement();
 
     ///@}
 

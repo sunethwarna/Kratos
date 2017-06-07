@@ -1,5 +1,5 @@
 # Recovery files
-*~
+*.~
 
 # Compiled python
 *.pyc
@@ -51,7 +51,8 @@ kratos/includes/kratos_version.h
 *.lib
 
 # Output of tests of meshing application (MMG)
-*.sol
-*.mesh
 *.o.sol
 *.o.mesh
+
+setup.sh
+beam_profiles.csv

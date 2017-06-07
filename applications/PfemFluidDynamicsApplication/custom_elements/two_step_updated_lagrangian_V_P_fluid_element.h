@@ -309,7 +309,8 @@ namespace Kratos
       void ComputeMaterialParameters (double& Density,
 				      double& DeviatoricCoeff,
 				      double& VolumetricCoeff,
-				      double timeStep);
+				      double timeStep,
+				      const ShapeFunctionsType& N);
 
    
 
@@ -362,7 +363,8 @@ namespace Kratos
 
       bool CalcMechanicsUpdated(ElementalVariables & rElementalVariables,
 				const ProcessInfo& rCurrentProcessInfo,
-				unsigned int g);
+				unsigned int g,
+				const ShapeFunctionsType& N);
 
       void GetPositions(Vector& rValues,
 			const ProcessInfo& rCurrentProcessInfo,
@@ -370,10 +372,12 @@ namespace Kratos
 	
       void CalcElasticPlasticCauchySplitted(ElementalVariables & rElementalVariables,
 					    double TimeStep,
-					    unsigned int g);
+					    unsigned int g,
+					    const ShapeFunctionsType& N);
 
       virtual void CalculateTauFIC(double& TauOne,
 				   double ElemSize,
+				   const array_1d< double, 3 > & rAdvVel,
 				   const double Density,
 				   const double Viscosity,
 				   const ProcessInfo& rCurrentProcessInfo);
@@ -399,19 +403,7 @@ namespace Kratos
 
       void CalculateLocalContinuityEqForPressure(MatrixType& rLeftHandSideMatrix,
 						 VectorType& rRightHandSideVector,
-						 ProcessInfo& rCurrentProcessInfo); 
-
-      void GetPressureVelocityValues(Vector& rValues,
-				     const int Step);
-
-
-      void GetPressureAccelerationValues(Vector& rValues,
-					 const int Step);
-
-      double GetThetaMomentum (){return 0.5;};
-
-      double GetThetaContinuity (){return 1.0;};
-      
+						 ProcessInfo& rCurrentProcessInfo);     
 
 
       ///@}

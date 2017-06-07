@@ -157,7 +157,8 @@ Element::Pointer TwoStepUpdatedLagrangianVPFluidElement<TDim>::Clone( IndexType 
   void TwoStepUpdatedLagrangianVPFluidElement<TDim>::ComputeMaterialParameters(double& Density,
 									       double& DeviatoricCoeff,
 									       double& VolumetricCoeff,
-									       double timeStep)
+									       double timeStep,
+									       const ShapeFunctionsType& N)
    {
      double FluidBulkModulus=0;
      double FluidViscosity=0;
@@ -169,6 +170,7 @@ Element::Pointer TwoStepUpdatedLagrangianVPFluidElement<TDim>::Clone( IndexType 
        // std::cout<<"FluidBulkModulus was 0 !!!!!!!!"<<std::endl;
        FluidBulkModulus = 1000000000.0;
      }
+
      DeviatoricCoeff = FluidViscosity;
      VolumetricCoeff = FluidBulkModulus*timeStep;
 
@@ -261,6 +263,7 @@ Element::Pointer TwoStepUpdatedLagrangianVPFluidElement<TDim>::Clone( IndexType 
     MatrixType invGradDef=rElementalVariables.InvFgrad;
     double theta=0.5;
     double Count=0;
+
     for (SizeType j = 0; j < NumNodes; ++j)
       {
         for (SizeType i = 0; i < NumNodes; ++i)
@@ -546,19 +549,33 @@ void TwoStepUpdatedLagrangianVPFluidElement<2>::ComputeBoundRHSVector(VectorType
   const SizeType NumNodes = this->GetGeometry().PointsNumber();
   double coeff=1.0+2.0;
   GeometryType& rGeom = this->GetGeometry();
-  // array_1d<double, 3>  NormalA(3,0.0);
-  // array_1d<double, 3>  NormalB(3,0.0);
+  array_1d<double, 3>  NormalA(3,0.0);
+  NormalA.clear();
+  array_1d<double, 3>  NormalB(3,0.0);
+  NormalB.clear();
   array_1d<double, 3>  AccA(3,0.0);
+  AccA.clear();
   array_1d<double, 3>  AccB(3,0.0);
+  AccB.clear();
 
   // VectorType ElementalAcceleration = ZeroVector(2);
   // this->GetElementalAcceleration(ElementalAcceleration,0,TimeStep);
 
-  if(rGeom[0].Is(FREE_SURFACE)  && rGeom[1].Is(FREE_SURFACE) ){ 
+
+  if(rGeom[0].Is(FREE_SURFACE)  && rGeom[1].Is(FREE_SURFACE) ){
     AccA= 0.5/TimeStep*(rGeom[0].FastGetSolutionStepValue(VELOCITY,0)-rGeom[0].FastGetSolutionStepValue(VELOCITY,1)) - rGeom[0].FastGetSolutionStepValue(ACCELERATION,1); 
     AccB= 0.5/TimeStep*(rGeom[1].FastGetSolutionStepValue(VELOCITY,0)-rGeom[1].FastGetSolutionStepValue(VELOCITY,1)) - rGeom[1].FastGetSolutionStepValue(ACCELERATION,1); 
-    const array_1d<double, 3> &NormalA    = rGeom[0].FastGetSolutionStepValue(NORMAL);
-    const array_1d<double, 3> &NormalB    = rGeom[1].FastGetSolutionStepValue(NORMAL);
+    NormalA    = rGeom[0].FastGetSolutionStepValue(NORMAL);
+    NormalB    = rGeom[1].FastGetSolutionStepValue(NORMAL);
+
+
+
+    //to change into moving wall!!!!!//to change into moving wall!!!!!
+    //to change into moving wall!!!!!//to change into moving wall!!!!!//to change into moving wall!!!!!
+    //to change into moving wall!!!!!
+    //to change into moving wall!!!!!//to change into moving wall!!!!!//to change into moving wall!!!!!
+    //to change into moving wall!!!!!//to change into moving wall!!!!!
+    //to change into moving wall!!!!!//to change into moving wall!!!!!//to change into moving wall!!!!!
     if(rGeom[0].IsNot(INLET)) //to change into moving wall!!!!!
       BoundRHSVector[0] += (BoundRHSCoeffAcc*(AccA[0]*NormalA[0]+AccA[1]*NormalA[1]) + BoundRHSCoeffDev)/coeff ;
     if(rGeom[1].IsNot(INLET))
@@ -566,8 +583,8 @@ void TwoStepUpdatedLagrangianVPFluidElement<2>::ComputeBoundRHSVector(VectorType
   }else  if(rGeom[0].Is(FREE_SURFACE)  && rGeom[2].Is(FREE_SURFACE) ){
     AccA= 0.5/TimeStep*(rGeom[0].FastGetSolutionStepValue(VELOCITY,0)-rGeom[0].FastGetSolutionStepValue(VELOCITY,1)) - rGeom[0].FastGetSolutionStepValue(ACCELERATION,1); 
     AccB= 0.5/TimeStep*(rGeom[2].FastGetSolutionStepValue(VELOCITY,0)-rGeom[2].FastGetSolutionStepValue(VELOCITY,1)) - rGeom[2].FastGetSolutionStepValue(ACCELERATION,1); 
-    const array_1d<double, 3> &NormalA    = rGeom[0].FastGetSolutionStepValue(NORMAL);
-    const array_1d<double, 3> &NormalB    = rGeom[2].FastGetSolutionStepValue(NORMAL);
+    NormalA    = rGeom[0].FastGetSolutionStepValue(NORMAL);
+    NormalB    = rGeom[2].FastGetSolutionStepValue(NORMAL);
     if(rGeom[0].IsNot(INLET))
       BoundRHSVector[0] += (BoundRHSCoeffAcc*(AccA[0]*NormalA[0]+AccA[1]*NormalA[1]) + BoundRHSCoeffDev)/coeff ;
     if(rGeom[2].IsNot(INLET))   
@@ -575,8 +592,8 @@ void TwoStepUpdatedLagrangianVPFluidElement<2>::ComputeBoundRHSVector(VectorType
   }else  if(rGeom[1].Is(FREE_SURFACE)  && rGeom[2].Is(FREE_SURFACE) ){
     AccA= 0.5/TimeStep*(rGeom[1].FastGetSolutionStepValue(VELOCITY,0)-rGeom[1].FastGetSolutionStepValue(VELOCITY,1)) - rGeom[1].FastGetSolutionStepValue(ACCELERATION,1); 
     AccB= 0.5/TimeStep*(rGeom[2].FastGetSolutionStepValue(VELOCITY,0)-rGeom[2].FastGetSolutionStepValue(VELOCITY,1)) - rGeom[2].FastGetSolutionStepValue(ACCELERATION,1); 
-    const array_1d<double, 3> &NormalA    = rGeom[1].FastGetSolutionStepValue(NORMAL);
-    const array_1d<double, 3> &NormalB    = rGeom[2].FastGetSolutionStepValue(NORMAL);
+    NormalA    = rGeom[1].FastGetSolutionStepValue(NORMAL);
+    NormalB    = rGeom[2].FastGetSolutionStepValue(NORMAL);
     if(rGeom[1].IsNot(INLET))
       BoundRHSVector[1] += (BoundRHSCoeffAcc*(AccA[0]*NormalA[0]+AccA[1]*NormalA[1]) + BoundRHSCoeffDev)/coeff ;
     if(rGeom[2].IsNot(INLET))
@@ -596,12 +613,18 @@ void TwoStepUpdatedLagrangianVPFluidElement<3>::ComputeBoundRHSVector(VectorType
 {
   const SizeType NumNodes = this->GetGeometry().PointsNumber();
   double coeff=1.0+3.0;
-  // array_1d<double, 3>  NormalA(3,0.0);
-  // array_1d<double, 3>  NormalB(3,0.0);
-  // array_1d<double, 3>  NormalC(3,0.0);
+  array_1d<double, 3>  NormalA(3,0.0);
+  NormalA.clear();
+  array_1d<double, 3>  NormalB(3,0.0);
+  NormalB.clear();
+  array_1d<double, 3>  NormalC(3,0.0);
+  NormalC.clear();
   array_1d<double, 3>  AccA(3,0.0);
+  AccA.clear();
   array_1d<double, 3>  AccB(3,0.0);
+  AccB.clear();
   array_1d<double, 3>  AccC(3,0.0);
+  AccC.clear();
   GeometryType& rGeom = this->GetGeometry();
 
   // VectorType ElementalAcceleration = ZeroVector(3);
@@ -611,9 +634,9 @@ void TwoStepUpdatedLagrangianVPFluidElement<3>::ComputeBoundRHSVector(VectorType
     AccA= 0.5/TimeStep*(rGeom[0].FastGetSolutionStepValue(VELOCITY,0)-rGeom[0].FastGetSolutionStepValue(VELOCITY,1)) - rGeom[0].FastGetSolutionStepValue(ACCELERATION,1); 
     AccB= 0.5/TimeStep*(rGeom[1].FastGetSolutionStepValue(VELOCITY,0)-rGeom[1].FastGetSolutionStepValue(VELOCITY,1)) - rGeom[1].FastGetSolutionStepValue(ACCELERATION,1); 
     AccC= 0.5/TimeStep*(rGeom[2].FastGetSolutionStepValue(VELOCITY,0)-rGeom[2].FastGetSolutionStepValue(VELOCITY,1)) - rGeom[2].FastGetSolutionStepValue(ACCELERATION,1); 
-    const array_1d<double,3> &NormalA    = rGeom[0].FastGetSolutionStepValue(NORMAL);
-    const array_1d<double,3> &NormalB    = rGeom[1].FastGetSolutionStepValue(NORMAL);
-    const array_1d<double,3> &NormalC    = rGeom[2].FastGetSolutionStepValue(NORMAL);
+    NormalA    = rGeom[0].FastGetSolutionStepValue(NORMAL);
+    NormalB    = rGeom[1].FastGetSolutionStepValue(NORMAL);
+    NormalC    = rGeom[2].FastGetSolutionStepValue(NORMAL);
     if(rGeom[0].IsNot(INLET))
       BoundRHSVector[0] += (BoundRHSCoeffAcc*(AccA[0]*NormalA[0] + AccA[1]*NormalA[1] + AccA[2]*NormalA[2]) +
 			    BoundRHSCoeffDev)/coeff;
@@ -627,9 +650,9 @@ void TwoStepUpdatedLagrangianVPFluidElement<3>::ComputeBoundRHSVector(VectorType
     AccA= 0.5/TimeStep*(rGeom[0].FastGetSolutionStepValue(VELOCITY,0)-rGeom[0].FastGetSolutionStepValue(VELOCITY,1)) - rGeom[0].FastGetSolutionStepValue(ACCELERATION,1); 
     AccB= 0.5/TimeStep*(rGeom[1].FastGetSolutionStepValue(VELOCITY,0)-rGeom[1].FastGetSolutionStepValue(VELOCITY,1)) - rGeom[1].FastGetSolutionStepValue(ACCELERATION,1); 
     AccC= 0.5/TimeStep*(rGeom[3].FastGetSolutionStepValue(VELOCITY,0)-rGeom[3].FastGetSolutionStepValue(VELOCITY,1)) - rGeom[3].FastGetSolutionStepValue(ACCELERATION,1); 
-    const array_1d<double,3> &NormalA    = rGeom[0].FastGetSolutionStepValue(NORMAL);
-    const array_1d<double,3> &NormalB    = rGeom[1].FastGetSolutionStepValue(NORMAL);
-    const array_1d<double,3> &NormalC    = rGeom[3].FastGetSolutionStepValue(NORMAL);
+    NormalA    = rGeom[0].FastGetSolutionStepValue(NORMAL);
+    NormalB    = rGeom[1].FastGetSolutionStepValue(NORMAL);
+    NormalC    = rGeom[3].FastGetSolutionStepValue(NORMAL);
     if(rGeom[0].IsNot(INLET))
       BoundRHSVector[0] += (BoundRHSCoeffAcc*(AccA[0]*NormalA[0] + AccA[1]*NormalA[1] + AccA[2]*NormalA[2]) +
 			    BoundRHSCoeffDev)/coeff;
@@ -643,9 +666,9 @@ void TwoStepUpdatedLagrangianVPFluidElement<3>::ComputeBoundRHSVector(VectorType
     AccA= 0.5/TimeStep*(rGeom[0].FastGetSolutionStepValue(VELOCITY,0)-rGeom[0].FastGetSolutionStepValue(VELOCITY,1)) - rGeom[0].FastGetSolutionStepValue(ACCELERATION,1); 
     AccB= 0.5/TimeStep*(rGeom[2].FastGetSolutionStepValue(VELOCITY,0)-rGeom[2].FastGetSolutionStepValue(VELOCITY,1)) - rGeom[2].FastGetSolutionStepValue(ACCELERATION,1); 
     AccC= 0.5/TimeStep*(rGeom[3].FastGetSolutionStepValue(VELOCITY,0)-rGeom[3].FastGetSolutionStepValue(VELOCITY,1)) - rGeom[3].FastGetSolutionStepValue(ACCELERATION,1); 
-    const array_1d<double,3> &NormalA    = rGeom[0].FastGetSolutionStepValue(NORMAL);
-    const array_1d<double,3> &NormalB    = rGeom[2].FastGetSolutionStepValue(NORMAL);
-    const array_1d<double,3> &NormalC    = rGeom[3].FastGetSolutionStepValue(NORMAL);
+    NormalA    = rGeom[0].FastGetSolutionStepValue(NORMAL);
+    NormalB    = rGeom[2].FastGetSolutionStepValue(NORMAL);
+    NormalC    = rGeom[3].FastGetSolutionStepValue(NORMAL);
     if(rGeom[0].IsNot(INLET))
       BoundRHSVector[0] += (BoundRHSCoeffAcc*(AccA[0]*NormalA[0] + AccA[1]*NormalA[1] + AccA[2]*NormalA[2]) +
 			    BoundRHSCoeffDev)/coeff;
@@ -659,9 +682,9 @@ void TwoStepUpdatedLagrangianVPFluidElement<3>::ComputeBoundRHSVector(VectorType
     AccA= 0.5/TimeStep*(rGeom[1].FastGetSolutionStepValue(VELOCITY,0)-rGeom[1].FastGetSolutionStepValue(VELOCITY,1)) - rGeom[1].FastGetSolutionStepValue(ACCELERATION,1); 
     AccB= 0.5/TimeStep*(rGeom[2].FastGetSolutionStepValue(VELOCITY,0)-rGeom[2].FastGetSolutionStepValue(VELOCITY,1)) - rGeom[2].FastGetSolutionStepValue(ACCELERATION,1); 
     AccC= 0.5/TimeStep*(rGeom[3].FastGetSolutionStepValue(VELOCITY,0)-rGeom[3].FastGetSolutionStepValue(VELOCITY,1)) - rGeom[3].FastGetSolutionStepValue(ACCELERATION,1); 
-    const array_1d<double,3> &NormalA    = rGeom[1].FastGetSolutionStepValue(NORMAL);
-    const array_1d<double,3> &NormalB    = rGeom[2].FastGetSolutionStepValue(NORMAL);
-    const array_1d<double,3> &NormalC    = rGeom[3].FastGetSolutionStepValue(NORMAL);
+    NormalA    = rGeom[1].FastGetSolutionStepValue(NORMAL);
+    NormalB    = rGeom[2].FastGetSolutionStepValue(NORMAL);
+    NormalC    = rGeom[3].FastGetSolutionStepValue(NORMAL);
     if(rGeom[1].IsNot(INLET))
       BoundRHSVector[1] += (BoundRHSCoeffAcc*(AccA[0]*NormalA[0] + AccA[1]*NormalA[1] + AccA[2]*NormalA[2]) +
 			    BoundRHSCoeffDev)/coeff;
@@ -682,23 +705,22 @@ void TwoStepUpdatedLagrangianVPFluidElement<3>::ComputeBoundRHSVector(VectorType
   template <unsigned int TDim>
   void TwoStepUpdatedLagrangianVPFluidElement<TDim>::CalculateTauFIC(double& Tau,
 								     double ElemSize,
+								     const array_1d< double, 3 > & rAdvVel,
 								     const double Density,
 								     const double Viscosity,
 								     const ProcessInfo& rCurrentProcessInfo)
   {
     double DeltaTime = rCurrentProcessInfo.GetValue(DELTA_TIME);
-    if(rCurrentProcessInfo.GetValue(DELTA_TIME)<rCurrentProcessInfo.GetValue(PREVIOUS_DELTA_TIME)){
-      DeltaTime = 0.5*rCurrentProcessInfo.GetValue(DELTA_TIME)+0.5*rCurrentProcessInfo.GetValue(PREVIOUS_DELTA_TIME);
-    }
 
     double MeanVelocity=0;
     this->CalcMeanVelocity(MeanVelocity,0);
- 
-    Tau = 1.0 / (2.0 * Density *(0.5 * MeanVelocity / ElemSize + 0.5/DeltaTime) +  8.0 * Viscosity / (ElemSize * ElemSize) ); 
+
+      Tau = 1.0 / (2.0 * Density *(0.5 * MeanVelocity / ElemSize + 0.5/DeltaTime) +  8.0 * Viscosity / (ElemSize * ElemSize) ); 
   
     if(Tau<0.0000001)
       Tau=0.0000001;
-  
+
+    
   }
 
 template< unsigned int TDim >
@@ -802,15 +824,14 @@ template< unsigned int TDim >
 template< unsigned int TDim>
 bool TwoStepUpdatedLagrangianVPFluidElement<TDim>::CalcMechanicsUpdated(ElementalVariables & rElementalVariables,
 									const ProcessInfo& rCurrentProcessInfo,
-									unsigned int g)
+									unsigned int g,
+									const ShapeFunctionsType& N)
 {
   bool computeElement=false;
-  double theta=this->GetThetaMomentum();
-  const double TimeStep=rCurrentProcessInfo[DELTA_TIME];
-
+  double theta=0.5;
   computeElement=this->CalcStrainRate(rElementalVariables,rCurrentProcessInfo,g,theta);
-
-  this->CalcElasticPlasticCauchySplitted(rElementalVariables,TimeStep,g);
+  const double TimeStep=0.5/rCurrentProcessInfo[BDF_COEFFICIENTS][2];
+  this->CalcElasticPlasticCauchySplitted(rElementalVariables,TimeStep,g,N);
   return computeElement;
 } 
 
@@ -879,10 +900,10 @@ void TwoStepUpdatedLagrangianVPFluidElement<TDim>:: InitializeElementalVariables
 
   rElementalVariables.VolumetricDefRate=1.0;
 
+
   rElementalVariables.SpatialDefRate= ZeroVector(voigtsize);
 
   rElementalVariables.MDGreenLagrangeMaterial.resize(voigtsize,false);
-
   noalias(rElementalVariables.MDGreenLagrangeMaterial) = ZeroVector(voigtsize);
   
   rElementalVariables.Fgrad = ZeroMatrix(TDim,TDim);
@@ -904,14 +925,13 @@ void TwoStepUpdatedLagrangianVPFluidElement<TDim>:: InitializeElementalVariables
   rElementalVariables.CurrentDeviatoricCauchyStress=  ZeroVector(voigtsize);
 
   rElementalVariables.UpdatedDeviatoricCauchyStress= ZeroVector(voigtsize);
-
   KRATOS_CATCH("");
 
 }
 
 
 template < > 
-void TwoStepUpdatedLagrangianVPFluidElement<2>:: CalcElasticPlasticCauchySplitted(ElementalVariables & rElementalVariables,double TimeStep, unsigned int g)
+void TwoStepUpdatedLagrangianVPFluidElement<2>:: CalcElasticPlasticCauchySplitted(ElementalVariables & rElementalVariables,double TimeStep, unsigned int g,const ShapeFunctionsType& N)
 {
 
   rElementalVariables.CurrentTotalCauchyStress=mCurrentTotalCauchyStress[g];
@@ -921,7 +941,7 @@ void TwoStepUpdatedLagrangianVPFluidElement<2>:: CalcElasticPlasticCauchySplitte
   double CurrSecondLame  = 0;
   double CurrBulkModulus = 0;
 
-  this->ComputeMaterialParameters(Density,CurrSecondLame,CurrBulkModulus,TimeStep);
+  this->ComputeMaterialParameters(Density,CurrSecondLame,CurrBulkModulus,TimeStep,N);
  
   double CurrFirstLame  = 0;
   CurrFirstLame  =CurrBulkModulus - 2.0*CurrSecondLame/3.0;
@@ -973,7 +993,7 @@ void TwoStepUpdatedLagrangianVPFluidElement<2>:: CalcElasticPlasticCauchySplitte
 
 
 template < > 
-void TwoStepUpdatedLagrangianVPFluidElement<3>:: CalcElasticPlasticCauchySplitted(ElementalVariables & rElementalVariables, double TimeStep, unsigned int g)
+void TwoStepUpdatedLagrangianVPFluidElement<3>:: CalcElasticPlasticCauchySplitted(ElementalVariables & rElementalVariables, double TimeStep, unsigned int g,const ShapeFunctionsType& N)
 {
 
 
@@ -984,7 +1004,7 @@ void TwoStepUpdatedLagrangianVPFluidElement<3>:: CalcElasticPlasticCauchySplitte
   double CurrSecondLame  = 0;
   double CurrBulkModulus = 0;
 
-  this->ComputeMaterialParameters(Density,CurrSecondLame,CurrBulkModulus,TimeStep);
+  this->ComputeMaterialParameters(Density,CurrSecondLame,CurrBulkModulus,TimeStep,N);
  
   double CurrFirstLame  = 0;
   CurrFirstLame  =CurrBulkModulus - 2.0*CurrSecondLame/3.0;
@@ -1110,18 +1130,24 @@ void TwoStepUpdatedLagrangianVPFluidElement<TDim>:: UpdateCauchyStress(unsigned 
       double ElemSize = this->ElementSize();
       double Tau=0;
 
-      // MatrixType BulkVelMatrix = ZeroMatrix(NumNodes,NumNodes);
-      // MatrixType BulkAccMatrix = ZeroMatrix(NumNodes,NumNodes);
+      MatrixType BulkVelMatrix = ZeroMatrix(NumNodes,NumNodes);
+      MatrixType BulkAccMatrix = ZeroMatrix(NumNodes,NumNodes);
       MatrixType BulkVelMatrixLump = ZeroMatrix(NumNodes,NumNodes);
       MatrixType BulkAccMatrixLump = ZeroMatrix(NumNodes,NumNodes);
       MatrixType BoundLHSMatrix = ZeroMatrix(NumNodes,NumNodes);
       VectorType BoundRHSVector = ZeroVector(NumNodes);
       MatrixType StabLaplacianMatrix = ZeroMatrix(NumNodes,NumNodes);
 
-      double TimeStep=rCurrentProcessInfo[DELTA_TIME];
+      //   break;
+      // }
+
+
+      const double TimeStep=0.5/rCurrentProcessInfo[BDF_COEFFICIENTS][2];
+
       double Density = 0;
       double DeviatoricCoeff = 0;
       double VolumetricCoeff = 0;
+
 
       ElementalVariables rElementalVariables;
       this->InitializeElementalVariables(rElementalVariables);
@@ -1130,7 +1156,7 @@ void TwoStepUpdatedLagrangianVPFluidElement<TDim>:: UpdateCauchyStress(unsigned 
       for (unsigned int g = 0; g < NumGauss; g++)
 	{
 
-	  double theta=this->GetThetaContinuity();
+	  double theta=0;
 	  computeElement=this->CalcStrainRate(rElementalVariables,rCurrentProcessInfo,g,theta);
 	  if(computeElement==true){
 	    // this->UpdateCauchyStress(g);
@@ -1138,29 +1164,39 @@ void TwoStepUpdatedLagrangianVPFluidElement<TDim>:: UpdateCauchyStress(unsigned 
 	    const double GaussWeight = GaussWeights[g];
 	    const ShapeFunctionsType& N = row(NContainer,g);
 	    const ShapeFunctionDerivativesType& rDN_DX = DN_DX[g];
-	    this->ComputeMaterialParameters(Density,DeviatoricCoeff,VolumetricCoeff,TimeStep);
+	    this->ComputeMaterialParameters(Density,DeviatoricCoeff,VolumetricCoeff,TimeStep,N);
 
 	    // Evaluate required variables at the integration point
 	    array_1d<double,3> BodyForce(3,0.0);
 
+	    // this->EvaluateInPoint(Density,DENSITY,N);
+
 	    this->EvaluateInPoint(BodyForce,BODY_FORCE,N);
 
 	    // Stabilization parameters
+	    array_1d<double,3> ConvVel(3,0.0);
+	    // this->EvaluateConvVelocity(ConvVel,N);
 	    double Viscosity = 0;
 	    this->EvaluateInPoint(Viscosity,VISCOSITY,N);
 
-	    this->CalculateTauFIC(Tau,ElemSize,Density,DeviatoricCoeff,rCurrentProcessInfo);
+
+	    this->CalculateTauFIC(Tau,ElemSize,ConvVel,Density,DeviatoricCoeff,rCurrentProcessInfo);
 
 	    double BulkCoeff =GaussWeight/(VolumetricCoeff);
-	    // this->ComputeBulkMatrixForPressureVel(BulkVelMatrix,N,BulkCoeff);
-	    this->ComputeBulkMatrixForPressureVelLump(BulkVelMatrixLump,N,BulkCoeff);
-	    rLeftHandSideMatrix+=BulkVelMatrixLump;	
-	
+	    if(rCurrentProcessInfo[STEP]>-1){
+	      this->ComputeBulkMatrixForPressureVel(BulkVelMatrix,N,BulkCoeff);
+	      this->ComputeBulkMatrixForPressureVelLump(BulkVelMatrixLump,N,BulkCoeff);
+	      rLeftHandSideMatrix+=BulkVelMatrixLump;	
+	    }
+
+
 	    double BulkStabCoeff=BulkCoeff*Tau*Density/TimeStep;
-	    // this->ComputeBulkMatrixForPressureAcc(BulkAccMatrix,N,BulkStabCoeff);
-	    this->ComputeBulkMatrixForPressureAccLump(BulkAccMatrixLump,N,BulkStabCoeff);
-	    rLeftHandSideMatrix+=BulkAccMatrixLump;
-	
+	    if(rCurrentProcessInfo[STEP]>-1){
+	      this->ComputeBulkMatrixForPressureAcc(BulkAccMatrix,N,BulkStabCoeff);
+	      this->ComputeBulkMatrixForPressureAccLump(BulkAccMatrixLump,N,BulkStabCoeff);
+	      rLeftHandSideMatrix+=BulkAccMatrixLump;
+	    
+	    }
 	    double BoundLHSCoeff=Tau*ElemSize*ElemSize/GaussWeight;
 	    if(TDim==3){
 	      double surface3D=GaussWeight/(0.81649658*ElemSize);
@@ -1191,37 +1227,55 @@ void TwoStepUpdatedLagrangianVPFluidElement<TDim>:: UpdateCauchyStress(unsigned 
 	    }
 	    this->ComputeBoundRHSVector(BoundRHSVector,N,TimeStep,BoundRHSCoeffAcc,BoundRHSCoeffDev);
 
-	    VectorType UpdatedPressure= ZeroVector(NumNodes);
-	    VectorType CurrentPressure= ZeroVector(NumNodes);
-	    VectorType PressureVelocity= ZeroVector(NumNodes);
+	    VectorType UpdatedPressure;
+	    VectorType CurrentPressure;
+	    VectorType PreviousPressure;
+
+	    UpdatedPressure = ZeroVector(NumNodes);
+	    CurrentPressure = ZeroVector(NumNodes);
+	    PreviousPressure = ZeroVector(NumNodes);
+
 
 	    this->GetPressureValues(UpdatedPressure,0);
 	    this->GetPressureValues(CurrentPressure,1);
-	    this->GetPressureVelocityValues(PressureVelocity,0);
+	    this->GetPressureValues(PreviousPressure,2);
 
-	    VectorType PressureVariation = UpdatedPressure-CurrentPressure;
-	    rRightHandSideVector -= prod(BulkVelMatrixLump,PressureVariation);
+	    VectorType DeltaPressure = UpdatedPressure-CurrentPressure;
+	    VectorType PreviousDeltaPressure = CurrentPressure-PreviousPressure;
+	    VectorType DeltaPressureVariation = DeltaPressure - PreviousDeltaPressure;
 
-	    VectorType PressureVelocityVariation = (UpdatedPressure-CurrentPressure)-PressureVelocity*TimeStep;
-	    rRightHandSideVector -=prod(BulkAccMatrixLump,PressureVelocityVariation);
+	    // rRightHandSideVector -= prod(BulkVelMatrixLump,DeltaPressure);
+	    rRightHandSideVector -=prod(BulkVelMatrixLump,UpdatedPressure);
+	    rRightHandSideVector -=-prod(BulkVelMatrix,CurrentPressure);
+	    // VectorType PressureAccStabilizationRHSterm = ZeroVector(NumNodes);
+	    // PressureAccStabilizationRHSterm =prod(BulkAccMatrixLump,DeltaPressureVariation);
+	    // PressureAccStabilizationRHSterm =prod(BulkAccMatrixLump,UpdatedPressure);
+	    // PressureAccStabilizationRHSterm -=prod(BulkAccMatrix,CurrentPressure);
+	
+	    // rRightHandSideVector -= prod(BulkAccMatrixLump,DeltaPressureVariation);
+	    rRightHandSideVector -=prod(BulkAccMatrixLump,DeltaPressure);
+	    rRightHandSideVector -=-prod(BulkAccMatrix,PreviousDeltaPressure);
 
 	    double DivU=0;
 	    this->EvaluateDivergenceInPoint(DivU,VELOCITY,rDN_DX);
-
+	    // std::cout<<"DivU "<<DivU;
 	    DivU=rElementalVariables.VolumetricDefRate;
+	    // std::cout<<"  VolDef "<<DivU<<std::endl;
 
 	    double StabLaplacianWeight=Tau*GaussWeight;
 	    this->ComputeStabLaplacianMatrix(StabLaplacianMatrix,rDN_DX,StabLaplacianWeight);//laplacian
-
 	    rLeftHandSideMatrix+=StabLaplacianMatrix;
 
 	    rRightHandSideVector -= prod(StabLaplacianMatrix,UpdatedPressure);
 
 	    rRightHandSideVector -= prod(BoundLHSMatrix,UpdatedPressure);
 
+
 	    // Add convection, stabilization and RHS contributions to the local system equation
 	    for (SizeType i = 0; i < NumNodes; ++i)
-	      {         
+	      {
+		// this->AddStabilizationNodalTermsLHS(rLeftHandSideMatrix,Tau,GaussWeight,rDN_DX,i);//laplacian
+         
 		// RHS contribution
 		// Velocity divergence
 		double RHSi =  N[i] * DivU;
@@ -1229,7 +1283,11 @@ void TwoStepUpdatedLagrangianVPFluidElement<TDim>:: UpdateCauchyStress(unsigned 
 		this->AddStabilizationNodalTermsRHS(rRightHandSideVector,Tau,Density,BodyForce,GaussWeight,rDN_DX,i);
 
 		rRightHandSideVector[i] += BoundRHSVector[i];
-
+		// std::cout<<"  B[i] "<<BoundRHSVector[i]<<" " <<rGeom[i].Coordinates()<<"\n ";
+		// rRightHandSideVector[i] += PressureAccStabilizationRHSterm[i];
+		// if(rGeom[i].Is(FREE_SURFACE) || rGeom[i].Is(RIGID)){
+		//   rRightHandSideVector[i]=0;
+		// }
 	      }
 
 	  }else
@@ -1237,11 +1295,17 @@ void TwoStepUpdatedLagrangianVPFluidElement<TDim>:: UpdateCauchyStress(unsigned 
 	      // const double GaussWeight = fabs(GaussWeights[g]);
 	      const double GaussWeight = GaussWeights[g];
 	      const ShapeFunctionsType& N = row(NContainer,g);
-	      this->ComputeMaterialParameters(Density,DeviatoricCoeff,VolumetricCoeff,TimeStep);
+	      this->ComputeMaterialParameters(Density,DeviatoricCoeff,VolumetricCoeff,TimeStep,N);
 	      double BulkCoeff =GaussWeight/(VolumetricCoeff);
 	      // this->ComputeBulkMatrixForPressureVel(BulkVelMatrix,N,BulkCoeff);
 	      this->ComputeBulkMatrixForPressureVelLump(BulkVelMatrixLump,N,BulkCoeff);
 	      rLeftHandSideMatrix+=BulkVelMatrixLump;
+	      for (SizeType n = 0; n < NumNodes; ++n)
+		{
+		  rGeom[n].Set(INTERFACE); //I set interface in order to not compute it in the continuity equation and the next non-linear iterations
+		}
+
+
 	  }
 
 	}   
@@ -1267,36 +1331,6 @@ void TwoStepUpdatedLagrangianVPFluidElement<TDim>:: UpdateCauchyStress(unsigned 
     }
   }
   
-
- template< unsigned int TDim >
- void TwoStepUpdatedLagrangianVPFluidElement<TDim>::GetPressureVelocityValues(Vector& rValues,
-									      const int Step)
- {
-   GeometryType& rGeom = this->GetGeometry();
-   const SizeType NumNodes = rGeom.PointsNumber();
-
-   if (rValues.size() != NumNodes) rValues.resize(NumNodes);
-
-   for (SizeType i = 0; i < NumNodes; ++i){
-     rValues[i] = rGeom[i].FastGetSolutionStepValue(PRESSURE_VELOCITY,Step);
-
-   }
- }
-
- template< unsigned int TDim >
- void TwoStepUpdatedLagrangianVPFluidElement<TDim>::GetPressureAccelerationValues(Vector& rValues,
-										  const int Step)
- {
-   GeometryType& rGeom = this->GetGeometry();
-   const SizeType NumNodes = rGeom.PointsNumber();
-
-   if (rValues.size() != NumNodes) rValues.resize(NumNodes);
-
-   for (SizeType i = 0; i < NumNodes; ++i){
-     rValues[i] = rGeom[i].FastGetSolutionStepValue(PRESSURE_ACCELERATION,Step);
-
-   }
- }
 
 
 

@@ -222,7 +222,7 @@ public:
     static inline boost::numeric::ublas::bounded_matrix<TDataType, TDim, TDim> InvertMatrix(
             const boost::numeric::ublas::bounded_matrix<TDataType, TDim, TDim>& InputMatrix,
             TDataType& InputMatrixDet,
-            const TDataType Tolerance = std::numeric_limits<double>::epsilon()
+            const TDataType Tolerance = 1.0e-18
             )
     {
         boost::numeric::ublas::bounded_matrix<TDataType, TDim, TDim> InvertedMatrix;

@@ -376,11 +376,8 @@ namespace Kratos
       virtual void ComputeMaterialParameters (double& Density,
 					      double& DeviatoricCoeff,
 					      double& VolumetricCoeff,
-					      double timeStep){};
-
-      virtual double GetThetaMomentum (){return 1.0;};
-
-      virtual double GetThetaContinuity (){return 1.0;};
+					      double timeStep,
+					      const ShapeFunctionsType& N){};
       
       void VelocityEquationIdVector(EquationIdVectorType& rResult,
 				    ProcessInfo& rCurrentProcessInfo);
@@ -407,9 +404,6 @@ namespace Kratos
 
       void GetVelocityValues(Vector& rValues,
 			     const int Step = 0);
-
-      void GetDisplacementValues(Vector& rValues,
-				 const int Step = 0);
 
       virtual void GetPositions(Vector& rValues,
 				const ProcessInfo& rCurrentProcessInfo,
@@ -528,7 +522,8 @@ namespace Kratos
       
       virtual bool CalcMechanicsUpdated(ElementalVariables & rElementalVariables,
 					const ProcessInfo& rCurrentProcessInfo,
-					unsigned int g){return true;};
+					unsigned int g,
+					const ShapeFunctionsType& N){return true;};
 
       bool CalcStrainRate(ElementalVariables & rElementalVariables,
 			  const ProcessInfo& rCurrentProcessInfo,
@@ -591,10 +586,12 @@ namespace Kratos
 	
       virtual void CalcElasticPlasticCauchySplitted(ElementalVariables & rElementalVariables,
 						    double TimeStep,
-						    unsigned int g){};
+						    unsigned int g,
+						    const ShapeFunctionsType& N){};
 
       virtual void CalculateTauFIC(double& TauOne,
 				   double ElemSize,
+				   const array_1d< double, 3 > & rAdvVel,
 				   const double Density,
 				   const double Viscosity,
 				   const ProcessInfo& rCurrentProcessInfo){};

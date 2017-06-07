@@ -42,9 +42,6 @@ class StructrualMechanichsTestFactory(KratosUnittest.TestCase):
 
     def tearDown(self):
         pass
-    
-class IsotropicDamageSimoJuPSTest(StructrualMechanichsTestFactory):
-    file_name = "cl_test/IsotropicDamageSimoJu/PlaneStress_FourPointShear_test"
 
 class ShellT3IsotropicScordelisTests(StructrualMechanichsTestFactory):
     file_name = "shell_test/Shell_T3_Isotropic_Scordelis_test"

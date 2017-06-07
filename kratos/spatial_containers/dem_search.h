@@ -167,17 +167,8 @@ class DEMSearch : public SpatialSearch
       ///@{
 
       /// Default constructor.
-      DEMSearch(const double domain_min_x = 0.0, const double domain_min_y = 0.0, const double domain_min_z = 0.0,
-                const double domain_max_x = -1.0, const double domain_max_y = -1.0, const double domain_max_z = -1.0)
-      {
-        mDomainMin[0] = domain_min_x;
-        mDomainMin[1] = domain_min_y;
-        mDomainMin[2] = domain_min_z;
-        mDomainMax[0] = domain_max_x;
-        mDomainMax[1] = domain_max_y;
-        mDomainMax[2] = domain_max_z;
-        TDerived::ElementConfigureType::SetDomain(domain_min_x, domain_min_y, domain_min_z, domain_max_x, domain_max_y, domain_max_z);
-        mDomainPeriodicity = TDerived::ElementConfigureType::GetDomainPeriodicity();
+      DEMSearch(double period_x = -1.0, double period_y = -1.0, double period_z = -1.0){
+        TDerived::ElementConfigureType::SetPeriods(period_x, period_y, period_z);
         searchPoints = new std::vector<PtrPointType>(0);
       }
 
@@ -372,13 +363,12 @@ class DEMSearch : public SpatialSearch
       ///@}
       ///@name Protected  Access
       ///@{
-      bool mDomainPeriodicity;
-      array_1d<double, 3> mDomainMin;
-      array_1d<double, 3> mDomainMax;
+
 
       ///@}
       ///@name Protected Inquiry
       ///@{
+
 
       ///@}
       ///@name Protected LifeCycle
@@ -390,6 +380,7 @@ class DEMSearch : public SpatialSearch
     private:
       ///@name Static Member Variables
       ///@{
+
 
       ///@}
       ///@name Member Variables

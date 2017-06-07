@@ -20,7 +20,13 @@ namespace Kratos {
 
         // Omp initializations
         mNumberOfThreads = OpenMPUtils::GetNumThreads();
-        BaseType::DisplayThreadInfo();
+        
+        std::cout << "          **************************************************" << std::endl;
+        std::cout << "            Parallelism Info:  MPI number of nodes: " << r_model_part.GetCommunicator().TotalProcesses() << std::endl;
+        if (r_model_part.GetCommunicator().TotalProcesses() > 1)
+            std::cout << "            Parallelism Info:  MPI node Id: " << r_model_part.GetCommunicator().MyPID() << std::endl;
+        std::cout << "            Parallelism Info:  OMP number of processors: " << mNumberOfThreads << std::endl;
+        std::cout << "          **************************************************" << std::endl << std::endl;
 
         RebuildListOfSphericParticles <SphericContinuumParticle> (r_model_part.GetCommunicator().LocalMesh().Elements(), mListOfSphericContinuumParticles);
         RebuildListOfSphericParticles <SphericContinuumParticle> (r_model_part.GetCommunicator().GhostMesh().Elements(), mListOfGhostSphericContinuumParticles);

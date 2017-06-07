@@ -20,7 +20,6 @@
 #include "custom_processes/apply_double_table_process.hpp"
 #include "custom_processes/apply_constant_hydrostatic_pressure_process.hpp"
 #include "custom_processes/apply_hydrostatic_pressure_table_process.hpp"
-#include "custom_processes/periodic_interface_process.hpp"
 
 
 namespace Kratos
@@ -43,9 +42,6 @@ void  AddCustomProcessesToPython()
         init < ModelPart&, Parameters>());
 
     class_< ApplyHydrostaticPressureTableProcess, bases< Process >, boost::noncopyable > ( "ApplyHydrostaticPressureTableProcess",
-        init < ModelPart&, Parameters>());
-
-    class_< PeriodicInterfaceProcess, bases< Process >, boost::noncopyable > ( "PeriodicInterfaceProcess",
         init < ModelPart&, Parameters>());
 }
 

@@ -50,26 +50,25 @@ namespace Kratos
 ///@name Kratos Classes 
 ///@{
 
-/** Short class definition.
-Detail class definition.
+// Short class definition.
+// Detail class definition.
 
-\URL[Example of use html]{ extended_documentation/no_ex_of_use.html}
+//URL[Example of use html]{ extended_documentation/no_ex_of_use.html}
 
-\URL[Example of use pdf]{ extended_documentation/no_ex_of_use.pdf}
+//URL[Example of use pdf]{ extended_documentation/no_ex_of_use.pdf}
 
-\URL[Example of use doc]{ extended_documentation/no_ex_of_use.doc}
+//URL[Example of use doc]{ extended_documentation/no_ex_of_use.doc}
 
-\URL[Example of use ps]{ extended_documentation/no_ex_of_use.ps}
+//URL[Example of use ps]{ extended_documentation/no_ex_of_use.ps}
 
 
-\URL[Extended documentation html]{ extended_documentation/no_ext_doc.html}
+//URL[Extended documentation html]{ extended_documentation/no_ext_doc.html}
 
-\URL[Extended documentation pdf]{ extended_documentation/no_ext_doc.pdf}
+//URL[Extended documentation pdf]{ extended_documentation/no_ext_doc.pdf}
 
-\URL[Extended documentation doc]{ extended_documentation/no_ext_doc.doc}
+//URL[Extended documentation doc]{ extended_documentation/no_ext_doc.doc}
 
-\URL[Extended documentation ps]{ extended_documentation/no_ext_doc.ps}
-*/
+//URL[Extended documentation ps]{ extended_documentation/no_ext_doc.ps}
 
 template<class TSparseSpace,
          class TDenseSpace
@@ -136,7 +135,7 @@ public:
 
     //Criterias that need to be called after getting the solution 
     bool PostCriteria(
-        ModelPart& rModelPart,
+        ModelPart& r_model_part,
         DofsArrayType& rDofSet,
         const TSystemMatrixType& A,
         const TSystemVectorType& Dx,
@@ -168,7 +167,7 @@ public:
 	    double b_size = TSparseSpace::Size(b);
 	    TDataType absolute_norm = (mCurrentResidualNorm/b_size);
 			
-            if (rModelPart.GetCommunicator().MyPID() == 0)
+            if (r_model_part.GetCommunicator().MyPID() == 0)
             {
                 if (this->GetEchoLevel() >= 1)
                 {
@@ -176,12 +175,12 @@ public:
                 }
             }
 
-            rModelPart.GetProcessInfo()[CONVERGENCE_RATIO] = ratio;
-            rModelPart.GetProcessInfo()[RESIDUAL_NORM] = absolute_norm;
+            r_model_part.GetProcessInfo()[CONVERGENCE_RATIO] = ratio;
+            r_model_part.GetProcessInfo()[RESIDUAL_NORM] = absolute_norm;
 
             if (ratio <= mRatioTolerance || absolute_norm < mAlwaysConvergedNorm)
             {
-                if (rModelPart.GetCommunicator().MyPID() == 0)
+                if (r_model_part.GetCommunicator().MyPID() == 0)
                 {
                     if (this->GetEchoLevel() >= 1)
                     {
@@ -202,14 +201,14 @@ public:
     }
 
     void Initialize(
-        ModelPart& rModelPart
+        ModelPart& r_model_part
     ) override
     {
         BaseType::mConvergenceCriteriaIsInitialized = true;
     }
 
     void InitializeSolutionStep(
-        ModelPart& rModelPart,
+        ModelPart& r_model_part,
         DofsArrayType& rDofSet,
         const TSystemMatrixType& A,
         const TSystemVectorType& Dx,
@@ -220,7 +219,7 @@ public:
     }
 
     void FinalizeSolutionStep(
-        ModelPart& rModelPart,
+        ModelPart& r_model_part,
         DofsArrayType& rDofSet,
         const TSystemMatrixType& A,
         const TSystemVectorType& Dx,

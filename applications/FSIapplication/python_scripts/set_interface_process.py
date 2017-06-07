@@ -1,4 +1,5 @@
 import KratosMultiphysics
+import KratosMultiphysics.ALEApplication as KratosALE
 
 def Factory(settings, Model):
     if(type(settings) != KratosMultiphysics.Parameters):
@@ -33,7 +34,7 @@ class SetInterfaceProcess(KratosMultiphysics.Process):
                 # Set the INTERFACE flag
                 node.Set(KratosMultiphysics.INTERFACE, True)
                 # Fix the MESH_DISPLACEMENT and initialize it to zero at the interface
-                node.Fix(KratosMultiphysics.MESH_DISPLACEMENT_X)
-                node.Fix(KratosMultiphysics.MESH_DISPLACEMENT_Y)
-                node.Fix(KratosMultiphysics.MESH_DISPLACEMENT_Z)
-                node.SetSolutionStepValue(KratosMultiphysics.MESH_DISPLACEMENT,0,zero_vect)
+                node.Fix(KratosALE.MESH_DISPLACEMENT_X)
+                node.Fix(KratosALE.MESH_DISPLACEMENT_Y)
+                node.Fix(KratosALE.MESH_DISPLACEMENT_Z)
+                node.SetSolutionStepValue(KratosALE.MESH_DISPLACEMENT,0,zero_vect)

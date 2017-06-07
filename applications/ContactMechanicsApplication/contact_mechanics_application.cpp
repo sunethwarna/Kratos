@@ -13,7 +13,6 @@
 
 // Project includes
 #include "geometries/triangle_2d_3.h"
-#include "geometries/tetrahedra_3d_4.h"
 
 #include "contact_mechanics_application.h"
 
@@ -23,7 +22,6 @@ namespace Kratos {
 
   //Application Constructor:
   KratosContactMechanicsApplication::KratosContactMechanicsApplication():
-    mContactDomainLMCondition3D4N( 0, Condition::GeometryType::Pointer( new Tetrahedra3D4<Node<3> >( Condition::GeometryType::PointsArrayType( 4 ) ) ) ),
     mContactDomainLMCondition2D3N( 0, Condition::GeometryType::Pointer( new Triangle2D3<Node<3> >( Condition::GeometryType::PointsArrayType( 3 ) ) ) ),
     mContactDomainPenaltyCondition2D3N( 0, Condition::GeometryType::Pointer( new Triangle2D3<Node<3> >( Condition::GeometryType::PointsArrayType( 3 ) ) ) ),
     mAxisymContactDomainLMCondition2D3N( 0, Condition::GeometryType::Pointer( new Triangle2D3<Node<3> >( Condition::GeometryType::PointsArrayType( 3 ) ) ) ),
@@ -49,8 +47,6 @@ namespace Kratos {
 
 
       //Register Conditions
-      KRATOS_REGISTER_CONDITION( "ContactDomainLMCondition3D4N", mContactDomainLMCondition3D4N )
-	
       KRATOS_REGISTER_CONDITION( "ContactDomainLMCondition2D3N", mContactDomainLMCondition2D3N )
       KRATOS_REGISTER_CONDITION( "ContactDomainPenaltyCondition2D3N", mContactDomainPenaltyCondition2D3N )
 

@@ -28,7 +28,6 @@
 // Search
 #include "spatial_containers/bins_dynamic_objects.h"
 #include "spatial_containers/bins_dynamic.h"
-#include "custom_search/bins_dynamic_objects_periodic.h"
 
 // External includes
 
@@ -52,7 +51,7 @@ namespace Kratos
 ///@name Type Definitions
 ///@{ 
 
-///@}
+///@} 
 ///@name  Enum's
 ///@{
     
@@ -90,11 +89,9 @@ class OMP_DEMSearch : public DEMSearch<OMP_DEMSearch>
       typedef GeometricalConfigure<3>                       GeometricalConfigureType;   //Generic Geometry
       
       //Bin Types
-      typedef BinsObjectDynamic<ElementConfigureType>               BinsType;
-      typedef BinsObjectDynamicPeriodic<ElementConfigureType>       BinsTypePeriodic;
-      typedef std::unique_ptr<BinsType>                             BinsUniquePointerType;
-      typedef BinsObjectDynamic<NodeConfigureType>                  NodeBinsType;
-      typedef BinsObjectDynamic<GeometricalConfigureType>           GeometricalBinsType;
+      typedef BinsObjectDynamic<ElementConfigureType>       BinsType;
+      typedef BinsObjectDynamic<NodeConfigureType>          NodeBinsType;
+      typedef BinsObjectDynamic<GeometricalConfigureType>   GeometricalBinsType;
       
       //GeoimetricalObject
       typedef PointerVectorSet<GeometricalObject, IndexedObject>     GeometricalObjectType;
@@ -106,11 +103,7 @@ class OMP_DEMSearch : public DEMSearch<OMP_DEMSearch>
       
       /// Default constructor.
 
-      OMP_DEMSearch(const double domain_min_x = 0.0, const double domain_min_y = 0.0, const double domain_min_z = 0.0,
-                    const double domain_max_x = -1.0, const double domain_max_y = -1.0, const double domain_max_z = -1.0)
-      {
-            mDomainPeriodicity = (domain_min_x <= domain_max_x) ? true : false;
-      }
+      OMP_DEMSearch(double period_x = -1.0, double period_y = -1.0, double period_z = -1.0){}
 
       /// Destructor.
       ~OMP_DEMSearch(){
@@ -182,12 +175,14 @@ class OMP_DEMSearch : public DEMSearch<OMP_DEMSearch>
 //           KRATOS_CATCH("")
 
           KRATOS_TRY
-
+          
           int MaxNumberOfElements = rStructureElements.size();
+          
           ElementsContainerType::ContainerType& elements_array     = const_cast<ElementsContainerType::ContainerType&>(rElements.GetContainer());
           ElementsContainerType::ContainerType& elements_ModelPart = const_cast<ElementsContainerType::ContainerType&>(rStructureElements.GetContainer());
-          BinsUniquePointerType p_bins = GetBins(elements_ModelPart);
-
+        
+          BinsType bins(elements_ModelPart.begin(), elements_ModelPart.end());
+          
           #pragma omp parallel
           {
               ResultElementsContainerType   localResults(MaxNumberOfElements);
@@ -202,13 +197,14 @@ class OMP_DEMSearch : public DEMSearch<OMP_DEMSearch>
                   
                   SphericParticle* p_particle = dynamic_cast<SphericParticle*>(&*elements_array[i]);
                   const double radius = p_particle->GetSearchRadius();
-
-                  NumberOfResults = p_bins->SearchObjectsInRadiusExclusive(elements_array[i],radius,ResultsPointer,ResultsDistancesPointer,MaxNumberOfElements);
-
+                
+                  NumberOfResults = bins.SearchObjectsInRadiusExclusive(elements_array[i],radius,ResultsPointer,ResultsDistancesPointer,MaxNumberOfElements);
+                  
                   rResults[i].insert(rResults[i].begin(),localResults.begin(),localResults.begin()+NumberOfResults);
                   rResultsDistance[i].insert(rResultsDistance[i].begin(),localResultsDistances.begin(),localResultsDistances.begin()+NumberOfResults);      
               }
-          }         
+          }
+          
           //MAJOR TODO: creating and destroying (when leaving the function) this BINS is not parallel and takes a significant time if we search at every time step. Can we re-use a bins and avoid allocation and deallocation?? MA
           KRATOS_CATCH("")      
       }
@@ -221,13 +217,14 @@ class OMP_DEMSearch : public DEMSearch<OMP_DEMSearch>
           VectorDistanceType& rResultsDistance )
       {     
           KRATOS_TRY
-
+          
           int MaxNumberOfElements = rStructureElements.size();
           
           ElementsContainerType::ContainerType& elements_array     = const_cast<ElementsContainerType::ContainerType&>(rElements.GetContainer());
           ElementsContainerType::ContainerType& elements_ModelPart = const_cast<ElementsContainerType::ContainerType&>(rStructureElements.GetContainer());
-          BinsUniquePointerType p_bins = GetBins(elements_ModelPart);
-
+        
+          BinsType bins(elements_ModelPart.begin(), elements_ModelPart.end());
+          
           #pragma omp parallel
           {
               ResultElementsContainerType   localResults(MaxNumberOfElements);
@@ -243,7 +240,7 @@ class OMP_DEMSearch : public DEMSearch<OMP_DEMSearch>
                   SphericParticle* p_particle = dynamic_cast<SphericParticle*>(&*elements_array[i]);
                   const double radius = p_particle->GetSearchRadius();
                 
-                  NumberOfResults = p_bins->SearchObjectsInRadius(elements_array[i],radius,ResultsPointer,ResultsDistancesPointer,MaxNumberOfElements);
+                  NumberOfResults = bins.SearchObjectsInRadius(elements_array[i],radius,ResultsPointer,ResultsDistancesPointer,MaxNumberOfElements);
                   
                   rResults[i].insert(rResults[i].begin(),localResults.begin(),localResults.begin()+NumberOfResults);
                   rResultsDistance[i].insert(rResultsDistance[i].begin(),localResultsDistances.begin(),localResultsDistances.begin()+NumberOfResults);      
@@ -260,13 +257,14 @@ class OMP_DEMSearch : public DEMSearch<OMP_DEMSearch>
           VectorResultElementsContainerType& rResults )
       {     
           KRATOS_TRY
-
+          
           int MaxNumberOfElements = rStructureElements.size();
           
           ElementsContainerType::ContainerType& elements_array     = const_cast<ElementsContainerType::ContainerType&>(rElements.GetContainer());
           ElementsContainerType::ContainerType& elements_ModelPart = const_cast<ElementsContainerType::ContainerType&>(rStructureElements.GetContainer());
-          BinsUniquePointerType p_bins = GetBins(elements_ModelPart);
-
+        
+          BinsType bins(elements_ModelPart.begin(), elements_ModelPart.end());
+          
           #pragma omp parallel
           {
               ResultElementsContainerType   localResults(MaxNumberOfElements);
@@ -279,10 +277,10 @@ class OMP_DEMSearch : public DEMSearch<OMP_DEMSearch>
                   
                   SphericParticle* p_particle = dynamic_cast<SphericParticle*>(&*elements_array[i]);
                   const double radius = p_particle->GetSearchRadius();
-
-                  NumberOfResults = p_bins->SearchObjectsInRadiusExclusive(elements_array[i],radius,ResultsPointer,MaxNumberOfElements);
-
-                  rResults[i].insert(rResults[i].begin(),localResults.begin(),localResults.begin()+NumberOfResults);
+                        
+                  NumberOfResults = bins.SearchObjectsInRadiusExclusive(elements_array[i],radius,ResultsPointer,MaxNumberOfElements);
+  
+                  rResults[i].insert(rResults[i].begin(),localResults.begin(),localResults.begin()+NumberOfResults);    
               } 
           }
           
@@ -296,12 +294,12 @@ class OMP_DEMSearch : public DEMSearch<OMP_DEMSearch>
           VectorResultElementsContainerType& rResults )
       {     
           KRATOS_TRY
-
+          
           int MaxNumberOfElements = rStructureElements.size();
           
           ElementsContainerType::ContainerType& elements_array     = const_cast<ElementsContainerType::ContainerType&>(rElements.GetContainer());
           ElementsContainerType::ContainerType& elements_ModelPart = const_cast<ElementsContainerType::ContainerType&>(rStructureElements.GetContainer());
-
+        
           BinsType bins(elements_ModelPart.begin(), elements_ModelPart.end());
           
           #pragma omp parallel
@@ -334,7 +332,7 @@ class OMP_DEMSearch : public DEMSearch<OMP_DEMSearch>
           VectorDistanceType& rResultsDistance )
       {     
           KRATOS_TRY
-
+          
           int MaxNumberOfNodes = rStructureNodes.size();
           
           NodesContainerType::ContainerType& nodes_array     = const_cast<NodesContainerType::ContainerType&>(rNodes.GetContainer());
@@ -372,7 +370,7 @@ class OMP_DEMSearch : public DEMSearch<OMP_DEMSearch>
           VectorDistanceType& rResultsDistance )
       {     
           KRATOS_TRY
-
+          
           int MaxNumberOfNodes = rStructureNodes.size();
       
           NodesContainerType::ContainerType& nodes_array     = const_cast<NodesContainerType::ContainerType&>(rNodes.GetContainer());
@@ -409,7 +407,7 @@ class OMP_DEMSearch : public DEMSearch<OMP_DEMSearch>
           VectorResultNodesContainerType& rResults )
       {     
           KRATOS_TRY
-
+          
           int MaxNumberOfNodes = rStructureNodes.size();
           
           NodesContainerType::ContainerType& nodes_array     = const_cast<NodesContainerType::ContainerType&>(rNodes.GetContainer());
@@ -443,7 +441,7 @@ class OMP_DEMSearch : public DEMSearch<OMP_DEMSearch>
           VectorResultNodesContainerType& rResults )
       {     
           KRATOS_TRY
-
+          
           int MaxNumberOfNodes = rStructureNodes.size();
           
           NodesContainerType::ContainerType& nodes_array     = const_cast<NodesContainerType::ContainerType&>(rNodes.GetContainer());
@@ -478,7 +476,7 @@ class OMP_DEMSearch : public DEMSearch<OMP_DEMSearch>
           VectorDistanceType& rResultsDistance )
       {     
           KRATOS_TRY
-
+          
           int MaxNumberOfElements = rStructureElements.size();
 
           ElementsContainerType::ContainerType& elements_bins   = const_cast<ElementsContainerType::ContainerType&>  (rStructureElements.GetContainer());
@@ -534,7 +532,7 @@ class OMP_DEMSearch : public DEMSearch<OMP_DEMSearch>
           VectorDistanceType& rResultsDistance )
       {     
           KRATOS_TRY
-
+          
           int MaxNumberOfElements = rStructureElements.size();
 
           ElementsContainerType::ContainerType& elements_bins   = const_cast<ElementsContainerType::ContainerType&>  (rStructureElements.GetContainer());
@@ -588,9 +586,9 @@ class OMP_DEMSearch : public DEMSearch<OMP_DEMSearch>
           const RadiusArrayType & Radius, 
           VectorResultElementsContainerType& rResults, 
           VectorDistanceType& rResultsDistance )
-      {
+      {     
           KRATOS_TRY
-
+          
           int MaxNumberOfElements = rStructureElements.size();
 
           ConditionsContainerType::ContainerType& elements_bins = const_cast<ConditionsContainerType::ContainerType&>(rStructureElements.GetContainer());
@@ -777,8 +775,8 @@ class OMP_DEMSearch : public DEMSearch<OMP_DEMSearch>
       ///@} 
       ///@name Member Variables 
       ///@{ 
-
-
+        
+        
       ///@} 
       ///@name Private Operators
       ///@{ 
@@ -797,17 +795,7 @@ class OMP_DEMSearch : public DEMSearch<OMP_DEMSearch>
       ///@}    
       ///@name Private Inquiry 
       ///@{ 
-      ///
-        BinsUniquePointerType GetBins(ElementsContainerType::ContainerType& r_model_part_container)
-        {
-            if (mDomainPeriodicity){
-                return std::unique_ptr<BinsType>(new BinsTypePeriodic(r_model_part_container.begin(), r_model_part_container.end(), this->mDomainMin, this->mDomainMax));
-            }
-
-            else {
-                return std::unique_ptr<BinsType>(new BinsType(r_model_part_container.begin(), r_model_part_container.end()));
-            }
-        }
+        
         
       ///@}    
       ///@name Un accessible methods 

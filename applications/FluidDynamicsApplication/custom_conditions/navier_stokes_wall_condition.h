@@ -23,9 +23,8 @@
 
 // Project includes
 #include "includes/define.h"
-#include "includes/condition.h"
-#include "includes/model_part.h"
 #include "includes/serializer.h"
+#include "includes/condition.h"
 #include "includes/process_info.h"
 
 // Application includes
@@ -76,10 +75,8 @@ public:
 
     struct ConditionDataStruct
     {
-        double wGauss;                  // Gauss point weight
-        double charVel;                 // Problem characteristic velocity (used in the outlet inflow prevention)
-        double delta;                   // Non-dimensional positive sufficiently small constant (used in the outlet inflow prevention)
         array_1d<double, 3> Normal;     // Condition normal
+        double wGauss;                  // Gauss point weight
         array_1d<double, TNumNodes> N;  // Gauss point shape functions values
     };
 
@@ -234,10 +231,10 @@ public:
         ConditionDataStruct data;
 
         // Allocate memory needed
-        array_1d<double,MatrixSize> rhs_gauss;
         bounded_matrix<double,MatrixSize, MatrixSize> lhs_gauss;
+        array_1d<double,MatrixSize> rhs_gauss;
 
-        // LHS and RHS contributions initialization
+        // Loop on gauss points
         noalias(rLeftHandSideMatrix) = ZeroMatrix(MatrixSize,MatrixSize);
         noalias(rRightHandSideVector) = ZeroVector(MatrixSize);
 
@@ -245,10 +242,6 @@ public:
         this->CalculateNormal(data.Normal); //this already contains the area
         const double A = norm_2(data.Normal);
         data.Normal /= A;
-
-        // Store the outlet inflow prevention constants in the data structure
-        data.delta = 1e-2; // TODO: Decide if this constant should be fixed or not
-        data.charVel = rCurrentProcessInfo[CHARACTERISTIC_VELOCITY];
 
         // Gauss point information
         GeometryType& rGeom = this->GetGeometry();
@@ -258,7 +251,6 @@ public:
         rGeom.DeterminantOfJacobian(GaussPtsJDet, GeometryData::GI_GAUSS_2);
         const MatrixType Ncontainer = rGeom.ShapeFunctionsValues(GeometryData::GI_GAUSS_2);
 
-        // Loop on gauss points
         for(unsigned int igauss = 0; igauss<NumGauss; igauss++)
         {
             data.N = row(Ncontainer, igauss);
@@ -291,8 +283,38 @@ public:
         if (rLeftHandSideMatrix.size1() != MatrixSize)
             rLeftHandSideMatrix.resize(MatrixSize, MatrixSize, false); //false says not to preserve existing storage!!
 
-        // LHS contributions initialization
+        // Struct to pass around the data
+        ConditionDataStruct data;
+
+        // Allocate memory needed
+        bounded_matrix<double,MatrixSize, MatrixSize> lhs_local;
+
+        // Loop on gauss points
         noalias(rLeftHandSideMatrix) = ZeroMatrix(MatrixSize,MatrixSize);
+
+        // Compute condition normal
+        this->CalculateNormal(data.Normal); //this already contains the area
+        const double A = norm_2(data.Normal);
+        data.Normal /= A;
+
+        // Gauss point information
+        GeometryType& rGeom = this->GetGeometry();
+        const GeometryType::IntegrationPointsArrayType& IntegrationPoints = rGeom.IntegrationPoints(GeometryData::GI_GAUSS_2);
+        const unsigned int NumGauss = IntegrationPoints.size();
+        Vector GaussPtsJDet = ZeroVector(NumGauss);
+        rGeom.DeterminantOfJacobian(GaussPtsJDet, GeometryData::GI_GAUSS_2);
+        const MatrixType Ncontainer = rGeom.ShapeFunctionsValues(GeometryData::GI_GAUSS_2);
+
+        for(unsigned int igauss = 0; igauss<NumGauss; igauss++)
+        {
+            data.N = row(Ncontainer, igauss);
+            const double J = GaussPtsJDet[igauss];
+            data.wGauss = J * IntegrationPoints[igauss].Weight();
+
+            ComputeGaussPointLHSContribution(lhs_local, data);
+
+            noalias(rLeftHandSideMatrix) += lhs_local;
+        }
 
         KRATOS_CATCH("")
     }
@@ -317,7 +339,7 @@ public:
         ConditionDataStruct data;
 
         // Allocate memory needed
-        array_1d<double,MatrixSize> rhs_gauss;
+        array_1d<double,MatrixSize> rhs_local;
 
         // Loop on gauss points
         noalias(rRightHandSideVector) = ZeroVector(MatrixSize);
@@ -326,10 +348,6 @@ public:
         this->CalculateNormal(data.Normal); //this already contains the area
         const double A = norm_2(data.Normal);
         data.Normal /= A;
-
-        // Store the outlet inflow prevention constants in the data structure
-        data.delta = 1e-2; // TODO: Decide if this constant should be fixed or not
-        data.charVel = rCurrentProcessInfo[CHARACTERISTIC_VELOCITY];
 
         // Gauss point information
         GeometryType& rGeom = this->GetGeometry();
@@ -345,9 +363,9 @@ public:
             const double J = GaussPtsJDet[igauss];
             data.wGauss = J * IntegrationPoints[igauss].Weight();
 
-            ComputeGaussPointRHSContribution(rhs_gauss, data);
+            ComputeGaussPointRHSContribution(rhs_local, data);
 
-            noalias(rRightHandSideVector) += rhs_gauss;
+            noalias(rRightHandSideVector) += rhs_local;
         }
 
         KRATOS_CATCH("")
@@ -490,9 +508,6 @@ protected:
 
     void ComputeGaussPointLHSContribution(bounded_matrix<double,TNumNodes*(TDim+1),TNumNodes*(TDim+1)>& lhs, const ConditionDataStruct& data);
     void ComputeGaussPointRHSContribution(array_1d<double,TNumNodes*(TDim+1)>& rhs, const ConditionDataStruct& data);
-    
-    void ComputeRHSNeumannContribution(array_1d<double,TNumNodes*(TDim+1)>& rhs, const ConditionDataStruct& data);
-    void ComputeRHSOutletInflowContribution(array_1d<double,TNumNodes*(TDim+1)>& rhs, const ConditionDataStruct& data);
 
     ///@}
     ///@name Protected  Access

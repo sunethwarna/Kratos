@@ -295,7 +295,7 @@ public:
 
     //**************************************************************************
     //**************************************************************************
-    void ResizeAndInitializeVectors( typename TSchemeType::Pointer pScheme,
+    void ResizeAndInitializeVectors(
         TSystemMatrixPointerType& pA,
         TSystemVectorPointerType& pDx,
         TSystemVectorPointerType& pb,

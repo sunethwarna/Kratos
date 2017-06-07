@@ -865,7 +865,7 @@ public:
 
     //**************************************************************************
     //**************************************************************************
-    void ResizeAndInitializeVectors( typename TSchemeType::Pointer pScheme,
+    void ResizeAndInitializeVectors(
         TSystemMatrixPointerType& pA,
         TSystemVectorPointerType& pDx,
         TSystemVectorPointerType& pb,
@@ -904,7 +904,7 @@ public:
         if (A.size1() == 0 || BaseType::GetReshapeMatrixFlag() == true) //if the matrix is not initialized
         {
             A.resize(BaseType::mEquationSystemSize,BaseType::mEquationSystemSize,false);
-            ConstructMatrixStructure(pScheme, A,rElements,rConditions,CurrentProcessInfo);
+            ConstructMatrixStructure(A,rElements,rConditions,CurrentProcessInfo);
         }
         else
         {
@@ -912,7 +912,7 @@ public:
             {
                 KRATOS_WATCH("it should not come here!!!!!!!! ... this is SLOW");
                 A.resize(BaseType::mEquationSystemSize,BaseType::mEquationSystemSize,true);
-                ConstructMatrixStructure(pScheme, A,rElements,rConditions,CurrentProcessInfo);
+                ConstructMatrixStructure(A,rElements,rConditions,CurrentProcessInfo);
             }
         }
         if(Dx.size() != BaseType::mEquationSystemSize)
@@ -1068,7 +1068,7 @@ protected:
     /**@name Protected Operators*/
     /*@{ */
     //**************************************************************************
-    virtual void ConstructMatrixStructure( typename TSchemeType::Pointer pScheme,
+    virtual void ConstructMatrixStructure(
         TSystemMatrixType& A,
         ElementsContainerType& rElements,
         ConditionsArrayType& rConditions,
@@ -1082,8 +1082,7 @@ protected:
         Element::EquationIdVectorType ids(3,0);
         for(typename ElementsContainerType::iterator i_element = rElements.begin() ; i_element != rElements.end() ; i_element++)
         {
-            
-            pScheme->EquationId( *(i_element.base()) , ids, CurrentProcessInfo);
+            (i_element)->EquationIdVector(ids, CurrentProcessInfo);
 
             for(std::size_t i = 0 ; i < ids.size() ; i++)
                 if(ids[i] < equation_size)
@@ -1101,7 +1100,7 @@ protected:
 
         for(typename ConditionsArrayType::iterator i_condition = rConditions.begin() ; i_condition != rConditions.end() ; i_condition++)
         {
-            pScheme->Condition_EquationId( *(i_condition.base()), ids, CurrentProcessInfo);
+            (i_condition)->EquationIdVector(ids, CurrentProcessInfo);
             for(std::size_t i = 0 ; i < ids.size() ; i++)
                 if(ids[i] < equation_size)
                 {

@@ -21,7 +21,7 @@
 
 namespace Kratos {
 
-    class KRATOS_API(DEM_APPLICATION) PropertiesProxy {
+    class PropertiesProxy {        
             
     public:
         

@@ -16,8 +16,6 @@
 // Project includes
 #include "utilities/math_utils.h"
 #include "includes/model_part.h"
-#include "includes/kratos_parameters.h"
-#include "containers/variables_list.h"
 #include "utilities/openmp_utils.h"
 #include "input_output/logger.h"
 #include <set>
@@ -27,13 +25,10 @@
 #include "mmg/mmg2d/libmmg2d.h" 
 #include "mmg/mmg3d/libmmg3d.h"
 #include "mmg/mmgs/libmmgs.h"
-// We indlude the internal variable interpolation process
-#include "custom_processes/nodal_values_interpolation_process.h"
-#include "custom_processes/internal_variables_interpolation_process.h"
 // Include the point locator
 #include "utilities/binbased_fast_point_locator.h"
-// Include the spatial containers needed for search
-#include "spatial_containers/spatial_containers.h" // kd-tree 
+// // Include the nodal area process
+// #include "processes/calculate_nodal_area_process.h"
 
 // NOTE: The following contains the license of the MMG library
 /* =============================================================================
@@ -66,49 +61,34 @@ namespace Kratos
 ///@name Type Definitions
 ///@{
 
-    // Containers definition
     typedef ModelPart::NodesContainerType                        NodesArrayType;
     typedef ModelPart::ElementsContainerType                  ElementsArrayType;
     typedef ModelPart::ConditionsContainerType              ConditionsArrayType;
-    
-    // Components definition
     typedef Node <3>                                                   NodeType;
     typedef Properties                                           PropertiesType;
     typedef Element                                                 ElementType;
     typedef Condition                                             ConditionType;
-    
-    // Index defintion
     typedef std::size_t                                               IndexType;
     typedef std::size_t                                                SizeType;
-    
-    // DoF definition
     typedef Dof<double>                                                 DofType;
-    
-    // Mesh definition
     typedef Mesh<NodeType, PropertiesType, ElementType, ConditionType> MeshType;
     typedef MeshType::PropertiesContainerType           PropertiesContainerType;
     typedef MeshType::NodeConstantIterator                 NodeConstantIterator;
     typedef MeshType::ConditionConstantIterator       ConditionConstantIterator;
     typedef MeshType::ElementConstantIterator           ElementConstantIterator;
     
-    #if !defined(KEY_COMPAROR_VECTOR)
-    #define KEY_COMPAROR_VECTOR
-    template<class TClassType>
-    struct KeyComparorVector
+    #if !defined(KEY_COMPAROR)
+    #define KEY_COMPAROR
+    struct KeyComparor
     {
-        bool operator()(const vector<TClassType>& lhs, const vector<TClassType>& rhs) const
+        bool operator()(const vector<unsigned int>& lhs, const vector<unsigned int>& rhs) const
         {
             if(lhs.size() != rhs.size())
-            {
                 return false;
-            }
 
             for(unsigned int i=0; i<lhs.size(); i++)
             {
-                if(lhs[i] != rhs[i]) 
-                {
-                    return false;
-                }
+                if(lhs[i] != rhs[i]) return false;
             }
 
             return true;
@@ -116,12 +96,11 @@ namespace Kratos
     };
     #endif
     
-    #if !defined(KEY_HASHER_VECTOR)
-    #define KEY_HASHER_VECTOR
-    template<class TClassType>
-    struct KeyHasherVector
+    #if !defined(KEY_HASHER)
+    #define KEY_HASHER
+    struct KeyHasher
     {
-        std::size_t operator()(const vector<TClassType>& k) const
+        std::size_t operator()(const vector<int>& k) const
         {
             return boost::hash_range(k.begin(), k.end());
         }
@@ -136,18 +115,15 @@ namespace Kratos
      * This enums are used to simplify the computation of the std::vector containing the conditions and elements
      */
     
-    enum CondGeometries2D {Line = 0};
+    enum cond_geometries_2d {Line = 0};
     
-    enum ElemGeometries2D {Triangle2D = 0};
+    enum elem_geometries_2d {Triangle2D = 0};
     
-    enum CondGeometries3D {Triangle3D = 0, Quadrilateral3D = 1};
+    enum cond_geometries_3d {Triangle3D = 0, Quadrilateral3D = 1};
     
-    enum ElemGeometries3D {Tetrahedra = 0, Prism = 1};
+    enum elem_geometries_3d {Tetrahedra = 0, Prism = 1};
     
-    #if !defined(FRAMEWORK_EULER_LAGRANGE)
-    #define FRAMEWORK_EULER_LAGRANGE
-        enum FrameworkEulerLagrange {Eulerian = 0, Lagrangian = 1};
-    #endif
+    enum Framework_euler_lagrange {Eulerian = 0, Lagrangian = 1};
     
 ///@}
 ///@name  Functions
@@ -176,92 +152,36 @@ public:
     
     /**
      * This is the default constructor, which is used to read the input files 
-     * @param rThisModelPart: The model part
-     * @param ThisParameters: The parameters
+     * @param Filename: The input name of the output file
+     * @param echo_level: The level of verbosity
      */
     
     MmgUtility(
         ModelPart& rThisModelPart,
-        Parameters ThisParameters = Parameters(R"({})")
+        const std::string Filename = "output_remesh",
+        const unsigned int echo_level = 3,
+        const std::string framework = "Eulerian"
         )
-        :mrThisModelPart(rThisModelPart),
-         mThisParameters(ThisParameters)
+        :mThisModelPart(rThisModelPart),
+        mStdStringFilename(Filename),
+        mEchoLevel(echo_level)
     {       
-        Parameters DefaultParameters = Parameters(R"(
-            {
-                "mesh_id"                          : 0,
-                "filename"                         : "out",
-                "model_part_name"                  : "MainModelPart",
-                "strategy"                         : "LevelSet",
-                "level_set_strategy_parameters"              :{
-                    "scalar_variable"                  : "DISTANCE",
-                    "gradient_variable"                : "DISTANCE_GRADIENT"
-                },
-                "framework"                            : "Eulerian",
-                "internal_variables_parameters"        :
-                {
-                    "allocation_size"                      : 1000, 
-                    "bucket_size"                          : 4, 
-                    "search_factor"                        : 2, 
-                    "interpolation_type"                   : "LST",
-                    "internal_variable_interpolation_list" :[]
-                },
-                "hessian_strategy_parameters"              :{
-                    "metric_variable"                  : ["DISTANCE"],
-                    "interpolation_error"              : 0.04,
-                    "mesh_dependent_constant"          : 0.0
-                },
-                "enforce_current"                  : true,
-                "initial_step"                     : 1,
-                "step_frequency"                   : 0,
-                "automatic_remesh"                 : true,
-                "automatic_remesh_parameters"      :{
-                    "automatic_remesh_type"            : "Ratio",
-                    "min_size_ratio"                   : 1.0,
-                    "max_size_ratio"                   : 3.0,
-                    "refer_type"                       : "Mean",
-                    "min_size_current_percentage"      : 50.0,
-                    "max_size_current_percentage"      : 98.0
-                },
-                "initial_remeshing"                : true,
-                "fix_contour_model_parts"          : [],
-                "minimal_size"                     : 0.1,
-                "maximal_size"                     : 10.0,
-                "anisotropy_remeshing"             : true,
-                "anisotropy_parameters":{
-                    "hmin_over_hmax_anisotropic_ratio" : 0.01,
-                    "boundary_layer_max_distance"      : 1.0,
-                    "boundary_layer_min_size_ratio"    : 2.0,
-                    "interpolation"                    : "Linear"
-                },
-                "save_external_files"              : false,
-                "max_number_of_searchs"            : 1000,
-                "echo_level"                       : 3,
-                "step_data_size"                   : 0,
-                "buffer_size"                      : 0
-            })" );
-        
-        mThisParameters.ValidateAndAssignDefaults(DefaultParameters);
-        
-        mStdStringFilename = mThisParameters["filename"].GetString();
-        mEchoLevel = mThisParameters["echo_level"].GetInt();
-        
-        mFilename = new char [mStdStringFilename.length() + 1];
-        std::strcpy (mFilename, mStdStringFilename.c_str());
+       mFilename = new char [Filename.length() + 1];
+       std::strcpy (mFilename, Filename.c_str());
        
-        mFramework = ConvertFramework(mThisParameters["framework"].GetString());
+       mFramework = ConvertFramework(framework);
        
-        mpRefElement.resize(TDim - 1);
-        mpRefCondition.resize(TDim - 1);
-        mInitRefCondition.resize(TDim - 1);
-        mInitRefElement.resize(TDim - 1);
-        for (unsigned int i_dim = 0; i_dim < TDim - 1; i_dim++)
-        {
-            mpRefElement[i_dim] = nullptr;   
-            mInitRefCondition[i_dim] = false;   
-            mpRefCondition[i_dim] = nullptr;   
-            mInitRefElement[i_dim] = false; 
-        }
+       mpRefElement.resize(TDim - 1);
+       mpRefCondition.resize(TDim - 1);
+       mInitRefCondition.resize(TDim - 1);
+       mInitRefElement.resize(TDim - 1);
+       for (unsigned int i_dim = 0; i_dim < TDim - 1; i_dim++)
+       {
+           mpRefElement[i_dim] = nullptr;   
+           mInitRefCondition[i_dim] = false;   
+           mpRefCondition[i_dim] = nullptr;   
+           mInitRefElement[i_dim] = false; 
+       }
     }
     
     /// Destructor.
@@ -278,12 +198,15 @@ public:
     
     /**
      * Instead of using an files already created we read an existing model part
+     * @param save_to_file: To define if the resulting mesh is saved or not
+     * @param MaxNumberOfResults: Max number of nodes tested to check to interpolate old values
      */
     
-    void RemeshModelPart()
-    {        
-        const bool SaveToFile = mThisParameters["save_external_files"].GetBool();
-        
+    void RemeshModelPart(
+        const bool save_to_file = false,
+        const unsigned int MaxNumberOfResults = 1000
+        )
+    {               
         /* We restart the MMG mesh and solution */       
         InitMesh();
         
@@ -296,7 +219,7 @@ public:
            std::cout << "//---------------------------------------------------//" << std::endl;
            std::cout << "//---------------------------------------------------//" << std::endl << std::endl;
             
-            KRATOS_WATCH(mrThisModelPart);
+            KRATOS_WATCH(mThisModelPart);
         }
         
         // We initialize the mesh and solution data
@@ -307,13 +230,13 @@ public:
         CheckMeshData();
         
         // Save to file
-        if (SaveToFile == true)
+        if (save_to_file == true)
         {
             SaveSolutionToFile(false);
         }
         
         // We execute the remeshing
-        ExecuteRemeshing();
+        ExecuteRemeshing(save_to_file, MaxNumberOfResults);
         
         /* We print the resulting model part */
         if (mEchoLevel > 0)
@@ -324,7 +247,7 @@ public:
            std::cout << "//---------------------------------------------------//" << std::endl;
            std::cout << "//---------------------------------------------------//" << std::endl << std::endl;
             
-            KRATOS_WATCH(mrThisModelPart);
+            KRATOS_WATCH(mThisModelPart);
         }
     }
        
@@ -351,10 +274,7 @@ protected:
     ///@{
     
     // The model part to compute
-    ModelPart& mrThisModelPart;                      
-    
-    // The parameters (can be used for general pourposes)
-    Parameters mThisParameters;
+    ModelPart& mThisModelPart;                      
     
     // Storage for the dof of the node
     Node<3>::DofsContainerType  mDofs;
@@ -365,14 +285,14 @@ protected:
     unsigned int mEchoLevel;
     
     // The framework
-    FrameworkEulerLagrange mFramework;
+    Framework_euler_lagrange mFramework;
     
     // The member variables related with the MMG library
     MMG5_pMesh mmgMesh;
     MMG5_pSol  mmgSol;
     
     // Where the sub model parts IDs are stored
-    boost::unordered_map<int,std::vector<std::string>> mColors;
+    std::map<int,std::vector<std::string>> mColors;
     
     // Reference element and condition
     std::vector<Element::Pointer>   mpRefElement;
@@ -395,22 +315,22 @@ protected:
     void InitializeMeshData()
     {                
         // First we compute the colors
-        boost::unordered_map<int,int> NodeColors, CondColors, ElemColors;
-        ComputeColors(NodeColors, CondColors, ElemColors);
+        std::map<int,int> node_colors, cond_colors, elem_colors;
+        ComputeColors(node_colors, cond_colors, elem_colors);
         
         /////////* MESH FILE */////////
         // Build mesh in MMG5 format //
         
         // Iterate in the nodes
-        NodesArrayType& pNode = mrThisModelPart.Nodes();
+        NodesArrayType& pNode = mThisModelPart.Nodes();
         auto numNodes = pNode.end() - pNode.begin();
         
         // Iterate in the conditions
-        ConditionsArrayType& pConditions = mrThisModelPart.Conditions();
+        ConditionsArrayType& pConditions = mThisModelPart.Conditions();
         auto numConditions = pConditions.end() - pConditions.begin();
         
         // Iterate in the elements
-        ElementsArrayType& pElements = mrThisModelPart.Elements();
+        ElementsArrayType& pElements = mThisModelPart.Elements();
         auto numElements = pElements.end() - pElements.begin();
         
         /* Manually set of the mesh */
@@ -475,9 +395,9 @@ protected:
         /* Nodes */
         // We copy the DOF from the fisrt node (after we release, to avoid problem with previous conditions)
         mDofs = pNode.begin()->GetDofs();
-        for (typename Node<3>::DofsContainerType::const_iterator itDoF = mDofs.begin(); itDoF != mDofs.end(); itDoF++)
+        for (typename Node<3>::DofsContainerType::const_iterator i_dof = mDofs.begin(); i_dof != mDofs.end(); i_dof++)
         {
-            itDoF->FreeDof();
+            i_dof->FreeDof();
         }
         
 //         #pragma omp parallel for 
@@ -485,7 +405,7 @@ protected:
         {
             auto itNode = pNode.begin() + i;
             
-            SetNodes(itNode->X(), itNode->Y(), itNode->Z(), NodeColors[itNode->Id()], i + 1);
+            SetNodes(itNode->X(), itNode->Y(), itNode->Z(), node_colors[itNode->Id()], i + 1);
             
             bool blocked = false;
             if (itNode->IsDefined(BLOCKED) == true)
@@ -505,30 +425,30 @@ protected:
         // We clone the first condition of each type
         if (TDim == 2 && numConditions > 0)
         {
-            const CondGeometries2D IndexGeom0 = Line;
-            mpRefCondition[IndexGeom0] = pConditions.begin()->Create(0, pConditions.begin()->GetGeometry(), pConditions.begin()->pGetProperties());
+            const cond_geometries_2d index_geom0 = Line;
+            mpRefCondition[index_geom0] = pConditions.begin()->Create(0, pConditions.begin()->GetGeometry(), pConditions.begin()->pGetProperties());
         }
         else
         {
-            const CondGeometries3D IndexGeom0 = Triangle3D;
-            const CondGeometries3D IndexGeom1 = Quadrilateral3D;
+            const cond_geometries_3d index_geom0 = Triangle3D;
+            const cond_geometries_3d index_geom1 = Quadrilateral3D;
             
             for(unsigned int i = 0; i < numConditions; i++) 
             {
                 auto itCond = pConditions.begin() + i;
 
-                if ((itCond->GetGeometry()).GetGeometryType() == GeometryData::KratosGeometryType::Kratos_Triangle3D3 && mInitRefCondition[IndexGeom0] == false) // Triangle
+                if ((itCond->GetGeometry()).GetGeometryType() == GeometryData::KratosGeometryType::Kratos_Triangle3D3 && mInitRefCondition[index_geom0] == false) // Triangle
                 {
-                    mpRefCondition[IndexGeom0] = itCond->Create(0, itCond->GetGeometry(), itCond->pGetProperties());
-                    mInitRefCondition[IndexGeom0] = true;
+                    mpRefCondition[index_geom0] = itCond->Create(0, itCond->GetGeometry(), itCond->pGetProperties());
+                    mInitRefCondition[index_geom0] = true;
                 }
-                else if ((itCond->GetGeometry()).GetGeometryType() == GeometryData::KratosGeometryType::Kratos_Quadrilateral3D4 && mInitRefCondition[IndexGeom1] == false) // Quadrilateral
+                else if ((itCond->GetGeometry()).GetGeometryType() == GeometryData::KratosGeometryType::Kratos_Quadrilateral3D4 && mInitRefCondition[index_geom1] == false) // Quadrilateral
                 {
-                    mpRefCondition[IndexGeom1] = itCond->Create(0, itCond->GetGeometry(), itCond->pGetProperties());
-                    mInitRefCondition[IndexGeom1] = true;
+                    mpRefCondition[index_geom1] = itCond->Create(0, itCond->GetGeometry(), itCond->pGetProperties());
+                    mInitRefCondition[index_geom1] = true;
                 }
                 
-                if (mInitRefCondition[IndexGeom0] == true && mInitRefCondition[IndexGeom1] == true)
+                if (mInitRefCondition[index_geom0] == true && mInitRefCondition[index_geom1] == true)
                 {
                     break;
                 }
@@ -540,37 +460,37 @@ protected:
         {
             auto itCond = pConditions.begin() + i;
             
-            SetConditions(itCond->GetGeometry(), CondColors[itCond->Id()], i + 1);
+            SetConditions(itCond->GetGeometry(), cond_colors[itCond->Id()], i + 1);
         }
         
         /* Elements */
         // We clone the first element of each type
         if (TDim == 2 && numElements > 0)
         {
-            const ElemGeometries2D IndexGeom0 = Triangle2D;
-            mpRefElement[IndexGeom0] = pElements.begin()->Create(0, pElements.begin()->GetGeometry(), pElements.begin()->pGetProperties());
+            const elem_geometries_2d index_geom0 = Triangle2D;
+            mpRefElement[index_geom0] = pElements.begin()->Create(0, pElements.begin()->GetGeometry(), pElements.begin()->pGetProperties());
         }
         else
         {
-            const ElemGeometries3D IndexGeom0 = Tetrahedra;
-            const ElemGeometries3D IndexGeom1 = Prism;
+            const elem_geometries_3d index_geom0 = Tetrahedra;
+            const elem_geometries_3d index_geom1 = Prism;
             
             for(unsigned int i = 0; i < numElements; i++) 
             {
                 auto itElem = pElements.begin() + i;
                 
-                if ((itElem->GetGeometry()).GetGeometryType() == GeometryData::KratosGeometryType::Kratos_Tetrahedra3D4 && mInitRefElement[IndexGeom0] == false) // Tetrahedra
+                if ((itElem->GetGeometry()).GetGeometryType() == GeometryData::KratosGeometryType::Kratos_Tetrahedra3D4 && mInitRefElement[index_geom0] == false) // Tetrahedra
                 {
-                    mpRefElement[IndexGeom0] = itElem->Create(0, itElem->GetGeometry(), itElem->pGetProperties());
-                    mInitRefElement[IndexGeom0] = true;
+                    mpRefElement[index_geom0] = itElem->Create(0, itElem->GetGeometry(), itElem->pGetProperties());
+                    mInitRefElement[index_geom0] = true;
                 }
-                else if ((itElem->GetGeometry()).GetGeometryType() == GeometryData::KratosGeometryType::Kratos_Quadrilateral3D4 && mInitRefElement[IndexGeom1] == false) // Prism
+                else if ((itElem->GetGeometry()).GetGeometryType() == GeometryData::KratosGeometryType::Kratos_Quadrilateral3D4 && mInitRefElement[index_geom1] == false) // Prism
                 {
-                    mpRefElement[IndexGeom1] = itElem->Create(0, itElem->GetGeometry(), itElem->pGetProperties());
-                    mInitRefElement[IndexGeom1] = true;
+                    mpRefElement[index_geom1] = itElem->Create(0, itElem->GetGeometry(), itElem->pGetProperties());
+                    mInitRefElement[index_geom1] = true;
                 }
                 
-                if (mInitRefElement[IndexGeom0] == true && mInitRefElement[IndexGeom1] == true)
+                if (mInitRefElement[index_geom0] == true && mInitRefElement[index_geom1] == true)
                 {
                     break;
                 }
@@ -582,7 +502,7 @@ protected:
         {
             auto itElem = pElements.begin() + i;
             
-            SetElements(itElem->GetGeometry(), ElemColors[itElem->Id()], i + 1);
+            SetElements(itElem->GetGeometry(), elem_colors[itElem->Id()], i + 1);
         }
     }
     
@@ -598,7 +518,7 @@ protected:
         ////////* SOLUTION FILE *////////
         
         // Iterate in the nodes
-        NodesArrayType& pNode = mrThisModelPart.Nodes();
+        NodesArrayType& pNode = mThisModelPart.Nodes();
         auto numNodes = pNode.end() - pNode.begin();
         
         SetSolSize(numNodes);
@@ -616,17 +536,17 @@ protected:
             #endif     
             
             // We get the metric
-            const Vector& Metric = itNode->GetValue(MMG_METRIC);
+            const Vector& metric = itNode->GetValue(MMG_METRIC);
             
             #ifdef KRATOS_DEBUG 
-            if(Metric.size() != TDim * 3 - 3) 
+            if(metric.size() != TDim * 3 - 3) 
             {
-                KRATOS_ERROR << "Wrong size of vector MMG_METRIC found for node " << itNode->Id() << " size is " << Metric.size() << " expected size was " << TDim * 3 - 3;
+                KRATOS_ERROR << "Wrong size of vector MMG_METRIC found for node " << itNode->Id() << " size is " << metric.size() << " expected size was " << TDim * 3 - 3;
             }
             #endif
             
             // We set the metric
-            SetMetricTensor(Metric, i + 1);
+            SetMetricTensor(metric, i + 1);
         }
     }
     
@@ -635,23 +555,22 @@ protected:
     
     /**
      * We execute the MMg library and build the new model part from the old model part
+     * @param save_to_file: If the resulting mesh and solution are saved to a plain text file
+     * @param MaxNumberOfResults: The maxim number of results to consider in the search
      */
     
-    void ExecuteRemeshing()
+    void ExecuteRemeshing(
+        const bool save_to_file = false,
+        const unsigned int MaxNumberOfResults = 1000
+        )
     {
-        // Getting the parameters
-        const bool SaveToFile = mThisParameters["save_external_files"].GetBool();
-        
         // We initialize some values
-        const unsigned int StepDataSize = mrThisModelPart.GetNodalSolutionStepDataSize();
-        const unsigned int BufferSize   = mrThisModelPart.NodesBegin()->GetBufferSize();
-        
-        mThisParameters["step_data_size"].SetInt(StepDataSize);
-        mThisParameters["buffer_size"].SetInt(BufferSize);
+        unsigned int step_data_size = mThisModelPart.GetNodalSolutionStepDataSize();
+        unsigned int buffer_size    = mThisModelPart.NodesBegin()->GetBufferSize();
         
         if (mEchoLevel > 0)
         {        
-           std::cout << "Step data size: " << StepDataSize << " Buffer size: " << BufferSize << std::endl; 
+           std::cout << "Step data size: " << step_data_size << " Buffer size: " << buffer_size <<     std::endl; 
         }
         
         ////////* MMG LIBRARY CALL *////////
@@ -659,7 +578,6 @@ protected:
         {
            std::cout << "////////* MMG LIBRARY CALL *////////" << std::endl; 
         }
-        
         MMGLibCall();
         
         const unsigned int nNodes = mmgMesh->np;
@@ -706,37 +624,37 @@ protected:
         ModelPart rOldModelPart;
         
         // First we empty the model part
-        for (NodeConstantIterator itNode = mrThisModelPart.NodesBegin(); itNode != mrThisModelPart.NodesEnd(); itNode++)
+        for (NodeConstantIterator node_iterator = mThisModelPart.NodesBegin(); node_iterator != mThisModelPart.NodesEnd(); node_iterator++)
         {
-            itNode->Set(TO_ERASE, true);
-            rOldModelPart.AddNode(*(itNode.base()));
+            node_iterator->Set(TO_ERASE, true);
+            rOldModelPart.AddNode(*(node_iterator.base()));
         }
-        mrThisModelPart.RemoveNodesFromAllLevels(TO_ERASE);  
+        mThisModelPart.RemoveNodesFromAllLevels(TO_ERASE);  
         
-        for (ConditionConstantIterator itCond = mrThisModelPart.ConditionsBegin(); itCond != mrThisModelPart.ConditionsEnd(); itCond++)
+        for (ConditionConstantIterator condition_iterator = mThisModelPart.ConditionsBegin(); condition_iterator != mThisModelPart.ConditionsEnd(); condition_iterator++)
         {
-            itCond->Set(TO_ERASE, true);
+            condition_iterator->Set(TO_ERASE, true);
         }
-        mrThisModelPart.RemoveConditionsFromAllLevels(TO_ERASE); 
+        mThisModelPart.RemoveConditionsFromAllLevels(TO_ERASE); 
         
-        for (ElementConstantIterator itElem = mrThisModelPart.ElementsBegin(); itElem != mrThisModelPart.ElementsEnd(); itElem++)
+        for (ElementConstantIterator elem_iterator = mThisModelPart.ElementsBegin(); elem_iterator != mThisModelPart.ElementsEnd(); elem_iterator++)
         {
-            itElem->Set(TO_ERASE, true);
-            rOldModelPart.AddElement(*(itElem.base()));
+            elem_iterator->Set(TO_ERASE, true);
+            rOldModelPart.AddElement(*(elem_iterator.base()));
         }
-        mrThisModelPart.RemoveElementsFromAllLevels(TO_ERASE);  
+        mThisModelPart.RemoveElementsFromAllLevels(TO_ERASE);  
         
         // Create a new model part
         /* NODES */
-        for (int unsigned iNode = 1; iNode <= nNodes; iNode++)
+        for (int unsigned i_node = 1; i_node <= nNodes; i_node++)
         {
             int ref, isRequired;
-            NodeType::Pointer pNode = CreateNode(iNode, ref, isRequired);
+            NodeType::Pointer pNode = CreateNode(i_node, ref, isRequired);
             
             // Set the DOFs in the nodes 
-            for (typename Node<3>::DofsContainerType::const_iterator itDoF = mDofs.begin(); itDoF != mDofs.end(); itDoF++)
+            for (typename Node<3>::DofsContainerType::const_iterator i_dof = mDofs.begin(); i_dof != mDofs.end(); i_dof++)
             {
-                pNode->pAddDof(*itDoF);
+                pNode->pAddDof(*i_dof);
             }
             
             if (ref != 0) // NOTE: ref == 0 is the MainModelPart
@@ -745,48 +663,48 @@ protected:
                 for (unsigned int colors = 0; colors < ColorList.size(); colors++)
                 {
                     std::string SubModelPartName = ColorList[colors];
-                    ModelPart& SubModelPart = mrThisModelPart.GetSubModelPart(SubModelPartName);
+                    ModelPart& SubModelPart = mThisModelPart.GetSubModelPart(SubModelPartName);
                     SubModelPart.AddNode(pNode);
                 }
             }
         }
         
         /* CONDITIONS */
-        unsigned int CondId = 1;
+        unsigned int cond_id = 1;
         if (mpRefCondition[0] != nullptr)
         {
-            unsigned int CounterCond0 = 0;
-            const std::vector<unsigned int> ConditionToRemove0 = CheckConditions0();
-            int PropId, isRequired;
-            for (int unsigned iCond = 1; iCond <= nConditions[0]; iCond++)
+            unsigned int counter_cond0 = 0;
+            const std::vector<unsigned int> conditions_to_remove0 = CheckConditions0();
+            int prop_id, isRequired;
+            for (int unsigned i_cond = 1; i_cond <= nConditions[0]; i_cond++)
             {
-                bool SkipCreation = false;
-                if (CounterCond0 < ConditionToRemove0.size())
+                bool skip_creation = false;
+                if (counter_cond0 < conditions_to_remove0.size())
                 {
-                    if (ConditionToRemove0[CounterCond0] == iCond)
+                    if (conditions_to_remove0[counter_cond0] == i_cond)
                     {
-                        SkipCreation = true;
-                        CounterCond0 += 1;
+                        skip_creation = true;
+                        counter_cond0 += 1;
                     }
                 }
-                ConditionType::Pointer pCondition = CreateCondition0(CondId, PropId, isRequired, SkipCreation);
+                ConditionType::Pointer pCondition = CreateCondition0(cond_id, prop_id, isRequired, skip_creation);
                 
                 if (pCondition != nullptr)
                 {
-                    mrThisModelPart.AddCondition(pCondition);
+                    mThisModelPart.AddCondition(pCondition);
                                         
-                    if (PropId != 0) // NOTE: PropId == 0 is the MainModelPart
+                    if (prop_id != 0) // NOTE: prop_id == 0 is the MainModelPart
                     {
-                        std::vector<std::string> ColorList = mColors[PropId];
-                        for (unsigned int iColors = 0; iColors < ColorList.size(); iColors++)
+                        std::vector<std::string> ColorList = mColors[prop_id];
+                        for (unsigned int colors = 0; colors < ColorList.size(); colors++)
                         {
-                            std::string SubModelPartName = ColorList[iColors];
-                            ModelPart& SubModelPart = mrThisModelPart.GetSubModelPart(SubModelPartName);
+                            std::string SubModelPartName = ColorList[colors];
+                            ModelPart& SubModelPart = mThisModelPart.GetSubModelPart(SubModelPartName);
                             SubModelPart.AddCondition(pCondition);
                         }
                     }
                     
-                    CondId += 1;
+                    cond_id += 1;
                 }
             }
         }
@@ -794,79 +712,79 @@ protected:
         {
             if (mpRefCondition[1] != nullptr) // Quadrilateral
             {
-                unsigned int CounterCond1 = 0;
-                const std::vector<unsigned int> ConditionToRemove1 = CheckConditions1();
-                int PropId, isRequired;
-                for (int unsigned iCond = 1; iCond <= nConditions[1]; iCond++)
+                unsigned int counter_cond1 = 0;
+                const std::vector<unsigned int> conditions_to_remove1 = CheckConditions1();
+                int prop_id, isRequired;
+                for (int unsigned i_cond = 1; i_cond <= nConditions[1]; i_cond++)
                 {                    
-                    bool SkipCreation = false;
-                    if (CounterCond1 < ConditionToRemove1.size())
+                    bool skip_creation = false;
+                    if (counter_cond1 < conditions_to_remove1.size())
                     {
-                        if (ConditionToRemove1[CounterCond1] == iCond)
+                        if (conditions_to_remove1[counter_cond1] == i_cond)
                         {
-                            SkipCreation = true;
-                            CounterCond1 += 1;
+                            skip_creation = true;
+                            counter_cond1 += 1;
                         }
                     }
-                    ConditionType::Pointer pCondition = CreateCondition1(CondId, PropId, isRequired, SkipCreation);
+                    ConditionType::Pointer pCondition = CreateCondition1(cond_id, prop_id, isRequired, skip_creation);
                     
                     if (pCondition != nullptr)
                     {
-                        mrThisModelPart.AddCondition(pCondition);
+                        mThisModelPart.AddCondition(pCondition);
                                             
-                        if (PropId != 0) // NOTE: PropId == 0 is the MainModelPart
+                        if (prop_id != 0) // NOTE: prop_id == 0 is the MainModelPart
                         {
-                            std::vector<std::string> ColorList = mColors[PropId];
-                            for (unsigned int iColors = 0; iColors < ColorList.size(); iColors++)
+                            std::vector<std::string> ColorList = mColors[prop_id];
+                            for (unsigned int colors = 0; colors < ColorList.size(); colors++)
                             {
-                                std::string SubModelPartName = ColorList[iColors];
-                                ModelPart& SubModelPart = mrThisModelPart.GetSubModelPart(SubModelPartName);
+                                std::string SubModelPartName = ColorList[colors];
+                                ModelPart& SubModelPart = mThisModelPart.GetSubModelPart(SubModelPartName);
                                 SubModelPart.AddCondition(pCondition);
                             }
                         }
                         
-                        CondId += 1;
+                        cond_id += 1;
                     }
                 }
             }
         }
         
         /* ELEMENTS */
-        unsigned int ElemId = 1;
+        unsigned int elem_id = 1;
         if (mpRefElement[0] != nullptr)
         {
-            unsigned int CounterElem0 = 0;
-            const std::vector<unsigned int> ElementsToRemove0 = CheckElements0();
-            int PropId, isRequired;
+            unsigned int counter_elem0 = 0;
+            const std::vector<unsigned int> elements_to_remove0 = CheckElements0();
+            int prop_id, isRequired;
             for (int unsigned i_elem = 1; i_elem <= nElements[0]; i_elem++)
             {  
-                bool SkipCreation = false;
-                if (CounterElem0 < ElementsToRemove0.size())
+                bool skip_creation = false;
+                if (counter_elem0 < elements_to_remove0.size())
                 {
-                    if (ElementsToRemove0[CounterElem0] == i_elem)
+                    if (elements_to_remove0[counter_elem0] == i_elem)
                     {
-                        SkipCreation = true;
-                        CounterElem0 += 1;
+                        skip_creation = true;
+                        counter_elem0 += 1;
                     }
                 }
-                ElementType::Pointer pElement = CreateElement0(ElemId, PropId, isRequired, SkipCreation);
+                ElementType::Pointer pElement = CreateElement0(elem_id, prop_id, isRequired, skip_creation);
                 
                 if (pElement != nullptr)
                 {
-                    mrThisModelPart.AddElement(pElement);
+                    mThisModelPart.AddElement(pElement);
                     
-                    if (PropId != 0) // NOTE: PropId == 0 is the MainModelPart
+                    if (prop_id != 0) // NOTE: prop_id == 0 is the MainModelPart
                     {
-                        std::vector<std::string> ColorList = mColors[PropId];
-                        for (unsigned int iColors = 0; iColors < ColorList.size(); iColors++)
+                        std::vector<std::string> ColorList = mColors[prop_id];
+                        for (unsigned int colors = 0; colors < ColorList.size(); colors++)
                         {
-                            std::string SubModelPartName = ColorList[iColors];
-                            ModelPart& SubModelPart = mrThisModelPart.GetSubModelPart(SubModelPartName);
+                            std::string SubModelPartName = ColorList[colors];
+                            ModelPart& SubModelPart = mThisModelPart.GetSubModelPart(SubModelPartName);
                             SubModelPart.AddElement(pElement);
                         }
                     }
                     
-                    ElemId += 1;
+                    elem_id += 1;
                 }
             }
         }
@@ -874,72 +792,72 @@ protected:
         {
             if (mpRefElement[1] != nullptr) // Prism
             {
-                unsigned int CounterElem1 = 0;
-                const std::vector<unsigned int> ElementsToRemove1 = CheckElements1();
-                int PropId, isRequired;
+                unsigned int counter_elem1 = 0;
+                const std::vector<unsigned int> elements_to_remove1 = CheckElements1();
+                int prop_id, isRequired;
                 for (int unsigned i_elem = 1; i_elem <= nElements[1]; i_elem++)
                 {
-                    bool SkipCreation = false;  
-                    if (CounterElem1 < ElementsToRemove1.size())
+                    bool skip_creation = false;  
+                    if (counter_elem1 < elements_to_remove1.size())
                     {
-                        if (ElementsToRemove1[CounterElem1] == i_elem)
+                        if (elements_to_remove1[counter_elem1] == i_elem)
                         {
-                            SkipCreation = true;
-                            CounterElem1 += 1;
+                            skip_creation = true;
+                            counter_elem1 += 1;
                         }
                     }
-                    ElementType::Pointer pElement = CreateElement1(ElemId, PropId, isRequired,SkipCreation);
+                    ElementType::Pointer pElement = CreateElement1(elem_id, prop_id, isRequired,skip_creation);
                     
                     if (pElement != nullptr)
                     {
-                        mrThisModelPart.AddElement(pElement);
+                        mThisModelPart.AddElement(pElement);
                         
-                        if (PropId != 0) // NOTE: PropId == 0 is the MainModelPart
+                        if (prop_id != 0) // NOTE: prop_id == 0 is the MainModelPart
                         {
-                            std::vector<std::string> ColorList = mColors[PropId];
-                            for (unsigned int iColors = 0; iColors < ColorList.size(); iColors++)
+                            std::vector<std::string> ColorList = mColors[prop_id];
+                            for (unsigned int colors = 0; colors < ColorList.size(); colors++)
                             {
-                                std::string SubModelPartName = ColorList[iColors];
-                                ModelPart& SubModelPart = mrThisModelPart.GetSubModelPart(SubModelPartName);
+                                std::string SubModelPartName = ColorList[colors];
+                                ModelPart& SubModelPart = mThisModelPart.GetSubModelPart(SubModelPartName);
                                 SubModelPart.AddElement(pElement);
                             }
                         }
                         
-                        ElemId += 1;
+                        elem_id += 1;
                     }
                 }
             }
         }
         
         //  Get the list of submodelparts names
-        const std::vector<std::string> SubModelPartNames = mrThisModelPart.GetSubModelPartNames();
+        const std::vector<std::string> SubModelPartNames = mThisModelPart.GetSubModelPartNames();
        
         // Add the nodes to the differents submodelparts
-        for (unsigned int iModelPart = 0; iModelPart < mrThisModelPart.NumberOfSubModelParts(); iModelPart++)
+        for (unsigned int i_model_part = 0; i_model_part < mThisModelPart.NumberOfSubModelParts(); i_model_part++)
         {
-            ModelPart& rSubModelPart = mrThisModelPart.GetSubModelPart(SubModelPartNames[iModelPart]);
+            ModelPart& rSubModelPart = mThisModelPart.GetSubModelPart(SubModelPartNames[i_model_part]);
            
-            std::set<int> AuxSet;
+            std::set<int> aux_set;
            
-            for (ElementConstantIterator itElem = rSubModelPart.ElementsBegin(); itElem != rSubModelPart.ElementsEnd(); itElem++)
+            for (ElementConstantIterator elem_iterator = rSubModelPart.ElementsBegin(); elem_iterator != rSubModelPart.ElementsEnd(); elem_iterator++)
             {
-                for (unsigned int iNode = 0; iNode < itElem->GetGeometry().size(); iNode++)
+                for (unsigned int i_node = 0; i_node < elem_iterator->GetGeometry().size(); i_node++)
                 {
-                    AuxSet.insert(itElem->GetGeometry()[iNode].Id());
+                    aux_set.insert(elem_iterator->GetGeometry()[i_node].Id());
                 }
             }
            
-            for (ConditionConstantIterator itCond = rSubModelPart.ConditionsBegin(); itCond != rSubModelPart.ConditionsEnd(); itCond++)
+            for (ConditionConstantIterator condition_iterator = rSubModelPart.ConditionsBegin(); condition_iterator != rSubModelPart.ConditionsEnd(); condition_iterator++)
             {
-                for (unsigned int iNode = 0; iNode < itCond->GetGeometry().size(); iNode++)
+                for (unsigned int i_node = 0; i_node < condition_iterator->GetGeometry().size(); i_node++)
                 {
-                    AuxSet.insert(itCond->GetGeometry()[iNode].Id());
+                    aux_set.insert(condition_iterator->GetGeometry()[i_node].Id());
                 }
             }
            
             // Clean duplicated nodes
             std::vector<IndexType> NodesIds;
-            for( auto it = AuxSet.begin(); it != AuxSet.end(); ++it ) 
+            for( auto it = aux_set.begin(); it != aux_set.end(); ++it ) 
             {
                 NodesIds.push_back(*it);
             }
@@ -948,7 +866,7 @@ protected:
         }
         
         /* Save to file */
-        if (SaveToFile == true)
+        if (save_to_file == true)
         {
             SaveSolutionToFile(true);
         }
@@ -960,24 +878,10 @@ protected:
         ReorderAllIds();
         
         /* We interpolate all the values */
-        Parameters InterpolateParameters = Parameters(R"({"echo_level": 1, "framework": "Eulerian", "max_number_of_searchs": 1000, "step_data_size": 0, "buffer_size": 0})" );
-        InterpolateParameters["echo_level"].SetInt(mThisParameters["echo_level"].GetInt());
-        InterpolateParameters["framework"].SetString(mThisParameters["framework"].GetString());
-        InterpolateParameters["max_number_of_searchs"].SetInt(mThisParameters["max_number_of_searchs"].GetInt());
-        InterpolateParameters["step_data_size"].SetInt(mThisParameters["step_data_size"].GetInt());
-        InterpolateParameters["buffer_size"].SetInt(mThisParameters["buffer_size"].GetInt());
-        NodalValuesInterpolationProcess<TDim> InterpolateNodalValues = NodalValuesInterpolationProcess<TDim>(rOldModelPart, mrThisModelPart, InterpolateParameters);
-        InterpolateNodalValues.Execute();
+        InterpolateValues(rOldModelPart, MaxNumberOfResults, step_data_size, buffer_size);
         
         /* We initialize elements and conditions */
         InitializeElementsAndConditions();
-        
-        /* We interpolate the internal variables */
-        if (mFramework == Lagrangian) 
-        {
-            InternalVariablesInterpolationProcess InternalVariablesInterpolation = InternalVariablesInterpolationProcess(rOldModelPart, mrThisModelPart, mThisParameters["internal_variables_parameters"]);
-            InternalVariablesInterpolation.Execute();
-        }
     }
     
     /**
@@ -986,7 +890,7 @@ protected:
     
     void ReorderAllIds()
     {
-        NodesArrayType& pNode = mrThisModelPart.Nodes();
+        NodesArrayType& pNode = mThisModelPart.Nodes();
         auto numNodes = pNode.end() - pNode.begin();
 
         for(unsigned int i = 0; i < numNodes; i++) 
@@ -995,7 +899,7 @@ protected:
             itNode->SetId(i + 1);
         }
 
-        ConditionsArrayType& pCondition = mrThisModelPart.Conditions();
+        ConditionsArrayType& pCondition = mThisModelPart.Conditions();
         auto numConditions = pCondition.end() - pCondition.begin();
         
         for(unsigned int i = 0; i < numConditions; i++) 
@@ -1004,7 +908,7 @@ protected:
             itCondition->SetId(i + 1);
         }
 
-        ElementsArrayType& pElement = mrThisModelPart.Elements();
+        ElementsArrayType& pElement = mThisModelPart.Elements();
         auto numElements = pElement.end() - pElement.begin();
 
         for(unsigned int i = 0; i < numElements; i++) 
@@ -1020,7 +924,7 @@ protected:
     
     void InitializeElementsAndConditions()
     {
-        ConditionsArrayType& pCondition = mrThisModelPart.Conditions();
+        ConditionsArrayType& pCondition = mThisModelPart.Conditions();
         auto numConditions = pCondition.end() - pCondition.begin();
         
         for(unsigned int i = 0; i < numConditions; i++) 
@@ -1029,7 +933,7 @@ protected:
             itCondition->Initialize();
         }
 
-        ElementsArrayType& pElement = mrThisModelPart.Elements();
+        ElementsArrayType& pElement = mThisModelPart.Elements();
         auto numElements = pElement.end() - pElement.begin();
 
         for(unsigned int i = 0; i < numElements; i++) 
@@ -1045,32 +949,32 @@ protected:
     
     std::vector<unsigned int> CheckNodes()
     {
-        typedef boost::unordered_map<vector<double>, unsigned int, KeyHasherVector<double>, KeyComparorVector<double> > HashMap;
-        HashMap NodeMap;
+        typedef boost::unordered_map<vector<double>, unsigned int, KeyHasher, KeyComparor > hashmap;
+        hashmap node_map;
         
-        std::vector<unsigned int> NodesToRemoveIds;
+        std::vector<unsigned int> nodes_to_remove_ids;
         
-        vector<double> Coords(TDim);
+        vector<double> coords(TDim);
         
-        NodesArrayType& pNode = mrThisModelPart.Nodes();
+        NodesArrayType& pNode = mThisModelPart.Nodes();
         auto numNodes = pNode.end() - pNode.begin();
         
         for(unsigned int i = 0; i < numNodes; i++) 
         {
             auto itNode = pNode.begin() + i;
             
-            const array_1d<double, 3> Coordinates = itNode->Coordinates();
+            const array_1d<double, 3> coordinates = itNode->Coordinates();
             
-            for(unsigned int iCoord = 0; iCoord < TDim; iCoord++)
+            for(unsigned int cor = 0; cor < TDim; cor++)
             {
-                Coords[iCoord] = Coordinates[iCoord];
+                coords[cor] = coordinates[cor];
             }
             
-            NodeMap[Coords] += 1;
+            node_map[coords] += 1;
             
-            if (NodeMap[Coords] > 1)
+            if (node_map[coords] > 1)
             {
-                NodesToRemoveIds.push_back(itNode->Id());
+                nodes_to_remove_ids.push_back(itNode->Id());
                 if (mEchoLevel > 0)
                 {
                     std::cout << "The mode " << itNode->Id() <<  " is repeated"<< std::endl;
@@ -1078,7 +982,7 @@ protected:
             }
         }
         
-       return NodesToRemoveIds;
+       return nodes_to_remove_ids;
     }
     
     /**
@@ -1097,85 +1001,276 @@ protected:
     
     /**
      * It blocks certain nodes before remesh the model
-     * @param iNode: The index of the noode
+     * @param i_node: The index of the noode
      */
     
-    void BlockNode(unsigned int iNode);
+    void BlockNode(unsigned int i_node);
     
     /**
      * It creates the new node
-     * @param iNode: The index of the new noode
+     * @param i_node: The index of the new noode
      * @param ref: The submodelpart id
      * @param isRequired: MMG value (I don't know that it does)
      * @return pNode: The pointer to the new node created
      */
     
     NodeType::Pointer CreateNode(
-        unsigned int iNode,
+        unsigned int i_node,
         int& ref, 
         int& isRequired
         );
     
     /**
      * It creates the new condition
-     * @param CondId: The id of the condition
-     * @param PropId: The submodelpart id
+     * @param cond_id: The id of the condition
+     * @param prop_id: The submodelpart id
      * @param isRequired: MMG value (I don't know that it does)
      * @return pCondition: The pointer to the new condition created
      */
     
     ConditionType::Pointer CreateCondition0(
-        const unsigned int CondId,
-        int& PropId, 
+        const unsigned int cond_id,
+        int& prop_id, 
         int& isRequired,
-        bool SkipCreation
+        bool skip_creation
         );
     
     ConditionType::Pointer CreateCondition1(
-        const unsigned int CondId,
-        int& PropId, 
+        const unsigned int cond_id,
+        int& prop_id, 
         int& isRequired,
-        bool SkipCreation
+        bool skip_creation
         );
     
     /**
      * It creates the new element
-     * @param CondId: The id of the element
-     * @param PropId: The submodelpart id
+     * @param cond_id: The id of the element
+     * @param prop_id: The submodelpart id
      * @param isRequired: MMG value (I don't know that it does)
      * @return pElement: The pointer to the new condition created
      */
     
     ElementType::Pointer CreateElement0(
-        const unsigned int ElemId,
-        int& PropId, 
+        const unsigned int elem_id,
+        int& prop_id, 
         int& isRequired,
-        bool SkipCreation
+        bool skip_creation
         );
     
     ElementType::Pointer CreateElement1(
-        const unsigned int ElemId,
-        int& PropId, 
+        const unsigned int elem_id,
+        int& prop_id, 
         int& isRequired,
-        bool SkipCreation
+        bool skip_creation
+        );
+    
+    /**
+     * It interpolates the values in the new model part using the old model part
+     * @param rOldModelPart: The old model part
+     * @param MaxNumberOfResults: The maxim number of results to consider in the search
+     * @param step_data_size: The size of the database
+     * @param buffer_size: The size of the buffer
+     */
+    
+    void InterpolateValues(
+        ModelPart& rOldModelPart,
+        const unsigned int MaxNumberOfResults,
+        unsigned int step_data_size,
+        unsigned int buffer_size  
+        )
+    {
+        // We create the locator
+        BinBasedFastPointLocator<TDim> PointLocator = BinBasedFastPointLocator<TDim>(rOldModelPart);
+        PointLocator.UpdateSearchDatabase();
+        
+        // Iterate in the nodes
+        NodesArrayType& pNode = mThisModelPart.Nodes();
+        auto numNodes = pNode.end() - pNode.begin();
+        
+        /* Nodes */
+//         #pragma omp parallel for 
+        for(unsigned int i = 0; i < numNodes; i++) 
+        {
+            auto itNode = pNode.begin() + i;
+            
+            Vector shape_functions;
+            ElementType::Pointer pElement;
+            
+            const bool found = PointLocator.FindPointOnMeshSimplified(itNode->Coordinates(), shape_functions, pElement, MaxNumberOfResults);
+            
+            if (found == false)
+            {
+                if (mEchoLevel > 0 || mFramework == Lagrangian) // NOTE: In the case we are in a Lagrangian framework this is serious and should print a message
+                {
+                   std::cout << "WARNING: Node "<< itNode->Id() << " not found (interpolation not posible)" << std::endl;
+                   std::cout << "\t X:"<< itNode->X() << "\t Y:"<< itNode->Y() << "\t Z:"<< itNode->Z() << std::endl;
+                   if (mFramework == Lagrangian)
+                   {
+                       std::cout << "WARNING: YOU ARE IN A LAGRANGIAN FRAMEWORK THIS IS DANGEROUS" << std::endl;
+                   }
+                }
+            }
+            else
+            {
+                for(unsigned int step = 0; step < buffer_size; step++)
+                {
+                    CalculateStepData(*(itNode.base()), pElement, shape_functions, step, step_data_size);
+                }
+                
+                // After we interpolate the DISPLACEMENT we interpolate the initial coordinates to ensure a functioning of the simulation
+                if (mFramework == Lagrangian)
+                {
+                    if ( itNode->SolutionStepsDataHas( DISPLACEMENT ) == false ) // Fisrt we check if we have the displacement variable
+                    {
+                        KRATOS_ERROR << "Missing DISPLACEMENT on node " << itNode->Id() << std::endl;
+                    }
+                    
+                    CalculateInitialCoordinates(*(itNode.base()));
+                }
+            }
+        }
+        
+//         if (mFramework == Lagrangian) // We interpolate the internal variables
+//         {
+//             // We get the process info from th mode
+//             const ProcessInfo& rCurrentProcessInfo = mThisModelPart.GetProcessInfo();
+//             
+// //             // We calculate the NODAL_AREA in both model parts
+// //             /* Old model part */
+// //             CalculateNodalAreaProcess NodalAreaCalculatorOld = CalculateNodalAreaProcess(rOldModelPart, TDim);
+// //             NodalAreaCalculatorOld.Execute();
+// //             
+// //             /* New model part */
+// //             CalculateNodalAreaProcess NodalAreaCalculatorNew = CalculateNodalAreaProcess(rThisModelPart, TDim);
+// //             NodalAreaCalculatorNew.Execute();
+//             
+//             // Iterate in the elements
+//             ElementsArrayType& pElem = mThisModelPart.Elements();
+//             auto numElements = pElem.end() - pElem.begin();
+//             
+//             // TODO: Put the input in the parameters (PK2_STRESS_TENSOR is for TL)
+//             Variable<Matrix> VariableTensor = PK2_STRESS_TENSOR; 
+//             Variable<Vector> VariableVector = PK2_STRESS_VECTOR;
+// //             Variable<double> PlasticVariable = PLASTIC_STRESS_LIKE; // TODO: Add plasticity variable
+//             bool DetF0Interpolation = true;
+//             
+// //             #pragma omp parallel for 
+//             for(unsigned int i = 0; i < numElements; i++) 
+//             {
+//                 auto itElem = pElem.begin() + i;
+//                 
+//                 std::vector<Matrix> ResultTensor;
+//                 std::vector<double> ResultJ; 
+//                 
+//                 // Initialize: We set to 0 (the tensor and Jacobian are right now, then getting the value we got 0)
+//                 itElem->GetValueOnIntegrationPoints( VariableTensor, ResultTensor, rCurrentProcessInfo);
+//                 itElem->GetValueOnIntegrationPoints( DETERMINANT_F, ResultJ, rCurrentProcessInfo);
+//                 
+//                 for (unsigned int i_node = 0; i_node < itElem->GetGeometry().size(); i_node++)
+//                 {
+//                     Vector shape_functions;
+//                     ElementType::Pointer pElement;
+//                 
+//                     const bool found = PointLocator.FindPointOnMeshSimplified(itElem->GetGeometry()[i_node].Coordinates(), shape_functions, pElement, MaxNumberOfResults);
+//                     
+//                     if (found == false)
+//                     {
+//                         if (mEchoLevel > 0)
+//                         {
+//                             std::cout << "WARNING: Node "<< itElem->GetGeometry()[i_node].Id() << " not found (interpolation not posible)" << std::endl;
+//                             std::cout << "\t X:"<< itElem->GetGeometry()[i_node].X() << "\t Y:"<< itElem->GetGeometry()[i_node].Y() << "\t Z:"<< itElem->GetGeometry()[i_node].Z() << std::endl;
+//                             std::cout << "WARNING: YOU ARE IN A LAGRANGIAN FRAMEWORK THIS IS DANGEROUS" << std::endl;
+//                         }
+//                     }
+//                     else
+//                     {
+//                         // NOTE: Can we do a check of the internal variables?
+//                         
+//                         const double Volume = pElement->GetGeometry().Volume();
+// 
+//                         std::vector<Matrix> Tensor;
+//                         std::vector<double> J;         
+//                         
+//                         // We calculate the current state in the origin model part
+//                         pElement->GetValueOnIntegrationPoints( VariableTensor, Tensor, rCurrentProcessInfo);
+//                         pElement->GetValueOnIntegrationPoints( DETERMINANT_F, J, rCurrentProcessInfo);
+//                         
+//                         // We add to the previous values (we iterate over the vector)
+//                         for (unsigned int i = 0; i < Tensor.size(); i++)
+//                         {
+//                             ResultTensor[i] += Tensor[i] * Volume;
+//                         }
+//                         for (unsigned int j = 0; j < J.size(); j++)
+//                         {
+//                             ResultJ[j] += J[j] * Volume;
+//                         }
+//                     }
+//                 }
+//                 
+//                 // Finally we set the values
+//                 const double VolumeDestiny = itElem->GetGeometry().Volume();
+//                 
+//                 /* Iterating over the vector */
+//                 for (unsigned int i = 0; i < ResultTensor.size(); i++)
+//                 {
+//                     ResultTensor[i] = ResultTensor[i]/VolumeDestiny;
+//                 }
+//                     
+//                 itElem->SetValueOnIntegrationPoints( VariableTensor, ResultTensor, rCurrentProcessInfo);
+//                 if (DetF0Interpolation == true)
+//                 {
+//                     /* Iterating over the vector */
+//                     for (unsigned int j = 0; j < ResultJ.size(); j++)
+//                     {
+//                         ResultJ[j] = ResultJ[j]/VolumeDestiny;
+//                     }
+//                     
+//                     itElem->SetValueOnIntegrationPoints( DETERMINANT_F, ResultJ, rCurrentProcessInfo);
+//                 }
+//             }
+//         }
+    }
+    
+    /**
+     * It calculates the initial coordinates interpolated to the node
+     * @return itNode: The node pointer
+     */
+    
+    void CalculateInitialCoordinates(NodeType::Pointer& pNode);
+    
+    /**
+     * It calculates the step data interpolated to the node
+     * @return itNode: The node pointer
+     * @param pElement: The element pointer
+     * @param shape_functions: The shape functions in the node
+     * @param step: The time step
+     * @param step_data_size: The size of the database
+     */
+    
+    void CalculateStepData(
+        NodeType::Pointer& pNode,
+        const ElementType::Pointer& pElement,
+        const Vector shape_functions,
+        unsigned int step,
+        unsigned int step_data_size
         );
     
     /**
      * It saves the solution and mesh to files (for debugging pourpose g.e)
-     * @param PostOutput: If the file to save is after or before remeshing
+     * @param post_output: If the file to save is after or before remeshing
      */
     
-    void SaveSolutionToFile(const bool PostOutput)
+    void SaveSolutionToFile(const bool post_output)
     {
         /* GET RESULTS */
 
-        const unsigned int step = mrThisModelPart.GetProcessInfo()[TIME_STEPS];
+        const unsigned int step = mThisModelPart.GetProcessInfo()[TIME_STEPS];
         
         // Automatically save the mesh 
-        OutputMesh(PostOutput, step);
+        OutputMesh(post_output, step);
 
         // Automatically save the solution 
-        OutputSol(PostOutput, step);
+        OutputSol(post_output, step);
     }
     
     /**
@@ -1187,7 +1282,7 @@ protected:
         // Free the MMG structures 
         FreeAll();
 
-        // Free filename (NOTE: Problems with more that one iteration)
+        // Free Filename (NOTE: Problems with more that one iteration)
 //         free(mFilename);
 //         mFilename = NULL;
        
@@ -1472,7 +1567,7 @@ protected:
      */
     
     void OutputMesh(
-        const bool PostOutput, 
+        const bool post_output, 
         const unsigned int step
         );
     
@@ -1481,7 +1576,7 @@ protected:
      */
     
     void OutputSol(
-        const bool PostOutput, 
+        const bool post_output, 
         const unsigned int step
         );
     
@@ -1542,23 +1637,23 @@ protected:
     
     /**
      * This functions gets the "colors", parts of a model part to process
-     * @param NodeColors: Map where the submodelparts and nodes are stored
-     * @param CondColors: Map where the submodelparts and conditions are stored
-     * @param ElemColors: Map where the submodelparts and elements are stored
+     * @param node_colors: Map where the submodelparts and nodes are stored
+     * @param cond_colors: Map where the submodelparts and conditions are stored
+     * @param elem_colors: Map where the submodelparts and elements are stored
      */
     
     void ComputeColors(
-        boost::unordered_map<int,int>& NodeColors,
-        boost::unordered_map<int,int>& CondColors,
-        boost::unordered_map<int,int>& ElemColors
+        std::map<int,int>& node_colors,
+        std::map<int,int>& cond_colors,
+        std::map<int,int>& elem_colors
         )
     {        
         // Initialize and create the auxiliar maps
-        const std::vector<std::string> SubModelPartNames = mrThisModelPart.GetSubModelPartNames();
-        boost::unordered_map<int,std::set<int>> AuxNodeColors, AuxCondColors, AuxElemColors;
+        const std::vector<std::string> SubModelPartNames = mThisModelPart.GetSubModelPartNames();
+        std::map<int,std::set<int>> aux_node_colors, aux_cond_colors, aux_elem_colors;
         
         std::vector<std::string> ModelPartNames;
-        ModelPartNames.push_back(mrThisModelPart.Name());
+        ModelPartNames.push_back(mThisModelPart.Name());
         for (unsigned int i_sub = 0; i_sub < SubModelPartNames.size(); i_sub++)
         {
             ModelPartNames.push_back(SubModelPartNames[i_sub]);
@@ -1572,7 +1667,7 @@ protected:
             
             if (color > 0)
             {
-                ModelPart& rSubModelPart = mrThisModelPart.GetSubModelPart(ModelPartNames[i_sub]);
+                ModelPart& rSubModelPart = mThisModelPart.GetSubModelPart(ModelPartNames[i_sub]);
                 
                 // Iterate in the nodes
                 NodesArrayType& pNode = rSubModelPart.Nodes();
@@ -1591,7 +1686,7 @@ protected:
                 for(unsigned int i = 0; i < numNodes; i++) 
                 {
                     auto itNode = pNode.begin() + i;
-                    AuxNodeColors[itNode->Id()].insert(color);
+                    aux_node_colors[itNode->Id()].insert(color);
                 }
                 
                 /* Conditions */
@@ -1599,7 +1694,7 @@ protected:
                 for(unsigned int i = 0; i < numConditions; i++) 
                 {
                     auto itCond = pConditions.begin() + i;
-                    AuxCondColors[itCond->Id()].insert(color);
+                    aux_cond_colors[itCond->Id()].insert(color);
                 }
                 
                 /* Elements */
@@ -1607,7 +1702,7 @@ protected:
                 for(unsigned int i = 0; i < numElements; i++) 
                 {
                     auto itElem = pElements.begin() + i;
-                    AuxElemColors[itElem->Id()].insert(color);
+                    aux_elem_colors[itElem->Id()].insert(color);
                 }
             }
             
@@ -1615,142 +1710,142 @@ protected:
         }
         
         // The iterator for the auxiliar maps is created
-        typedef boost::unordered_map<int,std::set<int>>::iterator itType;
+        typedef std::map<int,std::set<int>>::iterator it_type;
         
         // Now detect all the cases in which a node or a cond belongs to more than one part simultaneously 
-        boost::unordered_map<std::set<int>, int> Combinations;
+        std::map<std::set<int>, int> combinations;
         
         /* Nodes */
-        for(itType iterator = AuxNodeColors.begin(); iterator != AuxNodeColors.end(); iterator++) 
+        for(it_type iterator = aux_node_colors.begin(); iterator != aux_node_colors.end(); iterator++) 
         {
 //             const int key = iterator->first;
-            const std::set<int> Value = iterator->second;
+            const std::set<int> value = iterator->second;
             
-            if (Value.size() > 1)
+            if (value.size() > 1)
             {
-                Combinations[Value] = -1;
+                combinations[value] = -1;
             }
         }
         
         /* Conditions */
-        for(itType iterator = AuxCondColors.begin(); iterator != AuxCondColors.end(); iterator++) 
+        for(it_type iterator = aux_cond_colors.begin(); iterator != aux_cond_colors.end(); iterator++) 
         {
 //             const int key = iterator->first;
-            const std::set<int> Value = iterator->second;
+            const std::set<int> value = iterator->second;
             
-            if (Value.size() > 1)
+            if (value.size() > 1)
             {
-                Combinations[Value] = -1;
+                combinations[value] = -1;
             }
         }
 
         /* Elements */
-        for(itType iterator = AuxElemColors.begin(); iterator != AuxElemColors.end(); iterator++) 
+        for(it_type iterator = aux_elem_colors.begin(); iterator != aux_elem_colors.end(); iterator++) 
         {
 //             const int key = iterator->first;
-            const std::set<int> Value = iterator->second;
+            const std::set<int> value = iterator->second;
             
-            if (Value.size() > 1)
+            if (value.size() > 1)
             {
-                Combinations[Value] = -1;
+                combinations[value] = -1;
             }
         }
         
         /* Combinations */
-        typedef boost::unordered_map<std::set<int>,int>::iterator CombType;
-        for(CombType iterator = Combinations.begin(); iterator != Combinations.end(); iterator++) 
+        typedef std::map<std::set<int>,int>::iterator comb_type;
+        for(comb_type iterator = combinations.begin(); iterator != combinations.end(); iterator++) 
         {
             const std::set<int> key = iterator->first;
-//             const int Value = iterator->second;
+//             const int value = iterator->second;
             
             for( auto it = key.begin(); it != key.end(); ++it ) 
             {
                 mColors[color].push_back(mColors[*it][0]);
             }
-            Combinations[key] = color;
+            combinations[key] = color;
             color += 1;
             
         }
         
         // The final maps are created
         /* Nodes */
-        for(itType iterator = AuxNodeColors.begin(); iterator != AuxNodeColors.end(); iterator++) 
+        for(it_type iterator = aux_node_colors.begin(); iterator != aux_node_colors.end(); iterator++) 
         {
             const int key = iterator->first;
-            const std::set<int> Value = iterator->second;
+            const std::set<int> value = iterator->second;
             
-            if (Value.size() == 0)
+            if (value.size() == 0)
             {
-                NodeColors[key] = 0; // Main Model Part
+                node_colors[key] = 0; // Main Model Part
             }
-            else if (Value.size() == 1) // Another Model Part
+            else if (value.size() == 1) // Another Model Part
             {
-                NodeColors[key] = *Value.begin();
+                node_colors[key] = *value.begin();
             }
             else // There is a combination
             {
-                NodeColors[key] = Combinations[Value];
+                node_colors[key] = combinations[value];
             }
         }
         
         /* Conditions */
-        for(itType iterator = AuxCondColors.begin(); iterator != AuxCondColors.end(); iterator++) 
+        for(it_type iterator = aux_cond_colors.begin(); iterator != aux_cond_colors.end(); iterator++) 
         {
             const int key = iterator->first;
-            const std::set<int> Value = iterator->second;
+            const std::set<int> value = iterator->second;
             
-            if (Value.size() == 0)
+            if (value.size() == 0)
             {
-                CondColors[key] = 0; // Main Model Part
+                cond_colors[key] = 0; // Main Model Part
             }
-            else if (Value.size() == 1) // Another Model Part
+            else if (value.size() == 1) // Another Model Part
             {
-                CondColors[key] = *Value.begin();
+                cond_colors[key] = *value.begin();
             }
             else // There is a combination
             {
-                CondColors[key] = Combinations[Value];
+                cond_colors[key] = combinations[value];
             }
         }
         
         /* Elements */
-        for(itType iterator = AuxElemColors.begin(); iterator != AuxElemColors.end(); iterator++) 
+        for(it_type iterator = aux_elem_colors.begin(); iterator != aux_elem_colors.end(); iterator++) 
         {
             const int key = iterator->first;
-            const std::set<int> Value = iterator->second;
+            const std::set<int> value = iterator->second;
             
-            if (Value.size() == 0)
+            if (value.size() == 0)
             {
-                ElemColors[key] = 0; // Main Model Part
+                elem_colors[key] = 0; // Main Model Part
             }
-            else if (Value.size() == 1) // Another Model Part
+            else if (value.size() == 1) // Another Model Part
             {
-                ElemColors[key] = *Value.begin();
+                elem_colors[key] = *value.begin();
             }
             else // There is a combination
             {
-                ElemColors[key] = Combinations[Value];
+                elem_colors[key] = combinations[value];
             }
         }
     }
 
     /**
      * This function is used to compute the Hessian metric tensor, note that when using the Hessian, more than one metric can be defined simultaneously, so in consecuence we need to define the elipsoid which defines the volume of maximal intersection
-     * @param Metric: This array contains the components of the metric tensor in the MMG defined order
+     * @param metric: This array contains the components of the metric tensor in the MMG defined order
      */
 
     void SetMetricTensor(
-        const Vector& Metric,
-        const int NodeId 
+        const Vector& metric,
+        const int node_id 
         );
     
     /**
      * This converts the framework string to an enum
      * @param str: The string
-     * @return FrameworkEulerLagrange: The equivalent enum
+     * @return Framework_euler_lagrange: The equivalent enum
      */
         
-    FrameworkEulerLagrange ConvertFramework(const std::string& str)
+    Framework_euler_lagrange ConvertFramework(const std::string& str)
     {
         if(str == "Lagrangian") 
         {
@@ -1788,19 +1883,19 @@ protected:
     template<>  
     std::vector<unsigned int> MmgUtility<2>::CheckConditions0()
     {
-        typedef boost::unordered_map<vector<unsigned int>, unsigned int, KeyHasherVector<unsigned int>, KeyComparorVector<unsigned int> > HashMap;
-        HashMap edge_map;
+        typedef boost::unordered_map<vector<unsigned int>, unsigned int, KeyHasher, KeyComparor > hashmap;
+        hashmap edge_map;
 
         vector<unsigned int> ids(2);
 
-        std::vector<unsigned int> ConditionsToRemove;
+        std::vector<unsigned int> conditions_to_remove;
         
         // Iterate in the conditions
         for(int i = 0; i < mmgMesh->na; i++) 
         {
-            int edge0, edge1, PropId, isRidge, isRequired;
+            int edge0, edge1, prop_id, isRidge, isRequired;
             
-            if (MMG2D_Get_edge(mmgMesh, &edge0, &edge1, &PropId, &isRidge, &isRequired) != 1 )
+            if (MMG2D_Get_edge(mmgMesh, &edge0, &edge1, &prop_id, &isRidge, &isRequired) != 1 )
             {
                 exit(EXIT_FAILURE);
             }
@@ -1815,11 +1910,11 @@ protected:
             
             if (edge_map[ids] > 1)
             {
-                ConditionsToRemove.push_back(i + 1);
+                conditions_to_remove.push_back(i + 1);
             }
         }
         
-        return ConditionsToRemove;
+        return conditions_to_remove;
     }
 
     /***********************************************************************************/
@@ -1828,38 +1923,38 @@ protected:
     template<>  
     std::vector<unsigned int> MmgUtility<3>::CheckConditions0()
     {
-        typedef boost::unordered_map<vector<unsigned int>, unsigned int, KeyHasherVector<unsigned int>, KeyComparorVector<unsigned int> > HashMap;
-        HashMap TriangleMap;
+        typedef boost::unordered_map<vector<unsigned int>, unsigned int, KeyHasher, KeyComparor > hashmap;
+        hashmap triangle_map;
 
-        vector<unsigned int> IdsTriangles(3);
+        vector<unsigned int> ids_triangles(3);
 
-        std::vector<unsigned int> ConditionsToRemove;
+        std::vector<unsigned int> conditions_to_remove;
                 
         for(int i = 0; i < mmgMesh->nt; i++) 
         {
-            int Vertex0, Vertex1, Vertex2, PropId, isRequired;
+            int vertex0, vertex1, vertex2, prop_id, isRequired;
 
-            if (MMG3D_Get_triangle(mmgMesh, &Vertex0, &Vertex1, &Vertex2, &PropId, &isRequired) != 1 )
+            if (MMG3D_Get_triangle(mmgMesh, &vertex0, &vertex1, &vertex2, &prop_id, &isRequired) != 1 )
             {
                 exit(EXIT_FAILURE);
             }
 
-            IdsTriangles[0] = Vertex0;
-            IdsTriangles[1] = Vertex1;
-            IdsTriangles[2] = Vertex2;
+            ids_triangles[0] = vertex0;
+            ids_triangles[1] = vertex1;
+            ids_triangles[2] = vertex2;
             
             //*** THE ARRAY OF IDS MUST BE ORDERED!!! ***
-            std::sort(IdsTriangles.begin(), IdsTriangles.end());
+            std::sort(ids_triangles.begin(), ids_triangles.end());
 
-            TriangleMap[IdsTriangles] += 1;
+            triangle_map[ids_triangles] += 1;
             
-            if (TriangleMap[IdsTriangles] > 1)
+            if (triangle_map[ids_triangles] > 1)
             {
-                ConditionsToRemove.push_back(i + 1);
+                conditions_to_remove.push_back(i + 1);
             }
         }
         
-        return ConditionsToRemove;
+        return conditions_to_remove;
     }
     
     /***********************************************************************************/
@@ -1868,39 +1963,39 @@ protected:
     template<>  
     std::vector<unsigned int> MmgUtility<3>::CheckConditions1()
     {
-        typedef boost::unordered_map<vector<unsigned int>, unsigned int, KeyHasherVector<unsigned int>, KeyComparorVector<unsigned int> > HashMap;
-        HashMap QuadrilateralMap;
+        typedef boost::unordered_map<vector<unsigned int>, unsigned int, KeyHasher, KeyComparor > hashmap;
+        hashmap quadrilateral_map;
 
-        vector<unsigned int> IdsQuadrilateral(4);
+        vector<unsigned int> ids_quadrilaterals(4);
 
-        std::vector<unsigned int> ConditionsToRemove;
+        std::vector<unsigned int> conditions_to_remove;
                 
         for(int i = 0; i < mmgMesh->nquad; i++) 
         {
-            int Vertex0, Vertex1, Vertex2, Vertex3, PropId, isRequired;
+            int vertex0, vertex1, vertex2, vertex3, prop_id, isRequired;
 
-            if (MMG3D_Get_quadrilateral(mmgMesh, &Vertex0, &Vertex1, &Vertex2, &Vertex3, &PropId, &isRequired) != 1 )
+            if (MMG3D_Get_quadrilateral(mmgMesh, &vertex0, &vertex1, &vertex2, &vertex3, &prop_id, &isRequired) != 1 )
             {
                 exit(EXIT_FAILURE);
             }
 
-            IdsQuadrilateral[0] = Vertex0;
-            IdsQuadrilateral[1] = Vertex1;
-            IdsQuadrilateral[2] = Vertex2;
-            IdsQuadrilateral[3] = Vertex3;
+            ids_quadrilaterals[0] = vertex0;
+            ids_quadrilaterals[1] = vertex1;
+            ids_quadrilaterals[2] = vertex2;
+            ids_quadrilaterals[3] = vertex3;
             
             //*** THE ARRAY OF IDS MUST BE ORDERED!!! ***
-            std::sort(IdsQuadrilateral.begin(), IdsQuadrilateral.end());
+            std::sort(ids_quadrilaterals.begin(), ids_quadrilaterals.end());
 
-            QuadrilateralMap[IdsQuadrilateral] += 1;
+            quadrilateral_map[ids_quadrilaterals] += 1;
             
-            if (QuadrilateralMap[IdsQuadrilateral] > 1)
+            if (quadrilateral_map[ids_quadrilaterals] > 1)
             {
-                ConditionsToRemove.push_back(i + 1);
+                conditions_to_remove.push_back(i + 1);
             }
         }
         
-        return ConditionsToRemove;
+        return conditions_to_remove;
     }
     
     /***********************************************************************************/
@@ -1909,39 +2004,39 @@ protected:
     template<>  
     std::vector<unsigned int> MmgUtility<2>::CheckElements0()
     {
-        typedef boost::unordered_map<vector<unsigned int>, unsigned int, KeyHasherVector<unsigned int>, KeyComparorVector<unsigned int> > HashMap;
-        HashMap TriangleMap;
+        typedef boost::unordered_map<vector<unsigned int>, unsigned int, KeyHasher, KeyComparor > hashmap;
+        hashmap triangle_map;
 
-        vector<unsigned int> IdsTriangles(3);
+        vector<unsigned int> ids_triangles(3);
 
-        std::vector<unsigned int> ElementsToRemove;
+        std::vector<unsigned int> elements_to_remove;
         
         // Iterate in the elements
         for(int i = 0; i < mmgMesh->nt; i++) 
         {
-            int Vertex0, Vertex1, Vertex2, PropId, isRequired;
+            int vertex0, vertex1, vertex2, prop_id, isRequired;
             
-            if (MMG2D_Get_triangle(mmgMesh, &Vertex0, &Vertex1, &Vertex2, &PropId, &isRequired) != 1 )
+            if (MMG2D_Get_triangle(mmgMesh, &vertex0, &vertex1, &vertex2, &prop_id, &isRequired) != 1 )
             {
                 exit(EXIT_FAILURE);
             }
             
-            IdsTriangles[0] = Vertex0;
-            IdsTriangles[1] = Vertex1;
-            IdsTriangles[2] = Vertex2;
+            ids_triangles[0] = vertex0;
+            ids_triangles[1] = vertex1;
+            ids_triangles[2] = vertex2;
 
             //*** THE ARRAY OF IDS MUST BE ORDERED!!! ***
-            std::sort(IdsTriangles.begin(), IdsTriangles.end());
+            std::sort(ids_triangles.begin(), ids_triangles.end());
 
-            TriangleMap[IdsTriangles] += 1;
+            triangle_map[ids_triangles] += 1;
             
-            if (TriangleMap[IdsTriangles] > 1)
+            if (triangle_map[ids_triangles] > 1)
             {
-                ElementsToRemove.push_back(i + 1);
+                elements_to_remove.push_back(i + 1);
             }
         }
         
-        return ElementsToRemove;
+        return elements_to_remove;
     }
 
     /***********************************************************************************/
@@ -1950,39 +2045,39 @@ protected:
     template<>  
     std::vector<unsigned int> MmgUtility<3>::CheckElements0()
     {
-        typedef boost::unordered_map<vector<unsigned int>, unsigned int, KeyHasherVector<unsigned int>, KeyComparorVector<unsigned int> > HashMap;
-        HashMap TriangleMap;
+        typedef boost::unordered_map<vector<unsigned int>, unsigned int, KeyHasher, KeyComparor > hashmap;
+        hashmap triangle_map;
 
-        vector<unsigned int> IdsTetrahedron(4);
+        vector<unsigned int> ids_tetrahedron(4);
 
-        std::vector<unsigned int> ElementsToRemove;
+        std::vector<unsigned int> elements_to_remove;
                 
         for(int i = 0; i < mmgMesh->ne; i++) 
         {
-            int Vertex0, Vertex1, Vertex2, Vertex3, PropId, isRequired;
+            int vertex0, vertex1, vertex2, vertex3, prop_id, isRequired;
 
-            if (MMG3D_Get_tetrahedron(mmgMesh, &Vertex0, &Vertex1, &Vertex2, &Vertex3, &PropId, &isRequired) != 1 )
+            if (MMG3D_Get_tetrahedron(mmgMesh, &vertex0, &vertex1, &vertex2, &vertex3, &prop_id, &isRequired) != 1 )
             {
                 exit(EXIT_FAILURE);
             }
 
-            IdsTetrahedron[0] = Vertex0;
-            IdsTetrahedron[1] = Vertex1;
-            IdsTetrahedron[2] = Vertex2;
-            IdsTetrahedron[3] = Vertex3;
+            ids_tetrahedron[0] = vertex0;
+            ids_tetrahedron[1] = vertex1;
+            ids_tetrahedron[2] = vertex2;
+            ids_tetrahedron[3] = vertex3;
             
             //*** THE ARRAY OF IDS MUST BE ORDERED!!! ***
-            std::sort(IdsTetrahedron.begin(), IdsTetrahedron.end());
+            std::sort(ids_tetrahedron.begin(), ids_tetrahedron.end());
 
-            TriangleMap[IdsTetrahedron] += 1;
+            triangle_map[ids_tetrahedron] += 1;
             
-            if (TriangleMap[IdsTetrahedron] > 1)
+            if (triangle_map[ids_tetrahedron] > 1)
             {
-                ElementsToRemove.push_back(i + 1);
+                elements_to_remove.push_back(i + 1);
             }
         }
         
-        return ElementsToRemove;
+        return elements_to_remove;
     }
 
     /***********************************************************************************/
@@ -1991,50 +2086,50 @@ protected:
     template<>  
     std::vector<unsigned int> MmgUtility<3>::CheckElements1()
     {
-        typedef boost::unordered_map<vector<unsigned int>, unsigned int, KeyHasherVector<unsigned int>, KeyComparorVector<unsigned int> > HashMap;
-        HashMap PrismMap;
+        typedef boost::unordered_map<vector<unsigned int>, unsigned int, KeyHasher, KeyComparor > hashmap;
+        hashmap prism_map;
 
-        vector<unsigned int> IdsPrisms(6);
+        vector<unsigned int> ids_prisms(6);
 
-        std::vector<unsigned int> ElementsToRemove;
+        std::vector<unsigned int> elements_to_remove;
                 
         for(int i = 0; i < mmgMesh->nprism; i++) 
         {
-            int Vertex0, Vertex1, Vertex2, Vertex3, Vertex4, Vertex5, PropId, isRequired;
+            int vertex0, vertex1, vertex2, vertex3, vertex4, vertex5, prop_id, isRequired;
 
-            if (MMG3D_Get_prism(mmgMesh, &Vertex0, &Vertex1, &Vertex2, &Vertex3, &Vertex4, &Vertex5, &PropId, &isRequired) != 1 )
+            if (MMG3D_Get_prism(mmgMesh, &vertex0, &vertex1, &vertex2, &vertex3, &vertex4, &vertex5, &prop_id, &isRequired) != 1 )
             {
                 exit(EXIT_FAILURE);
             }
 
-            IdsPrisms[0] = Vertex0;
-            IdsPrisms[1] = Vertex1;
-            IdsPrisms[2] = Vertex2;
-            IdsPrisms[3] = Vertex3;
-            IdsPrisms[4] = Vertex4;
-            IdsPrisms[5] = Vertex5;
+            ids_prisms[0] = vertex0;
+            ids_prisms[1] = vertex1;
+            ids_prisms[2] = vertex2;
+            ids_prisms[3] = vertex3;
+            ids_prisms[4] = vertex4;
+            ids_prisms[5] = vertex5;
             
             //*** THE ARRAY OF IDS MUST BE ORDERED!!! ***
-            std::sort(IdsPrisms.begin(), IdsPrisms.end());
+            std::sort(ids_prisms.begin(), ids_prisms.end());
 
-            PrismMap[IdsPrisms] += 1;
+            prism_map[ids_prisms] += 1;
             
-            if (PrismMap[IdsPrisms] > 1)
+            if (prism_map[ids_prisms] > 1)
             {
-                ElementsToRemove.push_back(i + 1);
+                elements_to_remove.push_back(i + 1);
             }
         }
         
-        return ElementsToRemove;
+        return elements_to_remove;
     }
     
     /***********************************************************************************/
     /***********************************************************************************/
     
 //     template<>  // NOTE: Not yet avalaible in the official API
-//     void MmgUtility<2>::BlockNode(unsigned int iNode)
+//     void MmgUtility<2>::BlockNode(unsigned int i_node)
 //     {
-//         if (MMG2D_Set_requiredVertex(mmgMesh, iNode) != 1 )
+//         if (MMG2D_Set_requiredVertex(mmgMesh, i_node) != 1 )
 //         {
 //             exit(EXIT_FAILURE);
 //         }
@@ -2045,9 +2140,9 @@ protected:
     
 
     template<>  
-    void MmgUtility<3>::BlockNode(unsigned int iNode)
+    void MmgUtility<3>::BlockNode(unsigned int i_node)
     {
-        if (MMG3D_Set_requiredVertex(mmgMesh, iNode) != 1 )
+        if (MMG3D_Set_requiredVertex(mmgMesh, i_node) != 1 )
         {
             exit(EXIT_FAILURE);
         }
@@ -2058,20 +2153,20 @@ protected:
     
     template<>  
     NodeType::Pointer MmgUtility<2>::CreateNode(
-        unsigned int iNode,
+        unsigned int i_node,
         int& ref, 
         int& isRequired
         )
     {
-        double Coord0, Coord1;
+        double coord0, coord1;
         int isCorner;
         
-        if (MMG2D_Get_vertex(mmgMesh, &Coord0, &Coord1, &ref, &isCorner, &isRequired) != 1 )
+        if (MMG2D_Get_vertex(mmgMesh, &coord0, &coord1, &ref, &isCorner, &isRequired) != 1 )
         {
             exit(EXIT_FAILURE);
         }
         
-        NodeType::Pointer pNode = mrThisModelPart.CreateNewNode(iNode, Coord0, Coord1, 0.0);
+        NodeType::Pointer pNode = mThisModelPart.CreateNewNode(i_node, coord0, coord1, 0.0);
         
         return pNode;
     }
@@ -2081,20 +2176,20 @@ protected:
     
     template<>  
     NodeType::Pointer MmgUtility<3>::CreateNode(
-        unsigned int iNode,
+        unsigned int i_node,
         int& ref, 
         int& isRequired
         )
     {
-        double Coord0, Coord1, Coord2;
+        double coord0, coord1, coord2;
         int isCorner;
         
-        if (MMG3D_Get_vertex(mmgMesh, &Coord0, &Coord1, &Coord2, &ref, &isCorner, &isRequired) != 1 )
+        if (MMG3D_Get_vertex(mmgMesh, &coord0, &coord1, &coord2, &ref, &isCorner, &isRequired) != 1 )
         {
             exit(EXIT_FAILURE);
         }
         
-        NodeType::Pointer pNode = mrThisModelPart.CreateNewNode(iNode, Coord0, Coord1, Coord2);
+        NodeType::Pointer pNode = mThisModelPart.CreateNewNode(i_node, coord0, coord1, coord2);
         
         return pNode;
     }
@@ -2104,36 +2199,36 @@ protected:
     
     template<>  
     ConditionType::Pointer MmgUtility<2>::CreateCondition0(        
-        const unsigned int CondId,
-        int& PropId, 
+        const unsigned int cond_id,
+        int& prop_id, 
         int& isRequired, 
-        bool SkipCreation
+        bool skip_creation
         )
     {
         ConditionType::Pointer pCondition = nullptr;
         
-        const CondGeometries2D IndexGeom = Line;
+        const cond_geometries_2d index_geom = Line;
         
-        int Edge0, Edge1, isRidge;
+        int edge0, edge1, isRidge;
         
-        if (MMG2D_Get_edge(mmgMesh, &Edge0, &Edge1, &PropId, &isRidge, &isRequired) != 1 )
+        if (MMG2D_Get_edge(mmgMesh, &edge0, &edge1, &prop_id, &isRidge, &isRequired) != 1 )
         {
             exit(EXIT_FAILURE);
         }
         
         // FIXME: This is not the correct solution to the problem, I asked in the MMG Forum
-        if (Edge0 == 0) SkipCreation = true;
-        if (Edge1 == 0) SkipCreation = true;
+        if (edge0 == 0) skip_creation = true;
+        if (edge1 == 0) skip_creation = true;
         
-        if (SkipCreation == false)
+        if (skip_creation == false)
         {
             std::vector<NodeType::Pointer> ConditionNodes (2);
-            ConditionNodes[0] = mrThisModelPart.pGetNode(Edge0);
-            ConditionNodes[1] = mrThisModelPart.pGetNode(Edge1);    
+            ConditionNodes[0] = mThisModelPart.pGetNode(edge0);
+            ConditionNodes[1] = mThisModelPart.pGetNode(edge1);    
             
-            pCondition = mpRefCondition[IndexGeom]->Create(CondId, ConditionNodes, mpRefCondition[IndexGeom]->pGetProperties());
+            pCondition = mpRefCondition[index_geom]->Create(cond_id, ConditionNodes, mpRefCondition[index_geom]->pGetProperties());
         }
-        else if (mEchoLevel > 0)
+        else
         {
             std::cout << "Condition creation avoided" << std::endl;
         }
@@ -2146,38 +2241,38 @@ protected:
     
     template<>  
     ConditionType::Pointer MmgUtility<3>::CreateCondition0(
-        const unsigned int CondId,
-        int& PropId, 
+        const unsigned int cond_id,
+        int& prop_id, 
         int& isRequired,
-        bool SkipCreation
+        bool skip_creation
         )
     {
         ConditionType::Pointer pCondition = nullptr;
         
-        const CondGeometries3D IndexGeom = Triangle3D;
+        const cond_geometries_3d index_geom = Triangle3D;
         
-        int Vertex0, Vertex1, Vertex2;
+        int vertex0, vertex1, vertex2;
 
-        if (MMG3D_Get_triangle(mmgMesh, &Vertex0, &Vertex1, &Vertex2, &PropId, &isRequired) != 1 )
+        if (MMG3D_Get_triangle(mmgMesh, &vertex0, &vertex1, &vertex2, &prop_id, &isRequired) != 1 )
         {
             exit(EXIT_FAILURE);
         }
         
         // FIXME: This is not the correct solution to the problem, I asked in the MMG Forum
-        if (Vertex0 == 0) SkipCreation = true;
-        if (Vertex1 == 0) SkipCreation = true;
-        if (Vertex2 == 0) SkipCreation = true;
+        if (vertex0 == 0) skip_creation = true;
+        if (vertex1 == 0) skip_creation = true;
+        if (vertex2 == 0) skip_creation = true;
         
-        if (SkipCreation == false)
+        if (skip_creation == false)
         {
             std::vector<NodeType::Pointer> ConditionNodes (3);
-            ConditionNodes[0] = mrThisModelPart.pGetNode(Vertex0);
-            ConditionNodes[1] = mrThisModelPart.pGetNode(Vertex1);
-            ConditionNodes[2] = mrThisModelPart.pGetNode(Vertex2);
+            ConditionNodes[0] = mThisModelPart.pGetNode(vertex0);
+            ConditionNodes[1] = mThisModelPart.pGetNode(vertex1);
+            ConditionNodes[2] = mThisModelPart.pGetNode(vertex2);
         
-            pCondition = mpRefCondition[IndexGeom]->Create(CondId, ConditionNodes, mpRefCondition[IndexGeom]->pGetProperties());
+            pCondition = mpRefCondition[index_geom]->Create(cond_id, ConditionNodes, mpRefCondition[index_geom]->pGetProperties());
         }
-        else if (mEchoLevel > 0)
+        else
         {
             std::cout << "Condition creation avoided" << std::endl;
         }
@@ -2190,40 +2285,40 @@ protected:
     
     template<>  
     ConditionType::Pointer MmgUtility<3>::CreateCondition1(
-        const unsigned int CondId,
-        int& PropId, 
+        const unsigned int cond_id,
+        int& prop_id, 
         int& isRequired,
-        bool SkipCreation
+        bool skip_creation
         )
     {
         ConditionType::Pointer pCondition = nullptr;
         
-        const CondGeometries3D IndexGeom = Quadrilateral3D;
+        const cond_geometries_3d index_geom = Quadrilateral3D;
         
-        int Vertex0, Vertex1, Vertex2, Vertex3;
+        int vertex0, vertex1, vertex2, vertex3;
 
-        if (MMG3D_Get_quadrilateral(mmgMesh, &Vertex0, &Vertex1, &Vertex2, &Vertex3, &PropId, &isRequired) != 1 )
+        if (MMG3D_Get_quadrilateral(mmgMesh, &vertex0, &vertex1, &vertex2, &vertex3, &prop_id, &isRequired) != 1 )
         {
             exit(EXIT_FAILURE);
         }
         
         // FIXME: This is not the correct solution to the problem, I asked in the MMG Forum
-        if (Vertex0 == 0) SkipCreation = true;
-        if (Vertex1 == 0) SkipCreation = true;
-        if (Vertex2 == 0) SkipCreation = true;
-        if (Vertex3 == 0) SkipCreation = true;
+        if (vertex0 == 0) skip_creation = true;
+        if (vertex1 == 0) skip_creation = true;
+        if (vertex2 == 0) skip_creation = true;
+        if (vertex3 == 0) skip_creation = true;
         
-        if (SkipCreation == false)
+        if (skip_creation == false)
         {
             std::vector<NodeType::Pointer> ConditionNodes (4);
-            ConditionNodes[0] = mrThisModelPart.pGetNode(Vertex0);
-            ConditionNodes[1] = mrThisModelPart.pGetNode(Vertex1);
-            ConditionNodes[2] = mrThisModelPart.pGetNode(Vertex2);
-            ConditionNodes[3] = mrThisModelPart.pGetNode(Vertex3);
+            ConditionNodes[0] = mThisModelPart.pGetNode(vertex0);
+            ConditionNodes[1] = mThisModelPart.pGetNode(vertex1);
+            ConditionNodes[2] = mThisModelPart.pGetNode(vertex2);
+            ConditionNodes[3] = mThisModelPart.pGetNode(vertex3);
             
-            pCondition = mpRefCondition[IndexGeom]->Create(CondId, ConditionNodes, mpRefCondition[IndexGeom]->pGetProperties());
+            pCondition = mpRefCondition[index_geom]->Create(cond_id, ConditionNodes, mpRefCondition[index_geom]->pGetProperties());
         }
-        else if (mEchoLevel > 0)
+        else
         {
             std::cout << "Condition creation avoided" << std::endl;
         }
@@ -2236,38 +2331,38 @@ protected:
     
     template<>  
     ElementType::Pointer MmgUtility<2>::CreateElement0(        
-        const unsigned int ElemId,
-        int& PropId, 
+        const unsigned int elem_id,
+        int& prop_id, 
         int& isRequired,
-        bool SkipCreation
+        bool skip_creation
         )
     {
         ElementType::Pointer pElement = nullptr;
         
-        const ElemGeometries2D IndexGeom = Triangle2D;
+        const elem_geometries_2d index_geom = Triangle2D;
         
-        int Vertex0, Vertex1, Vertex2;
+        int vertex0, vertex1, vertex2;
         
-        if (MMG2D_Get_triangle(mmgMesh, &Vertex0, &Vertex1, &Vertex2, &PropId, &isRequired) != 1 )
+        if (MMG2D_Get_triangle(mmgMesh, &vertex0, &vertex1, &vertex2, &prop_id, &isRequired) != 1 )
         {
             exit(EXIT_FAILURE);
         }
 
         // FIXME: This is not the correct solution to the problem, I asked in the MMG Forum
-        if (Vertex0 == 0) SkipCreation = true;
-        if (Vertex1 == 0) SkipCreation = true;
-        if (Vertex2 == 0) SkipCreation = true;
+        if (vertex0 == 0) skip_creation = true;
+        if (vertex1 == 0) skip_creation = true;
+        if (vertex2 == 0) skip_creation = true;
         
-        if (SkipCreation == false)
+        if (skip_creation == false)
         {
             std::vector<NodeType::Pointer> ElementNodes (3);
-            ElementNodes[0] = mrThisModelPart.pGetNode(Vertex0);
-            ElementNodes[1] = mrThisModelPart.pGetNode(Vertex1);
-            ElementNodes[2] = mrThisModelPart.pGetNode(Vertex2);
+            ElementNodes[0] = mThisModelPart.pGetNode(vertex0);
+            ElementNodes[1] = mThisModelPart.pGetNode(vertex1);
+            ElementNodes[2] = mThisModelPart.pGetNode(vertex2);
             
-            pElement = mpRefElement[IndexGeom]->Create(ElemId, ElementNodes, mpRefElement[IndexGeom]->pGetProperties());
+            pElement = mpRefElement[index_geom]->Create(elem_id, ElementNodes, mpRefElement[index_geom]->pGetProperties());
         }
-        else if (mEchoLevel > 0)
+        else
         {
             std::cout << "Element creation avoided" << std::endl;
         }
@@ -2280,40 +2375,40 @@ protected:
     
     template<>  
     ElementType::Pointer MmgUtility<3>::CreateElement0(
-        const unsigned int ElemId,
-        int& PropId, 
+        const unsigned int elem_id,
+        int& prop_id, 
         int& isRequired,
-        bool SkipCreation
+        bool skip_creation
         )
     {
         ElementType::Pointer pElement = nullptr;
         
-        const ElemGeometries3D IndexGeom = Tetrahedra;
+        const elem_geometries_3d index_geom = Tetrahedra;
         
-        int Vertex0, Vertex1, Vertex2, Vertex3;
+        int vertex0, vertex1, vertex2, vertex3;
         
-        if (MMG3D_Get_tetrahedron(mmgMesh, &Vertex0, &Vertex1, &Vertex2, &Vertex3, &PropId, &isRequired) != 1 )
+        if (MMG3D_Get_tetrahedron(mmgMesh, &vertex0, &vertex1, &vertex2, &vertex3, &prop_id, &isRequired) != 1 )
         {
             exit(EXIT_FAILURE);
         }
         
         // FIXME: This is not the correct solution to the problem, I asked in the MMG Forum
-        if (Vertex0 == 0) SkipCreation = true;
-        if (Vertex1 == 0) SkipCreation = true;
-        if (Vertex2 == 0) SkipCreation = true;
-        if (Vertex3 == 0) SkipCreation = true;
+        if (vertex0 == 0) skip_creation = true;
+        if (vertex1 == 0) skip_creation = true;
+        if (vertex2 == 0) skip_creation = true;
+        if (vertex3 == 0) skip_creation = true;
         
-        if (SkipCreation == false)
+        if (skip_creation == false)
         {
             std::vector<NodeType::Pointer> ElementNodes (4);
-            ElementNodes[0] = mrThisModelPart.pGetNode(Vertex0);
-            ElementNodes[1] = mrThisModelPart.pGetNode(Vertex1);
-            ElementNodes[2] = mrThisModelPart.pGetNode(Vertex2);
-            ElementNodes[3] = mrThisModelPart.pGetNode(Vertex3);
+            ElementNodes[0] = mThisModelPart.pGetNode(vertex0);
+            ElementNodes[1] = mThisModelPart.pGetNode(vertex1);
+            ElementNodes[2] = mThisModelPart.pGetNode(vertex2);
+            ElementNodes[3] = mThisModelPart.pGetNode(vertex3);
             
-            pElement = mpRefElement[IndexGeom]->Create(ElemId, ElementNodes, mpRefElement[IndexGeom]->pGetProperties());
+            pElement = mpRefElement[index_geom]->Create(elem_id, ElementNodes, mpRefElement[index_geom]->pGetProperties());
         }
-        else if (mEchoLevel > 0)
+        else
         {
             std::cout << "Element creation avoided" << std::endl;
         }
@@ -2326,49 +2421,127 @@ protected:
     
     template<>  
     ElementType::Pointer MmgUtility<3>::CreateElement1(
-        const unsigned int ElemId,
-        int& PropId, 
+        const unsigned int elem_id,
+        int& prop_id, 
         int& isRequired,
-        bool SkipCreation
+        bool skip_creation
         )
     {
         ElementType::Pointer pElement = nullptr;
         
-        const ElemGeometries3D IndexGeom = Prism;
+        const elem_geometries_3d index_geom = Prism;
                     
-        int Vertex0, Vertex1, Vertex2, Vertex3, Vertex4, Vertex5;
+        int vertex0, vertex1, vertex2, vertex3, vertex4, vertex5;
         
-        if (MMG3D_Get_prism(mmgMesh, &Vertex0, &Vertex1, &Vertex2, &Vertex3, &Vertex4, &Vertex5, &PropId, &isRequired) != 1 )
+        if (MMG3D_Get_prism(mmgMesh, &vertex0, &vertex1, &vertex2, &vertex3, &vertex4, &vertex5, &prop_id, &isRequired) != 1 )
         {
             exit(EXIT_FAILURE);
         }
         
         // FIXME: This is not the correct solution to the problem, I asked in the MMG Forum
-        if (Vertex0 == 0) SkipCreation = true;
-        if (Vertex1 == 0) SkipCreation = true;
-        if (Vertex2 == 0) SkipCreation = true;
-        if (Vertex3 == 0) SkipCreation = true;
-        if (Vertex4 == 0) SkipCreation = true;
-        if (Vertex5 == 0) SkipCreation = true;
+        if (vertex0 == 0) skip_creation = true;
+        if (vertex1 == 0) skip_creation = true;
+        if (vertex2 == 0) skip_creation = true;
+        if (vertex3 == 0) skip_creation = true;
+        if (vertex4 == 0) skip_creation = true;
+        if (vertex5 == 0) skip_creation = true;
         
-        if (SkipCreation == false)
+        if (skip_creation == false)
         {
             std::vector<NodeType::Pointer> ElementNodes (6);
-            ElementNodes[0] = mrThisModelPart.pGetNode(Vertex0);
-            ElementNodes[1] = mrThisModelPart.pGetNode(Vertex1);
-            ElementNodes[2] = mrThisModelPart.pGetNode(Vertex2);
-            ElementNodes[3] = mrThisModelPart.pGetNode(Vertex3);
-            ElementNodes[4] = mrThisModelPart.pGetNode(Vertex4);
-            ElementNodes[5] = mrThisModelPart.pGetNode(Vertex5);
+            ElementNodes[0] = mThisModelPart.pGetNode(vertex0);
+            ElementNodes[1] = mThisModelPart.pGetNode(vertex1);
+            ElementNodes[2] = mThisModelPart.pGetNode(vertex2);
+            ElementNodes[3] = mThisModelPart.pGetNode(vertex3);
+            ElementNodes[4] = mThisModelPart.pGetNode(vertex4);
+            ElementNodes[5] = mThisModelPart.pGetNode(vertex5);
         
-            pElement = mpRefElement[IndexGeom]->Create(ElemId, ElementNodes, mpRefElement[IndexGeom]->pGetProperties());
+            pElement = mpRefElement[index_geom]->Create(elem_id, ElementNodes, mpRefElement[index_geom]->pGetProperties());
         }
-        else if (mEchoLevel > 0)
+        else
         {
             std::cout << "Element creation avoided" << std::endl;
         }
         
         return pElement;
+    }
+
+    /***********************************************************************************/
+    /***********************************************************************************/
+    
+    template<>  
+    void MmgUtility<2>::CalculateInitialCoordinates(NodeType::Pointer& pNode)
+    {
+        // We interpolate the initial coordinates (X = X0 + DISPLACEMENT), then X0 = X - DISPLACEMENT        
+        pNode->X0() = pNode->X() - pNode->FastGetSolutionStepValue(DISPLACEMENT_X);
+        pNode->Y0() = pNode->Y() - pNode->FastGetSolutionStepValue(DISPLACEMENT_Y);
+    }
+    
+    /***********************************************************************************/
+    /***********************************************************************************/
+    
+    template<>  
+    void MmgUtility<3>::CalculateInitialCoordinates(NodeType::Pointer& pNode)
+    {        
+        // We interpolate the initial coordinates (X = X0 + DISPLACEMENT), then X0 = X - DISPLACEMENT        
+        pNode->X0() = pNode->X() - pNode->FastGetSolutionStepValue(DISPLACEMENT_X);
+        pNode->Y0() = pNode->Y() - pNode->FastGetSolutionStepValue(DISPLACEMENT_Y);
+        pNode->Z0() = pNode->Z() - pNode->FastGetSolutionStepValue(DISPLACEMENT_Z);
+    }
+    
+    /***********************************************************************************/
+    /***********************************************************************************/
+    
+    template<>  
+    void MmgUtility<2>::CalculateStepData(
+        NodeType::Pointer& pNode,
+        const ElementType::Pointer& pElement,
+        const Vector shape_functions,
+        unsigned int step,
+        unsigned int step_data_size
+        )
+    {
+        double* step_data = pNode->SolutionStepData().Data(step);
+        
+        double* node0_data = pElement->GetGeometry()[0].SolutionStepData().Data(step);
+        double* node1_data = pElement->GetGeometry()[1].SolutionStepData().Data(step);
+        double* node2_data = pElement->GetGeometry()[2].SolutionStepData().Data(step);
+        
+        for (unsigned int j = 0; j < step_data_size; j++)
+        {
+            step_data[j] = shape_functions[0] * node0_data[j]
+                         + shape_functions[1] * node1_data[j]
+                         + shape_functions[2] * node2_data[j];
+        }
+    }
+    
+    /***********************************************************************************/
+    /***********************************************************************************/
+    
+    template<>  
+    void MmgUtility<3>::CalculateStepData(
+        NodeType::Pointer& pNode,
+        const ElementType::Pointer& pElement,
+        const Vector shape_functions,
+        unsigned int step,
+        unsigned int step_data_size
+        )
+    {
+        double* step_data = pNode->SolutionStepData().Data(step);
+        
+        // NOTE: This just works with tetrahedron (you are going to have problems with anything else)
+        double* node0_data = pElement->GetGeometry()[0].SolutionStepData().Data(step);
+        double* node1_data = pElement->GetGeometry()[1].SolutionStepData().Data(step);
+        double* node2_data = pElement->GetGeometry()[2].SolutionStepData().Data(step);
+        double* node3_data = pElement->GetGeometry()[3].SolutionStepData().Data(step);
+        
+        for (unsigned int j = 0; j < step_data_size; j++)
+        {
+            step_data[j] = shape_functions[0] * node0_data[j]
+                         + shape_functions[1] * node1_data[j]
+                         + shape_functions[2] * node2_data[j]
+                         + shape_functions[3] * node3_data[j];
+        }
     }
     
     /***********************************************************************************/
@@ -2451,7 +2624,7 @@ protected:
         const array_1d<int, 2> numArrayConditions // NOTE: We do this tricky thing to take into account the quadrilaterals
         )
     {
-        //Give the size of the mesh: numNodes Vertex, numElements tetra and prism, numArrayConditions triangles and quadrilaterals, 0 edges (3D) 
+        //Give the size of the mesh: numNodes vertex, numElements tetra and prism, numArrayConditions triangles and quadrilaterals, 0 edges (3D) 
         if ( MMG3D_Set_meshSize(mmgMesh, numNodes, numArrayElements[0], numArrayElements[1], numArrayConditions[0], numArrayConditions[1], 0) != 1 ) 
         {
             exit(EXIT_FAILURE);
@@ -2511,12 +2684,12 @@ protected:
     
     template<>  
     void MmgUtility<2>::OutputMesh(
-        const bool PostOutput,
+        const bool post_output,
         const unsigned int step
         )
     {
         std::string MeshName;
-        if (PostOutput == true)
+        if (post_output == true)
         {
             MeshName = mStdStringFilename+"_step="+std::to_string(step)+".o.mesh";
         }
@@ -2543,12 +2716,12 @@ protected:
     
     template<>  
     void MmgUtility<3>::OutputMesh(
-        const bool PostOutput,
+        const bool post_output,
         const unsigned int step
         )
     {
         std::string MeshName;
-        if (PostOutput == true)
+        if (post_output == true)
         {
             MeshName = mStdStringFilename+"_step="+std::to_string(step)+".o.mesh";
         }
@@ -2575,12 +2748,12 @@ protected:
 
     template<>  
     void MmgUtility<2>::OutputSol(
-        const bool PostOutput,
+        const bool post_output,
         const unsigned int step
         )
     {
         std::string SolName;
-        if (PostOutput == true)
+        if (post_output == true)
         {
             SolName = mStdStringFilename+"_step="+std::to_string(step)+".o.sol";
         }
@@ -2607,12 +2780,12 @@ protected:
 
     template<>  
     void MmgUtility<3>::OutputSol(
-        const bool PostOutput,
+        const bool post_output,
         const unsigned int step
         )
     {
         std::string SolName;
-        if (PostOutput == true)
+        if (post_output == true)
         {
             SolName = mStdStringFilename+"_step="+std::to_string(step)+".o.sol";
         }
@@ -2773,13 +2946,13 @@ protected:
         const int index
         )
     {
-        const int Id1 = Geom[0].Id(); // First node Id
-        const int Id2 = Geom[1].Id(); // Second node Id
-        const int Id3 = Geom[2].Id(); // Third node Id
+        const int id1 = Geom[0].Id(); // First node id
+        const int id2 = Geom[1].Id(); // Second node id
+        const int id3 = Geom[2].Id(); // Third node id
         
         if (Geom.GetGeometryType() == GeometryData::KratosGeometryType::Kratos_Triangle3D3) // Triangle
         {
-            if ( MMG3D_Set_triangle(mmgMesh, Id1, Id2, Id3, color, index) != 1 )  
+            if ( MMG3D_Set_triangle(mmgMesh, id1, id2, id3, color, index) != 1 )  
             {
                 exit(EXIT_FAILURE); 
             }
@@ -2811,17 +2984,17 @@ protected:
         }
         else if (Geom.GetGeometryType() == GeometryData::KratosGeometryType::Kratos_Quadrilateral3D4) // Quadrilaterals
         {
-            const int Id4 = Geom[3].Id(); // Fourth node Id
+            const int id4 = Geom[3].Id(); // Fourth node id
             
-            if ( MMG3D_Set_quadrilateral(mmgMesh, Id1, Id2, Id3, Id4, color, index) != 1 )  
+            if ( MMG3D_Set_quadrilateral(mmgMesh, id1, id2, id3, id4, color, index) != 1 )  
             {
                 exit(EXIT_FAILURE); 
             }
         }
         else
         {
-            const unsigned int SizeGeometry = Geom.size();
-            KRATOS_ERROR << "WARNING: I DO NOT KNOW WHAT IS THIS. Size: " << SizeGeometry << std::endl;
+            const unsigned int size_geom = Geom.size();
+            KRATOS_ERROR << "WARNING: I DO NOT KNOW WHAT IS THIS. Size: " << size_geom << std::endl;
         }
     }
     
@@ -2835,11 +3008,11 @@ protected:
         const int index
         )
     {
-        const int Id1 = Geom[0].Id(); // First node Id
-        const int Id2 = Geom[1].Id(); // Second node Id
-        const int Id3 = Geom[2].Id(); // Third node Id
+        const int id1 = Geom[0].Id(); // First node id
+        const int id2 = Geom[1].Id(); // Second node id
+        const int id3 = Geom[2].Id(); // Third node id
         
-        if ( MMG2D_Set_triangle(mmgMesh, Id1, Id2, Id3, color, index) != 1 ) 
+        if ( MMG2D_Set_triangle(mmgMesh, id1, id2, id3, color, index) != 1 ) 
         {
             exit(EXIT_FAILURE);
         }
@@ -2856,42 +3029,42 @@ protected:
         const int index
         )
     {
-        const int Id1 = Geom[0].Id(); // First node Id
-        const int Id2 = Geom[1].Id(); // Second node Id
-        const int Id3 = Geom[2].Id(); // Third node Id
-        const int Id4 = Geom[3].Id(); // Fourth node Id
+        const int id1 = Geom[0].Id(); // First node id
+        const int id2 = Geom[1].Id(); // Second node id
+        const int id3 = Geom[2].Id(); // Third node id
+        const int id4 = Geom[3].Id(); // Fourth node id
         
         if (Geom.GetGeometryType() == GeometryData::KratosGeometryType::Kratos_Tetrahedra3D4) // Tetrahedron
         {
-            if ( MMG3D_Set_tetrahedron(mmgMesh, Id1, Id2, Id3, Id4, color, index) != 1 )  
+            if ( MMG3D_Set_tetrahedron(mmgMesh, id1, id2, id3, id4, color, index) != 1 )  
             {
                 exit(EXIT_FAILURE); 
             }
         }
         else if (Geom.GetGeometryType() == GeometryData::KratosGeometryType::Kratos_Prism3D6) // Prisms
         {
-            const int Id5 = Geom[4].Id(); // 5th node Id
-            const int Id6 = Geom[5].Id(); // 6th node Id
+            const int id5 = Geom[4].Id(); // 5th node id
+            const int id6 = Geom[5].Id(); // 6th node id
             
-            if ( MMG3D_Set_prism(mmgMesh, Id1, Id2, Id3, Id4, Id5, Id6, color, index) != 1 )  
+            if ( MMG3D_Set_prism(mmgMesh, id1, id2, id3, id4, id5, id6, color, index) != 1 )  
             {
                 exit(EXIT_FAILURE); 
             }
         }
         else if (Geom.GetGeometryType() == GeometryData::KratosGeometryType::Kratos_Hexahedra3D8) // Hexaedron
         {
-//                 const int Id5 = Geom[4].Id(); // 5th node Id
-//                 const int Id6 = Geom[5].Id(); // 6th node Id
-//                 const int Id6 = Geom[7].Id(); // 7th node Id
-//                 const int Id6 = Geom[8].Id(); // 8th node Id
+//                 const int id5 = Geom[4].Id(); // 5th node id
+//                 const int id6 = Geom[5].Id(); // 6th node id
+//                 const int id6 = Geom[7].Id(); // 7th node id
+//                 const int id6 = Geom[8].Id(); // 8th node id
             
-            const unsigned int SizeGeometry = Geom.size();
-            KRATOS_ERROR << "WARNING: HEXAEDRON NON IMPLEMENTED IN THE LIBRARY " << SizeGeometry << std::endl;
+            const unsigned int size_geom = Geom.size();
+            KRATOS_ERROR << "WARNING: HEXAEDRON NON IMPLEMENTED IN THE LIBRARY " << size_geom << std::endl;
         }
         else
         {
-            const unsigned int SizeGeometry = Geom.size();
-            KRATOS_ERROR << "WARNING: I DO NOT KNOW WHAT IS THIS. Size: " << SizeGeometry << std::endl;
+            const unsigned int size_geom = Geom.size();
+            KRATOS_ERROR << "WARNING: I DO NOT KNOW WHAT IS THIS. Size: " << size_geom << std::endl;
         }
     }
 
@@ -2900,11 +3073,11 @@ protected:
     
     template<>  
     void MmgUtility<2>::SetMetricTensor(
-        const Vector& Metric,
-        const int NodeId 
+        const Vector& metric,
+        const int node_id 
         )
     {
-        if ( MMG2D_Set_tensorSol(mmgSol, Metric[0],  Metric[1], Metric[2], NodeId) != 1 )
+        if ( MMG2D_Set_tensorSol(mmgSol, metric[0],  metric[1], metric[2], node_id) != 1 )
         {
             exit(EXIT_FAILURE);
         }
@@ -2915,11 +3088,11 @@ protected:
     
     template<>  
     void MmgUtility<3>::SetMetricTensor(
-        const Vector& Metric,
-        const int NodeId 
+        const Vector& metric,
+        const int node_id 
         )
     {
-        if ( MMG3D_Set_tensorSol(mmgSol, Metric[0], Metric[1], Metric[2], Metric[3], Metric[4], Metric[5], NodeId) != 1 )
+        if ( MMG3D_Set_tensorSol(mmgSol, metric[0], metric[1], metric[2], metric[3], metric[4], metric[5], node_id) != 1 )
         {
             exit(EXIT_FAILURE);
         }

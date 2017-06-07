@@ -40,7 +40,6 @@ class MPIUPwSolver(poromechanics_U_Pw_solver.UPwSolver):
             "clear_storage": false,
             "compute_reactions": false,
             "move_mesh_flag": true,
-            "periodic_interface_conditions": false,
             "solution_type": "Quasi-Static",
             "scheme_type": "Newmark",
             "newmark_beta": 0.25,
@@ -115,9 +114,6 @@ class MPIUPwSolver(poromechanics_U_Pw_solver.UPwSolver):
         # Construct the communicator
         self.EpetraCommunicator = TrilinosApplication.CreateCommunicator()
         
-        # Set ProcessInfo variables
-        self.main_model_part.ProcessInfo.SetValue(KratosPoro.NODAL_SMOOTHING, False)
-        
         # Builder and solver creation
         builder_and_solver = self._ConstructBuilderAndSolver(self.settings["block_builder"].GetBool())
         
@@ -165,7 +161,7 @@ class MPIUPwSolver(poromechanics_U_Pw_solver.UPwSolver):
         return builder_and_solver
 
     def _ConstructScheme(self, scheme_type, solution_type):
-
+        
         if(scheme_type == "Newmark"):
             beta = self.settings["newmark_beta"].GetDouble()
             gamma = self.settings["newmark_gamma"].GetDouble()

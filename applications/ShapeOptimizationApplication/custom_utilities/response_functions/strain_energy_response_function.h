@@ -1,11 +1,46 @@
 // ==============================================================================
-//  KratosShapeOptimizationApplication
+/*
+ KratosShapeOptimizationApplication
+ A library based on:
+ Kratos
+ A General Purpose Software for Multi-Physics Finite Element Analysis
+ (Released on march 05, 2007).
+
+ Copyright (c) 2016: Daniel Baumgaertner
+                     daniel.baumgaertner@tum.de
+                     Chair of Structural Analysis
+                     Technische Universitaet Muenchen
+                     Arcisstrasse 21 80333 Munich, Germany
+
+ Permission is hereby granted, free  of charge, to any person obtaining
+ a  copy  of this  software  and  associated  documentation files  (the
+ "Software"), to  deal in  the Software without  restriction, including
+ without limitation  the rights to  use, copy, modify,  merge, publish,
+ distribute,  sublicense and/or  sell copies  of the  Software,  and to
+ permit persons to whom the Software  is furnished to do so, subject to
+ the following condition:
+
+ Distribution of this code for  any  commercial purpose  is permissible
+ ONLY BY DIRECT ARRANGEMENT WITH THE COPYRIGHT OWNERS.
+
+ The  above  copyright  notice  and  this permission  notice  shall  be
+ included in all copies or substantial portions of the Software.
+
+ THE  SOFTWARE IS  PROVIDED  "AS  IS", WITHOUT  WARRANTY  OF ANY  KIND,
+ EXPRESS OR  IMPLIED, INCLUDING  BUT NOT LIMITED  TO THE  WARRANTIES OF
+ MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ IN NO EVENT  SHALL THE AUTHORS OR COPYRIGHT HOLDERS  BE LIABLE FOR ANY
+ CLAIM, DAMAGES OR  OTHER LIABILITY, WHETHER IN AN  ACTION OF CONTRACT,
+ TORT  OR OTHERWISE, ARISING  FROM, OUT  OF OR  IN CONNECTION  WITH THE
+ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+//==============================================================================
 //
-//  License:         BSD License
-//                   license: ShapeOptimizationApplication/license.txt
-//
-//  Main authors:    Baumgärtner Daniel, https://github.com/dbaumgaertner
-//                   Geiser Armin, https://github.com/armingeiser
+//   Project Name:        KratosShape                            $
+//   Created by:          $Author:    daniel.baumgaertner@tum.de $
+//                        $Author:           armin.geiser@tum.de $
+//   Date:                $Date:                   December 2016 $
+//   Revision:            $Revision:                         0.0 $
 //
 // ==============================================================================
 
@@ -81,27 +116,27 @@ public:
 	///@{
 
 	/// Default constructor.
-	StrainEnergyResponseFunction(ModelPart& model_part, Parameters& responseSettings)
+	StrainEnergyResponseFunction(ModelPart &model_part, boost::python::dict response_settings)
 	: mr_model_part(model_part)
 	{
 		// Set gradient mode
-		std::string gradientMode = responseSettings["gradient_mode"].GetString();
+		boost::python::extract<const char *> grad_mode(response_settings["gradient_mode"]);
 
 		// Mode 1: analytic sensitivities
-		if (gradientMode.compare("analytic") == 0)
-			mGradientMode = 1;
+		if (std::strcmp(grad_mode, "analytic") == 0)
+			m_gradient_mode = 1;
 
 		// Mode 2: semi-analytic sensitivities
-		else if (gradientMode.compare("semi_analytic") == 0)
+		else if (std::strcmp(grad_mode, "semi_analytic") == 0)
 		{
-			mGradientMode = 2;
-			double delta = responseSettings["step_size"].GetDouble();
-			mDelta = delta;
+			m_gradient_mode = 2;
+			boost::python::extract<double> delta(response_settings["step_size"]);
+			m_delta = delta;
 		}
 
 		// Throw error message in case of wrong specification
 		else
-			KRATOS_THROW_ERROR(std::invalid_argument, "Specified gradient_mode not recognized. Options are: analytic , semi_analytic. Specified gradient_mode: ", gradientMode);
+			KRATOS_THROW_ERROR(std::invalid_argument, "Specified gradient_mode not recognized. Options are: analytic , semi_analytic. Specified gradient_mode: ", grad_mode);
 
 		// Initialize member variables to NULL
 		m_initial_value = 0.0;
@@ -130,7 +165,7 @@ public:
 		// that provide the required sensitivity information (reference elements)
 		// The reference class type is: "SmallDisplacementAnalyticSensitivityElement"
 
-		if(mGradientMode==1)
+		if(m_gradient_mode==1)
 		{
 			const char element_name[] = "SmallDisplacementAnalyticSensitivityElement3D4N";
 			Element const &reference_element = KratosComponents<Element>::Get(element_name);
@@ -227,7 +262,7 @@ public:
 		// 2nd step: Calculate adjoint field
 		// 3rd step: Calculate partial derivative of state equation w.r.t. node coordinates and multiply with adjoint field
 
-		switch (mGradientMode)
+		switch (m_gradient_mode)
 		{
 		// analytic sensitivities
 		case 1:
@@ -425,28 +460,28 @@ protected:
 				Vector perturbed_RHS = Vector(0);
 
 				// Pertubation, gradient analysis and recovery of x
-				node_i->X0() += mDelta;
+				node_i->X0() += m_delta;
 				elem_i->CalculateRightHandSide(perturbed_RHS, CurrentProcessInfo);
-				gradient_contribution[0] = inner_prod(lambda, (perturbed_RHS - RHS) / mDelta);
-				node_i->X0() -= mDelta;
+				gradient_contribution[0] = inner_prod(lambda, (perturbed_RHS - RHS) / m_delta);
+				node_i->X0() -= m_delta;
 
 				// Reset pertubed vector
 				perturbed_RHS = Vector(0);
 
 				// Pertubation, gradient analysis and recovery of y
-				node_i->Y0() += mDelta;
+				node_i->Y0() += m_delta;
 				elem_i->CalculateRightHandSide(perturbed_RHS, CurrentProcessInfo);
-				gradient_contribution[1] = inner_prod(lambda, (perturbed_RHS - RHS) / mDelta);
-				node_i->Y0() -= mDelta;
+				gradient_contribution[1] = inner_prod(lambda, (perturbed_RHS - RHS) / m_delta);
+				node_i->Y0() -= m_delta;
 
 				// Reset pertubed vector
 				perturbed_RHS = Vector(0);
 
 				// Pertubation, gradient analysis and recovery of z
-				node_i->Z0() += mDelta;
+				node_i->Z0() += m_delta;
 				elem_i->CalculateRightHandSide(perturbed_RHS, CurrentProcessInfo);
-				gradient_contribution[2] = inner_prod(lambda, (perturbed_RHS - RHS) / mDelta);
-				node_i->Z0() -= mDelta;
+				gradient_contribution[2] = inner_prod(lambda, (perturbed_RHS - RHS) / m_delta);
+				node_i->Z0() -= m_delta;
 
 				// Assemble sensitivity to node
 				noalias(node_i->FastGetSolutionStepValue(STRAIN_ENERGY_SHAPE_GRADIENT)) += gradient_contribution;
@@ -484,28 +519,28 @@ protected:
 					Vector perturbed_RHS = Vector(0);
 
 					// Pertubation, gradient analysis and recovery of x
-					node_i->X0() += mDelta;
+					node_i->X0() += m_delta;
 					cond_i->CalculateRightHandSide(perturbed_RHS, CurrentProcessInfo);
-					gradient_contribution[0] = inner_prod(lambda, (perturbed_RHS - RHS) / mDelta);
-					node_i->X0() -= mDelta;
+					gradient_contribution[0] = inner_prod(lambda, (perturbed_RHS - RHS) / m_delta);
+					node_i->X0() -= m_delta;
 
 					// Reset pertubed vector
 					perturbed_RHS = Vector(0);
 
 					// Pertubation, gradient analysis and recovery of y
-					node_i->Y0() += mDelta;
+					node_i->Y0() += m_delta;
 					cond_i->CalculateRightHandSide(perturbed_RHS, CurrentProcessInfo);
-					gradient_contribution[1] = inner_prod(lambda, (perturbed_RHS - RHS) / mDelta);
-					node_i->Y0() -= mDelta;
+					gradient_contribution[1] = inner_prod(lambda, (perturbed_RHS - RHS) / m_delta);
+					node_i->Y0() -= m_delta;
 
 					// Reset pertubed vector
 					perturbed_RHS = Vector(0);
 
 					// Pertubation, gradient analysis and recovery of z
-					node_i->Z0() += mDelta;
+					node_i->Z0() += m_delta;
 					cond_i->CalculateRightHandSide(perturbed_RHS, CurrentProcessInfo);
-					gradient_contribution[2] = inner_prod(lambda, (perturbed_RHS - RHS) / mDelta);
-					node_i->Z0() -= mDelta;
+					gradient_contribution[2] = inner_prod(lambda, (perturbed_RHS - RHS) / m_delta);
+					node_i->Z0() -= m_delta;
 
 					// Assemble shape gradient to node
 					noalias(node_i->FastGetSolutionStepValue(STRAIN_ENERGY_SHAPE_GRADIENT)) += gradient_contribution;
@@ -553,28 +588,28 @@ protected:
 					Vector perturbed_RHS = Vector(0);
 
 					// Pertubation, gradient analysis and recovery of x
-					node_i->X0() += mDelta;
+					node_i->X0() += m_delta;
 					cond_i->CalculateRightHandSide(perturbed_RHS, CurrentProcessInfo);
-					gradient_contribution[0] = inner_prod(0.5*u, (perturbed_RHS - RHS) / mDelta);
-					node_i->X0() -= mDelta;
+					gradient_contribution[0] = inner_prod(0.5*u, (perturbed_RHS - RHS) / m_delta);
+					node_i->X0() -= m_delta;
 
 					// Reset pertubed vector
 					perturbed_RHS = Vector(0);
 
 					// Pertubation, gradient analysis and recovery of y
-					node_i->Y0() += mDelta;
+					node_i->Y0() += m_delta;
 					cond_i->CalculateRightHandSide(perturbed_RHS, CurrentProcessInfo);
-					gradient_contribution[1] = inner_prod(0.5*u, (perturbed_RHS - RHS) / mDelta);
-					node_i->Y0() -= mDelta;
+					gradient_contribution[1] = inner_prod(0.5*u, (perturbed_RHS - RHS) / m_delta);
+					node_i->Y0() -= m_delta;
 
 					// Reset pertubed vector
 					perturbed_RHS = Vector(0);
 
 					// Pertubation, gradient analysis and recovery of z
-					node_i->Z0() += mDelta;
+					node_i->Z0() += m_delta;
 					cond_i->CalculateRightHandSide(perturbed_RHS, CurrentProcessInfo);
-					gradient_contribution[2] = inner_prod(0.5*u, (perturbed_RHS - RHS) / mDelta);
-					node_i->Z0() -= mDelta;
+					gradient_contribution[2] = inner_prod(0.5*u, (perturbed_RHS - RHS) / m_delta);
+					node_i->Z0() -= m_delta;
 
 					// Assemble shape gradient to node
 					noalias(node_i->FastGetSolutionStepValue(STRAIN_ENERGY_SHAPE_GRADIENT)) += gradient_contribution;
@@ -609,9 +644,9 @@ private:
 	///@{
 
 	ModelPart &mr_model_part;
-	unsigned int mGradientMode;
+	unsigned int m_gradient_mode;
 	double m_strain_energy;
-	double mDelta;
+	double m_delta;
 	double m_initial_value;
 	bool m_initial_value_defined;
 

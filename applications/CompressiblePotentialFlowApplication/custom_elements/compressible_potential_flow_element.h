@@ -293,7 +293,7 @@ public:
         {
             data.phis[i] = GetGeometry()[i].FastGetSolutionStepValue(POSITIVE_FACE_PRESSURE);
         }
-        
+        GetWakeDistances(data.distances);
         
         //TEST:
         bool kutta_element = false;
@@ -319,8 +319,6 @@ public:
         }
         else //it is a wake element
         {
-            GetWakeDistances(data.distances);
-            
             //note that the lhs and rhs have double the size!!
             if(rLeftHandSideMatrix.size1() != 2*NumNodes || rLeftHandSideMatrix.size2() != 2*NumNodes)
                 rLeftHandSideMatrix.resize(2*NumNodes,2*NumNodes,false);
@@ -337,9 +335,6 @@ public:
             std::vector<Matrix> GradientsValue(nvolumes);
             bounded_matrix<double,nvolumes, 2> NEnriched;
             
-            for(unsigned int i=0; i<GradientsValue.size(); ++i)
-                GradientsValue[i].resize(1,Dim,false);
-           
             
             
             for(unsigned int i = 0; i<NumNodes; ++i)
@@ -351,6 +346,7 @@ public:
                 }
             }
             
+            
             const unsigned int nsubdivisions = EnrichmentUtilities::CalculateEnrichedShapeFuncions(Points,
                                                                                             data.DN_DX,
                                                                                             data.distances,
@@ -359,6 +355,7 @@ public:
                                                                                             PartitionsSign, 
                                                                                             GradientsValue, 
                                                                                             NEnriched);
+
             //compute the lhs and rhs that would correspond to it not being divided
             Matrix lhs_positive = ZeroMatrix(NumNodes,NumNodes);
             Matrix lhs_negative = ZeroMatrix(NumNodes,NumNodes);
@@ -381,6 +378,7 @@ public:
 //                 bounded_matrix<double,Dim,Dim> P = IdentityMatrix(Dim,Dim) - nn;
 //                 noalias(tmp) = prod(data.DN_DX,P);
 //                 bounded_matrix<double,NumNodes,NumNodes> tangent_constraint = /*1e3**/data.vol*prod(tmp, trans(data.DN_DX));
+                
                 if(kutta_element == true)
                 {
                     for(unsigned int i=0; i<NumNodes; ++i)
@@ -436,11 +434,11 @@ public:
                         }
                     }
                 }
+
             Vector split_element_values(NumNodes*2);
             GetValuesOnSplitElement(split_element_values, data.distances);
             noalias(rRightHandSideVector) = -prod(rLeftHandSideMatrix,split_element_values);
         }
-        
     }
 
 
@@ -632,10 +630,8 @@ protected:
     ///@{
     void GetWakeDistances(array_1d<double,NumNodes>& distances)
     {
-//         for(unsigned int i = 0; i<NumNodes; i++)
-//             distances[i] = GetGeometry()[i].FastGetSolutionStepValue(DISTANCE);
-        
-        noalias(distances) = GetValue(ELEMENTAL_DISTANCES);
+        for(unsigned int i = 0; i<NumNodes; i++)
+            distances[i] = GetGeometry()[i].FastGetSolutionStepValue(DISTANCE);
     }
     
     

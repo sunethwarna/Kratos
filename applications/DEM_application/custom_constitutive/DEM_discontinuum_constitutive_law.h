@@ -21,7 +21,7 @@ namespace Kratos {
     class SphericParticle; // forward declaration of spheric cont particle
     class DEMWall; //forward declaration
 
-    class KRATOS_API(DEM_APPLICATION) DEMDiscontinuumConstitutiveLaw : public Flags {
+    class /*__declspec( dllexport )*/ DEMDiscontinuumConstitutiveLaw : public Flags {
     public:
 
         double mKn;
