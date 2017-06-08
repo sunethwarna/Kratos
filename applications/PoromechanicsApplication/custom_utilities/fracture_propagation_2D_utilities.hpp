@@ -1343,7 +1343,7 @@ private:
                 ElementDamage += DamageVector[i];
             }
             ElementDamage *= InvNumGPoints;
-            if (ElementDamage >= 0.75*PropagationDamage)
+            if (ElementDamage >= 0.5*PropagationDamage)
             {
                 rPropagationData.PropagationVector.push_back(MyPropagation);
                 rPropagationData.PropagateFractures = true;
@@ -1395,7 +1395,7 @@ private:
                         ElementDamage += DamageVector[i];
                     }
                     ElementDamage *= InvNumGPoints;
-                    if (ElementDamage >= PropagationDamage)
+                    if (ElementDamage >= 0.75*PropagationDamage)
                         PropagateTop = true;
                 }
             }
@@ -1430,7 +1430,7 @@ private:
                         ElementDamage += DamageVector[i];
                     }
                     ElementDamage *= InvNumGPoints;
-                    if (ElementDamage >= PropagationDamage)
+                    if (ElementDamage >= 0.75*PropagationDamage)
                         PropagateBot = true;
                 }
             }

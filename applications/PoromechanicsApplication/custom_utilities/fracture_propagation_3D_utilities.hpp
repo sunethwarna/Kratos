@@ -1630,7 +1630,7 @@ private:
                 ElementDamage += DamageVector[i];
             }
             ElementDamage *= InvNumGPoints;
-            if (ElementDamage >= 0.75*PropagationDamage)
+            if (ElementDamage >= 0.5*PropagationDamage)
             {
                 // Compute new Tip RotationMatrix
                 this->CalculateNewTipRotationMatrix(rAuxPropagationVariables,MyPropagation.TipCoordinates,
@@ -1704,7 +1704,7 @@ private:
                         ElementDamage += DamageVector[i];
                     }
                     ElementDamage *= InvNumGPoints;
-                    if (ElementDamage >= PropagationDamage)
+                    if (ElementDamage >= 0.75*PropagationDamage)
                         PropagateTop = true;
                 }
             }
@@ -1739,7 +1739,7 @@ private:
                         ElementDamage += DamageVector[i];
                     }
                     ElementDamage *= InvNumGPoints;
-                    if (ElementDamage >= PropagationDamage)
+                    if (ElementDamage >= 0.75*PropagationDamage)
                         PropagateBot = true;
                 }
             }
