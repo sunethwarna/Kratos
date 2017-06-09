@@ -252,6 +252,8 @@ namespace Kratos
 			// It should be used in a LinearCoordinateTransformation.
 			// Here instead we already calculate a nonlinear Projector (P = Pu - S * G)!
 
+			bool bCSEformulation = true;
+
 			MatrixType T(24, 24);
 			LCS.ComputeTotalRotationMatrix(T);
 
@@ -266,11 +268,26 @@ namespace Kratos
 			MatrixType G(RotationGradient());
 			noalias(P) -= prod(S, G);
 
+			MatrixType temp(24, 24);
+			VectorType tempVec(24);
+
+			// H: Axial Vector Jacobian
+			MatrixType H(EICR::Compute_H(localDisplacements));
+
 			// Compute the projected local forces ( pe = P' * RHS ).
 			// Note: here the RHS is already given as a residual vector -> - internalForces -> (pe = - Ke * U)
 			// so projectedLocalForces = - P' * Ke * U
 
 			VectorType projectedLocalForces(prod(trans(P), rRightHandSideVector));
+
+			// CSE formulation
+			// projectedLocalForces = - P' * H' * Ke * U
+			if (bCSEformulation)
+			{
+				projectedLocalForces.clear();
+				tempVec = prod(trans(H), rRightHandSideVector);
+				projectedLocalForces = prod(trans(P), tempVec);
+			}
 
 			// Compute the Right-Hand-Side vector in global coordinate system (- T' * P' * Km * U).
 			// At this point the computation of the Right-Hand-Side is complete.
@@ -281,23 +298,35 @@ namespace Kratos
 
 			if (!LHSrequired) return; // avoid useless calculations!
 
-									  // This is a temporary matrix to store intermediate values
-									  // to avoid extra dynamic memory allocations!
+			// This is a temporary matrix to store intermediate values
+			// to avoid extra dynamic memory allocations!
 
-			MatrixType temp(24, 24);
-
-			// H: Axial Vector Jacobian
-			MatrixType H(EICR::Compute_H(localDisplacements));
+			
 
 			// Step 1: ( K.M : Material Stiffness Matrix )
 			// Apply the projector to the Material Stiffness Matrix (Ke = P' * Km * H * P)
 			// At this point 'LHS' contains the 'projected' Material Stiffness matrix
 			// in local corotational coordinate system
 
-			noalias(temp) = prod(rLeftHandSideMatrix, H);
-			noalias(rLeftHandSideMatrix) = prod(temp, P);
-			noalias(temp) = prod(trans(P), rLeftHandSideMatrix);
-			rLeftHandSideMatrix.swap(temp);
+			
+
+			// CSE formulation
+			// (Ke = P' * H' * Km * H * P)
+			if (bCSEformulation)
+			{
+				noalias(temp) = prod(rLeftHandSideMatrix, H);
+				noalias(rLeftHandSideMatrix) = prod(temp, P);
+				noalias(temp) = prod(trans(H), rLeftHandSideMatrix);
+				rLeftHandSideMatrix = prod(trans(P), temp);
+			}
+			else
+			{
+				noalias(temp) = prod(rLeftHandSideMatrix, H);
+				noalias(rLeftHandSideMatrix) = prod(temp, P);
+				noalias(temp) = prod(trans(P), rLeftHandSideMatrix);
+				rLeftHandSideMatrix.swap(temp);
+			}
+
 
 			if (!extractKm)
 			{
@@ -325,17 +354,26 @@ namespace Kratos
 				}
 				noalias(rLeftHandSideMatrix) += prod(temp, P); // note: '+' not '-' because the RHS already has the negative sign
 
-															   // Step 3: ( K.GR: Rotational Geometric Stiffness Matrix )
-															   // Add the Spins of the nodal moments to 'Fnm'.
-															   // At this point 'LHS' contains also this term of the Geometric stiffness
-															   // (Ke = (P' * Km * H * P) - (G' * Fn' * P) - (Fnm * G))
+				// Step 3: ( K.GR: Rotational Geometric Stiffness Matrix )
+				// Add the Spins of the nodal moments to 'Fnm'.
+				// At this point 'LHS' contains also this term of the Geometric stiffness
+				// (Ke = (P' * Km * H * P) - (G' * Fn' * P) - (Fnm * G))
 
 				EICR::Spin_AtRow(projectedLocalForces, Fnm, 3);
 				EICR::Spin_AtRow(projectedLocalForces, Fnm, 9);
 				EICR::Spin_AtRow(projectedLocalForces, Fnm, 15);
 				EICR::Spin_AtRow(projectedLocalForces, Fnm, 21);
 
-				noalias(rLeftHandSideMatrix) += prod(Fnm, G); // note: '+' not '-' because the RHS already has the negative sign		
+				noalias(rLeftHandSideMatrix) += prod(Fnm, G); // note: '+' not '-' because the RHS already has the negative sign	
+
+				// CSE formulation
+				// (K += P' * L * P)
+				if (bCSEformulation)
+				{
+					MatrixType L(EICR::Compute_L(localDisplacements, projectedLocalForces, H));
+					temp = prod(L, P);
+					noalias(rLeftHandSideMatrix) -= prod(trans(P), temp);//not sure
+				}
 			}
 
 

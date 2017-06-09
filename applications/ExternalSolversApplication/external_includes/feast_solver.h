@@ -253,7 +253,7 @@ public:
 		Parameters& FEAST_Settings = *mpParam;
 
 		bool b_test = false;
-		bool b_largertest = true;
+		bool b_largertest = false;
 		if (b_test)
 		{
 			std::cout << "Using custom matrix system" << std::endl;

@@ -551,6 +551,37 @@ void ShellThinElement3D3N::CalculateRightHandSide(VectorType& rRightHandSideVect
     CalculateAll(dummy, rRightHandSideVector, rCurrentProcessInfo, true, true);
 }
 
+void ShellThinElement3D3N::CalculateGeometricStiffnessMatrix(MatrixType & rGeometricStiffnessMatrix, ProcessInfo & rCurrentProcessInfo)
+{
+	std::cout << "Kg" << std::endl;
+	Vector dummyRHS;
+	CalculateAll(rGeometricStiffnessMatrix, dummyRHS, rCurrentProcessInfo, true, false, 2);
+
+	bool make_symmmetric = false;
+	if (make_symmmetric)
+	{
+		for (size_t i = 0; i < 18; i++)
+		{
+			for (size_t j = 0; j < 18; j++)
+			{
+				rGeometricStiffnessMatrix(i, j) = rGeometricStiffnessMatrix(j, i);
+			}
+		}
+	}
+	std::cout << "Kg done" << std::endl;
+}
+
+void ShellThinElement3D3N::CalculateElasticStiffnessMatrix(MatrixType & rElasticStiffnessMatrix, ProcessInfo & rCurrentProcessInfo)
+{
+	std::cout << "Km" << std::endl;
+	Vector dummyRHS;
+	CalculateAll(rElasticStiffnessMatrix, dummyRHS, rCurrentProcessInfo, true, false, 1);
+	std::cout << "Km done" << std::endl;
+}
+
+
+
+
 // =====================================================================================
 //
 // Class ShellThinElement3D3N - Results on Gauss Points
@@ -1267,7 +1298,8 @@ void ShellThinElement3D3N::CalculateAll(MatrixType& rLeftHandSideMatrix,
                                         VectorType& rRightHandSideVector,
                                         ProcessInfo& rCurrentProcessInfo,
                                         const bool LHSrequired,
-                                        const bool RHSrequired)
+                                        const bool RHSrequired,
+										const unsigned int caseId)
 {
     // Resize the Left Hand Side if necessary,
     // and initialize it to Zero
@@ -1300,6 +1332,24 @@ void ShellThinElement3D3N::CalculateAll(MatrixType& rLeftHandSideMatrix,
 
     //ApplyCorrectionToRHS(data, rRightHandSideVector);
 
+	// Perform switch of caseID to finalize correct stiffness matrix
+	bool extractKg = false;
+	bool extractKm = false;
+	switch (caseId)
+	{
+	case 1:
+		// Extract elastic stiffness matrix only - for stability calc
+		extractKm = true;
+		break;
+	case 2:
+		// Extract geometric stiffness matrix only - for stability calc
+		extractKg = true;
+		break;
+	default:
+		// Normal calculation, determine complete stiffness matrix: normal mode
+		break;
+	}
+
     // Let the CoordinateTransformation finalize the calculation.
     // This will handle the transformation of the local matrices/vectors to
     // the global coordinate system.
@@ -1310,7 +1360,9 @@ void ShellThinElement3D3N::CalculateAll(MatrixType& rLeftHandSideMatrix,
             rLeftHandSideMatrix,
             rRightHandSideVector,
             RHSrequired,
-            LHSrequired);
+            LHSrequired,
+			extractKm,
+			extractKg);
 
     // Add body forces contributions. This doesn't depend on the coordinate system
 

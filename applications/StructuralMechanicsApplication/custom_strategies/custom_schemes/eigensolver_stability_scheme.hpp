@@ -100,10 +100,11 @@ public:
     {
 		KRATOS_TRY
 
-		bool bDynamicSetup = true;
+		bool bDynamicSetup = false;
 
 		if (bDynamicSetup)
 		{
+			std::cout << "Dynamic setup" << std::endl;
 			if (CurrentProcessInfo[BUILD_LEVEL] == 1)
 			{ // mass matrix
 				pCurrentElement->CalculateMassMatrix(LHS_Contribution, CurrentProcessInfo);

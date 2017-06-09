@@ -816,19 +816,37 @@ void ShellThickElement3D4N::CalculateGeometricStiffnessMatrix(MatrixType & rGeom
 	Vector dummyRHS;
 	CalculateAll(rGeometricStiffnessMatrix, dummyRHS, rCurrentProcessInfo, true, false,2);
 
-	//rGeometricStiffnessMatrix = IdentityMatrix(24);
-	//rGeometricStiffnessMatrix *= 2.0;
+	std::cout << "\n" << rGeometricStiffnessMatrix << std::endl;
+
+	double tolerance = 0.01;
+	int countsymm = 0;
 
 	bool make_symmmetric = true;
 	if (make_symmmetric)
 	{
 		for (size_t i = 0; i < 24; i++)
 		{
-			for (size_t j = 0; j < 24; j++)
+			for (size_t j = 0; j < 24; j++)// convert to triangle check only later
 			{
-				rGeometricStiffnessMatrix(i, j) = rGeometricStiffnessMatrix(j, i);
+				if (rGeometricStiffnessMatrix(i, j) > 0.0001)
+				{
+					double diff = ((rGeometricStiffnessMatrix(i, j)) - (rGeometricStiffnessMatrix(j, i))) / abs(rGeometricStiffnessMatrix(i, j));
+					//std::cout << diff << std::endl;
+					if (diff>tolerance)
+					{
+						countsymm++;
+						std::cout << "\ndiff at [" << i << ", " << j << "]" << std::endl;
+						std::cout << rGeometricStiffnessMatrix(i, j) << " vs " << rGeometricStiffnessMatrix(j, i) << std::endl;
+						std::cout << "Diff = " << diff << std::endl;
+						//rGeometricStiffnessMatrix(i, j) = rGeometricStiffnessMatrix(j, i);
+					}
+				}
+				
+				
 			}
 		}
+
+		std::cout << "\nNumber of unsymmmetric entries = " << countsymm << "\n\n"  << std::endl;
 	}
 
 	

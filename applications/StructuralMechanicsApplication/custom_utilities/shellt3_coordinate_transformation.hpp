@@ -110,7 +110,9 @@ public:
                                       MatrixType & rLeftHandSideMatrix,
                                       VectorType & rRightHandSideVector,
                                       const bool RHSrequired,
-                                      const bool LHSrequired)
+                                      const bool LHSrequired,
+										const bool extractKm = false,
+										const bool extractKg = false)
     {
         MatrixType R(18, 18);
         LCS.ComputeTotalRotationMatrix( R );
